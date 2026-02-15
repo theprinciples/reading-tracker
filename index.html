@@ -223,13 +223,13 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .star { cursor:pointer; font-size:16px; opacity:.25; transition:.15s; user-select:none; }
 .star:hover { opacity:.6; }
 .star.on { opacity:1; color:#f5c542; }
-.fav-src { font-size:12px; color:var(--t3); padding:3px 8px; background:var(--bg2); border-radius:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
+.fav-src { font-size:13px; color:var(--t3); padding:4px 10px; background:var(--bg2); border-radius:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
 
 /* Favorites table - full width layout */
 #favView .tw { overflow-x:auto; overflow-y:visible; -webkit-overflow-scrolling:touch; }
-#favView table { width:100%; table-layout:fixed; min-width:640px; font-size:14px; }
-#favView th { font-size:13px; }
-#favView td { padding:12px 10px; }
+#favView table { width:100%; table-layout:fixed; min-width:640px; font-size:15px; }
+#favView th { font-size:14px; }
+#favView td { padding:14px 12px; }
 #favView th:nth-child(1), #favView td:nth-child(1) { width:40px; text-align:center; }
 #favView th:nth-child(2), #favView td:nth-child(2) { width:10%; }
 #favView th:nth-child(3), #favView td:nth-child(3) { width:12%; }
@@ -267,15 +267,15 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .home-guide { padding:24px 40px; width:100%; grid-column:1/-1; }
 
 /* KG */
-.kg-pill { padding:5px 11px; border-radius:10px; font-size:12px; cursor:pointer; transition:.15s; border:1px solid transparent; }
+.kg-pill { padding:6px 13px; border-radius:10px; font-size:13px; cursor:pointer; transition:.15s; border:1px solid transparent; }
 .kg-pill:hover { opacity:.8; }
 .kg-pill.active { border-color:#fff; }
-.kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:10px 12px; margin-bottom:6px; font-size:13px; cursor:pointer; transition:.15s; }
+.kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:12px 14px; margin-bottom:7px; font-size:14px; cursor:pointer; transition:.15s; }
 .kg-article:hover { border-color:var(--gold); }
 .kg-article.hl { border-color:var(--gold); background:var(--card2); }
-.kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:4px; }
-.kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:4px; }
-.kg-article .kg-a-tags span { font-size:11px; padding:2px 6px; border-radius:6px; }
+.kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:5px; }
+.kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:5px; }
+.kg-article .kg-a-tags span { font-size:12px; padding:3px 7px; border-radius:6px; }
 .goal-item { padding:3px 6px; border-radius:6px; margin-bottom:2px; transition:.15s; opacity:0.5; }
 .goal-item.active { opacity:1; background:rgba(232,184,48,0.08); border-left:2px solid #e8b830; padding-left:8px; }
 .home-guide-section { background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:16px 22px; margin-bottom:10px; font-size:14px; line-height:2; }
@@ -796,14 +796,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           </div>
         </div>
       </div>
-      <div style="width:340px;flex-shrink:0">
-        <div style="margin-bottom:12px">
-          <select id="kgFilter" class="fsel" onchange="renderKnowledgeGraph()" style="width:100%;font-size:13px;padding:8px 10px"></select>
+      <div style="width:380px;flex-shrink:0">
+        <div style="margin-bottom:14px">
+          <select id="kgFilter" class="fsel" onchange="renderKnowledgeGraph()" style="width:100%;font-size:14px;padding:10px 12px"></select>
         </div>
-        <div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:10px">🏷️ 태그</div>
-        <div id="kgTagCloud" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px"></div>
-        <div id="kgArticleList" style="max-height:400px;overflow-y:auto"></div>
-        <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:14px;margin-top:14px;font-size:13px;color:var(--t3);line-height:1.7"></div>
+        <div style="font-size:16px;font-weight:600;color:var(--t2);margin-bottom:12px">🏷️ 태그</div>
+        <div id="kgTagCloud" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px"></div>
+        <div id="kgArticleList" style="max-height:450px;overflow-y:auto"></div>
+        <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:16px;margin-top:16px;font-size:14px;color:var(--t3);line-height:1.8"></div>
       </div>
     </div>
   </div>
