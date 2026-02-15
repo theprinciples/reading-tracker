@@ -40,7 +40,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
-.app { max-width:1440px; margin:0 auto; padding:24px 20px; }
+.app { max-width:1440px; margin:0 auto; padding:10px 20px 24px; }
 
 /* TABS */
 .tab-bar { display:flex; align-items:center; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--bdr); overflow-x:auto; scrollbar-width:none; }
@@ -51,12 +51,14 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .tab-pinned { position:sticky; left:0; z-index:2; background:var(--bg); }
 .tab-x { margin-left:6px; font-size:11px; opacity:.3; cursor:pointer; }
 .tab-x:hover { opacity:1; color:var(--red); }
-.tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed var(--bdr); border-radius:var(--rs); cursor:pointer; margin-left:4px; font-family:inherit; }
+.tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed #555; border-radius:var(--rs); cursor:pointer; margin-left:17px; margin-right:0; font-family:inherit; }
 .tab-add:hover { color:var(--gold); border-color:var(--gold); }
 .settings-tab { background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit; }
 .settings-tab.active { border-bottom-color:var(--gold); }
 .tab-arrow { background:var(--card); border:1px solid var(--bdr); border-radius:6px; color:var(--t3); cursor:pointer; font-size:9px; padding:4px 6px; flex-shrink:0; transition:.15s; font-family:inherit; }
 .tab-arrow:hover { color:var(--gold); border-color:var(--gold); }
+.mobile-menu-btn { display:none; align-items:center; justify-content:center; background:var(--card); border:1px solid var(--bdr); border-radius:6px; color:var(--t2); font-size:18px; padding:6px 10px; cursor:pointer; flex-shrink:0; font-family:inherit; margin-bottom:12px; }
+.mobile-menu-btn:hover { color:var(--gold); border-color:var(--gold); }
 .tab-edit { margin-left:4px; font-size:10px; opacity:.3; cursor:pointer; }
 .tab-edit:hover { opacity:1; color:var(--gold); }
 
@@ -330,7 +332,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
   /* Tab bar - touch friendly */
   .tab { padding:10px 12px; font-size:12px; }
-  .tab-add { padding:8px 10px; font-size:14px; }
+  .tab-add { padding:6px 8px; font-size:12px; border-style:dashed; border-color:var(--t3); }
+
+  /* Mobile menu toggle */
+  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:center !important; gap:10px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .tabbar-right.open { display:flex !important; }
+  .mobile-menu-btn { display:flex !important; }
 
   /* Table - horizontal scroll */
   .tw { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -423,11 +430,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 <div class="app">
 
   <!-- TAB BAR -->
-  <div style="display:flex;align-items:flex-end;gap:0">
+  <div style="display:flex;align-items:flex-end;gap:0;position:relative">
     <div class="tab-bar" id="tabBar" style="flex:1"></div>
-    <div style="display:flex;align-items:flex-end;gap:4px;padding-bottom:12px;flex-shrink:0">
+    <div id="tabBarRight" class="tabbar-right" style="display:flex;align-items:flex-end;gap:2px;padding-bottom:12px;flex-shrink:0">
       <button class="tab-add" id="tabAddBtn" onclick="openModal()" style="flex-shrink:0;margin-bottom:0">＋</button>
-      <button class="tab settings-tab" id="tabSettingsBtn" onclick="switchTab('tab_settings')" style="flex-shrink:0;opacity:0.75;font-size:14px;margin-bottom:0" title="설정 / 도움말">⚙️</button>
+      <button class="tab settings-tab" id="tabSettingsBtn" onclick="switchTab('tab_settings')" style="flex-shrink:0;opacity:0.75;font-size:18px;margin-bottom:-8px;padding-left:0;padding-right:1px;margin-left:12px" title="설정 / 도움말">⚙️</button>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:center;flex-shrink:0;margin-left:4px">
         <div id="themeSelector" style="display:flex;gap:6px;flex-shrink:0">
           <div class="theme-dot" onclick="setTheme('gold')" title="골드" style="background:#e8b830"></div>
@@ -444,6 +451,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         </div>
       </div>
     </div>
+    <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleMobileMenu()">⋮</button>
   </div>
 
   <!-- HEADER -->
@@ -812,7 +820,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   </div>
 </div>
 
-<footer style="position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:8px 0;font-size:10px;color:#888;pointer-events:none">
+<footer style="text-align:center;padding:24px 0 12px;font-size:10px;color:#888">
   © 2026 theprinciples · CC BY-NC-SA 4.0
 </footer>
 
@@ -1068,7 +1076,7 @@ function renderTabs() {
     stBtn.className = 'tab' + (activeTabId === 'tab_settings' ? ' active' : '');
     stBtn.style.flexShrink = '0';
     stBtn.style.opacity = '0.75';
-    stBtn.style.fontSize = '14px';
+    stBtn.style.fontSize = '18px';
   }
 
   // Set sticky left for second pinned tab
@@ -3881,6 +3889,18 @@ function resetAllData() {
 }
 
 // =============================================
+function toggleMobileMenu() {
+  var panel = $('tabBarRight');
+  panel.classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  var panel = $('tabBarRight');
+  var btn = $('mobileMenuBtn');
+  if (panel && panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn) {
+    panel.classList.remove('open');
+  }
+});
+
 document.addEventListener('mouseout', function(e) {
   var wrap = e.target.closest('.note-tip-wrap');
   if (!wrap) return;
