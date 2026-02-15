@@ -115,6 +115,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 /* COLUMN MAPPING */
 .map-box { background:var(--bg2); border:1px solid var(--gold); border-radius:var(--r); padding:20px; margin-top:16px; animation:fadeIn .2s; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .map-box h4 { font-size:14px; font-weight:700; color:var(--gold); margin-bottom:6px; }
 .map-desc { font-size:12px; color:var(--t2); margin-bottom:16px; }
 .map-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
@@ -414,6 +415,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     </select>
   </div>
   <input type="text" id="modalGroupCustom" placeholder="새 그룹 이름 입력..." style="display:none;width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;margin-bottom:12px">
+  <label>날짜 항목 이름</label>
+  <select id="modalDateLabel" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;cursor:pointer;margin-bottom:12px">
+    <option value="날짜">날짜</option>
+    <option value="페이지">페이지</option>
+  </select>
   <label>파일 업로드 (선택)</label>
   <div style="margin-bottom:12px">
     <label class="btn" style="cursor:pointer">📄 CSV / Excel 선택
@@ -461,7 +467,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   <div class="hdr">
     <div>
       <h1 id="headerTitle">📚 독서 트래커</h1>
-      <div class="hdr-sub" id="headerSub">탭을 추가하고 파일을 업로드하세요</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="hdr-sub" id="headerSub">탭을 추가하고 파일을 업로드하세요</div>
+        <span id="appVersion" style="font-size:11px;color:var(--t3);opacity:0.6"></span>
+        <span id="updateBadge" style="display:none;font-size:13px;color:var(--gold);cursor:pointer;white-space:nowrap;animation:pulse 2s ease-in-out infinite" onclick="location.reload()">🔄 새 업데이트!</span>
+      </div>
     </div>
     <div class="hdr-btns">
       <button class="btn" id="btnFile" onclick="togglePanel('file')">📄 파일 업로드</button>
@@ -500,7 +510,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           <select id="mapUrl" class="map-sel"></select>
         </div>
         <div class="map-row">
-          <label>📅 날짜 / Date</label>
+          <label id="mapDateLabel">📅 날짜 / Date</label>
           <select id="mapDate" class="map-sel"></select>
         </div>
       </div>
@@ -688,7 +698,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:44px">#</th>
-          <th>카테고리</th><th>제목</th><th style="width:100px">날짜</th><th style="width:90px"></th>
+          <th>카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:90px"></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -835,6 +845,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
+const APP_VERSION = 'v1.0';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1123,6 +1134,8 @@ function switchTab(id) {
   window.scrollTo(0, 0);
   saveToStorage();
   renderTabs();
+  $('appVersion').textContent = '';
+  $('updateBadge').style.display = 'none';
 
   // Home tab
   if (id === 'tab_home') {
@@ -1133,6 +1146,8 @@ function switchTab(id) {
     $('kgView').style.display = 'none';
     $('settingsView').style.display = 'none';
     $('headerTitle').textContent = '📚 독서 트래커';
+    $('appVersion').textContent = APP_VERSION;
+    if (window._updateAvailable) $('updateBadge').style.display = '';
     $('headerSub').textContent = '전체 요약';
     $('btnFile').style.display = 'none';
     $('btnSheets').style.display = 'none';
@@ -1346,6 +1361,7 @@ function openModal() {
   $('modalFile').value = '';
   $('modalGroupCustom').style.display = 'none';
   $('modalGroupCustom').value = '';
+  $('modalDateLabel').value = '날짜';
 
   // Populate group select from existing tabs
   var groups = [];
@@ -1409,6 +1425,7 @@ $('modalSubmit').addEventListener('click', () => {
   newTab.name = name;
   newTab.group = group;
   newTab.sheetsUrl = sheetsUrl;
+  newTab.dateLabel = $('modalDateLabel').value;
   var tabId = newTab.id;
   window._pendingModalTabId = null;
 
@@ -1518,6 +1535,61 @@ function handleFileUpload(file) {
     return;
   }
 
+  // If current tab has data, ask upload mode first
+  var tab = getActiveTab();
+  if (tab && tab.data && tab.data.length > 0) {
+    window._pendingFile = file;
+    showUploadModeSelectEarly();
+    return;
+  }
+
+  window._uploadMode = 'overwrite';
+  processFileUpload(file);
+}
+
+function showUploadModeSelectEarly() {
+  var html = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" id="uploadModeBg" onclick="if(event.target===this){this.remove();window._pendingFile=null}">';
+  html += '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:28px;max-width:440px;width:90%">';
+  html += '<h3 style="margin-bottom:8px;color:var(--t1);font-size:17px">📂 데이터 추가 방식</h3>';
+  html += '<p style="font-size:13px;color:var(--t3);margin-bottom:20px">현재 탭에 이미 데이터가 있어요. 어떻게 할까요?</p>';
+
+  html += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">';
+
+  html += '<div onclick="pickUploadModeEarly(\'append\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:2px solid var(--gold);border-radius:10px;transition:.15s">';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:4px">➕ 현재 탭에 추가</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">기존 데이터 뒤에 새 데이터를 이어붙여요</div>';
+  html += '</div>';
+
+  html += '<div onclick="pickUploadModeEarly(\'newtab\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;transition:.15s">';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">✨ 새 탭으로 추가</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">기존 데이터는 그대로, 새 탭에 데이터를 넣어요</div>';
+  html += '</div>';
+
+  html += '<div onclick="pickUploadModeEarly(\'overwrite\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;transition:.15s">';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">🔄 현재 탭에 덮어쓰기</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">현재 탭의 데이터를 새 데이터로 교체해요</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  html += '<div style="text-align:right"><button class="btn" onclick="document.getElementById(\'uploadModeBg\').remove();window._pendingFile=null">취소</button></div>';
+  html += '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function pickUploadModeEarly(mode) {
+  document.getElementById('uploadModeBg').remove();
+  window._uploadMode = mode;
+  if (window._pendingFile) {
+    processFileUpload(window._pendingFile);
+    window._pendingFile = null;
+  }
+}
+
+function processFileUpload(file) {
+  const name = file.name.toLowerCase();
+
   clearLog();
   log('파일: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)');
 
@@ -1622,6 +1694,7 @@ function processNextSheet() {
     saveToStorage();
     renderTabs();
     switchTab(allTabs[allTabs.length - 1].id);
+    setTimeout(function() { $('tabBar').scrollLeft = $('tabBar').scrollWidth; }, 50);
     toast('✅ ' + currentSheetIdx + '개 시트를 불러왔어요!', 'ok');
     window._modalGroup = null;
     window._modalName = null;
@@ -1662,6 +1735,10 @@ function showMappingUI(rows, sheetName) {
   }
 
   // Populate dropdowns
+  var tab = getActiveTab();
+  var dateLbl = (tab && tab.dateLabel) || '날짜';
+  $('mapDateLabel').textContent = '📅 ' + dateLbl + ' / Date';
+
   const fields = ['mapTitle', 'mapCategory', 'mapUrl', 'mapDate'];
   const mapKeys = ['title', 'category', 'url', 'date'];
   const noneOption = '<option value="">(사용 안 함)</option>';
@@ -1694,11 +1771,13 @@ function updatePreview(rows) {
   const preview = rows.slice(0, 5);
   const box = $('previewBox');
 
+  var tab2 = getActiveTab();
+  var dateLbl2 = (tab2 && tab2.dateLabel) || '날짜';
   let html = '<h5>미리보기 (처음 5개)</h5><table><thead><tr>';
   if (mapping.category) html += '<th>카테고리</th>';
   html += '<th>제목</th>';
   if (mapping.url) html += '<th>URL</th>';
-  if (mapping.date) html += '<th>날짜</th>';
+  if (mapping.date) html += '<th>' + dateLbl2 + '</th>';
   html += '</tr></thead><tbody>';
 
   preview.forEach(row => {
@@ -1764,8 +1843,14 @@ function applyMapping() {
     return;
   }
 
+  if (tab.data && tab.data.length > 0 && pendingSource !== 'sheets' && window._uploadMode) {
+    // Upload mode already selected early
+    finishApplyMapping(normalized, mapping, window._uploadMode);
+    window._uploadMode = null;
+    return;
+  }
+
   if (tab.data && tab.data.length > 0 && pendingSource !== 'sheets') {
-    // Tab already has data — show choice
     window._pendingNormalized = normalized;
     window._pendingMapping = mapping;
     showUploadModeSelect();
@@ -1777,26 +1862,31 @@ function applyMapping() {
 }
 
 function showUploadModeSelect() {
-  var html = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" id="uploadModeBg" onclick="if(event.target===this)this.remove()">';
-  html += '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:24px;max-width:420px;width:90%">';
-  html += '<h3 style="margin-bottom:8px;color:var(--t1)">📂 데이터 추가 방식</h3>';
-  html += '<p style="font-size:12px;color:var(--t3);margin-bottom:20px">현재 탭에 이미 데이터가 있어요. 어떻게 할까요?</p>';
+  var html = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" id="uploadModeBg" onclick="if(event.target===this){this.remove();cancelMapping()}">';
+  html += '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:28px;max-width:440px;width:90%">';
+  html += '<h3 style="margin-bottom:8px;color:var(--t1);font-size:17px">📂 데이터 추가 방식</h3>';
+  html += '<p style="font-size:13px;color:var(--t3);margin-bottom:20px">현재 탭에 이미 데이터가 있어요. 어떻게 할까요?</p>';
 
   html += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">';
 
-  html += '<div onclick="pickUploadMode(\'newtab\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:2px solid var(--gold);border-radius:10px;transition:.15s">';
-  html += '<div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:4px">✨ 새 탭으로 추가</div>';
-  html += '<div style="font-size:11px;color:var(--t3)">기존 데이터는 그대로, 새 탭에 데이터를 넣어요</div>';
+  html += '<div onclick="pickUploadMode(\'append\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:2px solid var(--gold);border-radius:10px;transition:.15s">';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:4px">➕ 현재 탭에 추가</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">기존 데이터 뒤에 새 데이터를 이어붙여요</div>';
+  html += '</div>';
+
+  html += '<div onclick="pickUploadMode(\'newtab\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;transition:.15s">';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">✨ 새 탭으로 추가</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">기존 데이터는 그대로, 새 탭에 데이터를 넣어요</div>';
   html += '</div>';
 
   html += '<div onclick="pickUploadMode(\'overwrite\')" style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;transition:.15s">';
-  html += '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">🔄 현재 탭에 덮어쓰기</div>';
-  html += '<div style="font-size:11px;color:var(--t3)">현재 탭의 데이터를 새 데이터로 교체해요</div>';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">🔄 현재 탭에 덮어쓰기</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">현재 탭의 데이터를 새 데이터로 교체해요</div>';
   html += '</div>';
 
   html += '</div>';
 
-  html += '<div style="text-align:right"><button class="btn" onclick="document.getElementById(\'uploadModeBg\').remove()">취소</button></div>';
+  html += '<div style="text-align:right"><button class="btn" onclick="document.getElementById(\'uploadModeBg\').remove();cancelMapping()">취소</button></div>';
   html += '</div></div>';
 
   document.body.insertAdjacentHTML('beforeend', html);
@@ -1811,7 +1901,6 @@ function pickUploadMode(mode) {
 
 function finishApplyMapping(normalized, mapping, mode) {
   if (mode === 'newtab') {
-    // Create a new tab with the data
     var tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
     var tabName = window._currentSheetName || '새 트래커';
     var tab = getActiveTab();
@@ -1820,9 +1909,18 @@ function finishApplyMapping(normalized, mapping, mode) {
     saveToStorage();
     renderTabs();
     switchTab(tabId);
+    setTimeout(function() { $('tabBar').scrollLeft = $('tabBar').scrollWidth; }, 50);
     toast('✅ 새 탭 "' + tabName + '" 추가! (' + normalized.length + '개)', 'ok');
+  } else if (mode === 'append') {
+    const tab = getActiveTab();
+    var startNum = tab.data.length > 0 ? Math.max.apply(null, tab.data.map(function(d) { return d.num || 0; })) + 1 : 1;
+    normalized.forEach(function(item, i) { item.num = startNum + i; });
+    tab.data = tab.data.concat(normalized);
+    saveToStorage();
+    showDashboard(true);
+    renderAll();
+    toast('✅ ' + normalized.length + '개 추가! (총 ' + tab.data.length + '개)', 'ok');
   } else {
-    // Overwrite current tab
     const tab = getActiveTab();
     tab.data = normalized;
 
@@ -2854,6 +2952,9 @@ function renderAll() {
 
   $('headerTitle').textContent = '📚 ' + tab.name;
   $('headerSub').textContent = tab.data.length + '개 아티클';
+
+  // Custom column labels
+  $('thDate').textContent = tab.dateLabel || '날짜';
 
   populateFilters();
   renderProgress();
@@ -4045,6 +4146,36 @@ if (!activeTabId || !allTabs.find(t => t.id === activeTabId)) {
 
 renderTabs();
 switchTab('tab_home');
+
+// =============================================
+// AUTO UPDATE CHECK (once per day)
+// =============================================
+(function checkForUpdates() {
+  var CHECK_KEY = 'pt_last_update_check';
+  var now = Date.now();
+  var last = parseInt(localStorage.getItem(CHECK_KEY) || '0');
+  var oneDay = 24 * 60 * 60 * 1000;
+
+  function doCheck() {
+    fetch('https://theprinciples.github.io/reading-tracker/?_t=' + Date.now())
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        var match = html.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        if (match && match[1] !== APP_VERSION) {
+          window._updateAvailable = true;
+          if (activeTabId === 'tab_home') {
+            $('updateBadge').style.display = '';
+          }
+        }
+        localStorage.setItem(CHECK_KEY, String(Date.now()));
+      })
+      .catch(function() {});
+  }
+
+  if (now - last > oneDay) {
+    setTimeout(doCheck, 3000); // 3초 후 체크 (페이지 로드 방해 안 하게)
+  }
+})();
 </script>
 </body>
 </html>
