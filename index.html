@@ -3654,6 +3654,7 @@ function renderHome() {
     $('homeBulbArea').style.display = 'none';
     stopBulbAnim();
     $('homeCards').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 200px);width:100%">' +
       '<div style="text-align:center;padding:60px 20px">' +
       '<div style="font-size:48px;margin-bottom:16px">📚</div>' +
       '<h2 style="color:var(--t1);font-size:20px;margin-bottom:8px">독서 트래커에 오신 걸 환영합니다!</h2>' +
@@ -3661,6 +3662,7 @@ function renderHome() {
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
       '<button class="btn btn-g" onclick="openModal()" style="font-size:14px;padding:12px 24px">＋ 새 트래커 만들기</button>' +
       '<button class="btn" onclick="switchTab(\'tab_settings\')" style="font-size:13px;padding:12px 20px">📖 사용법 보기</button>' +
+      '</div>' +
       '</div>' +
       '</div>';
     return;
