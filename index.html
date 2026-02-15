@@ -1313,6 +1313,22 @@ function renameGroup(oldName) {
 let modalFileRef = null;
 
 function openModal() {
+  // Create new tab first and switch to it
+  var newTab = {
+    id: 'tab_' + Date.now(),
+    name: '새 트래커',
+    group: '',
+    data: [],
+    sheetsUrl: '',
+    readMap: {},
+    starSet: []
+  };
+  allTabs.push(newTab);
+  saveToStorage();
+  renderTabs();
+  switchTab(newTab.id);
+  window._pendingModalTabId = newTab.id;
+
   $('modalBg').classList.add('open');
   $('modalName').value = '';
   $('modalSheets').value = '';
@@ -1332,8 +1348,34 @@ function openModal() {
   sel.value = '';
 }
 
-function closeModal() {
+function closeModal(fromSubmit) {
   $('modalBg').classList.remove('open');
+  // If user cancelled (not submitted) and pending tab is still empty, remove it
+  if (!fromSubmit && window._pendingModalTabId) {
+    var tab = allTabs.find(t => t.id === window._pendingModalTabId);
+    if (tab && tab.data.length === 0 && !tab.sheetsUrl) {
+      allTabs = allTabs.filter(t => t.id !== window._pendingModalTabId);
+      saveToStorage();
+      renderTabs();
+      if (allTabs.length > 0) {
+        switchTab('tab_home');
+      }
+    }
+    window._pendingModalTabId = null;
+  }
+}
+
+function scrollTabIntoView(tabId) {
+  setTimeout(function() {
+    var bar = $('tabBar');
+    var tabs = bar.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].onclick && tabs[i].className.indexOf('active') >= 0) {
+        tabs[i].scrollIntoView({ behavior:'smooth', block:'nearest', inline:'nearest' });
+        break;
+      }
+    }
+  }, 50);
 }
 
 $('modalFile').addEventListener('change', e => {
@@ -1347,46 +1389,56 @@ $('modalSubmit').addEventListener('click', () => {
   const selVal = $('modalGroupSelect').value;
   const group = selVal === '__custom__' ? $('modalGroupCustom').value.trim() : (selVal || '');
 
-  if (modalFileRef) {
-    const fileName = modalFileRef.name.toLowerCase();
-    // Excel with potentially multiple sheets — use handleFileUpload directly
+  // Get the tab that was created in openModal
+  var newTab = allTabs.find(t => t.id === window._pendingModalTabId);
+  if (!newTab) {
+    closeModal(true);
+    return;
+  }
+
+  // Update tab with modal values
+  newTab.name = name;
+  newTab.group = group;
+  newTab.sheetsUrl = sheetsUrl;
+  var tabId = newTab.id;
+  window._pendingModalTabId = null;
+
+  // Save file ref before closing modal
+  var savedFileRef = modalFileRef;
+  var savedSheetsUrl = sheetsUrl;
+
+  if (savedFileRef) {
+    const fileName = savedFileRef.name.toLowerCase();
     if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      closeModal();
-      // Set group context for sheet creation
+      window._pendingModalTabId = null;
+      closeModal(true);
       window._modalGroup = group;
       window._modalName = name;
-      handleFileUpload(modalFileRef);
+      handleFileUpload(savedFileRef);
       return;
     }
   }
 
-  const newTab = {
-    id: 'tab_' + Date.now(),
-    name: name,
-    group: group,
-    data: [],
-    sheetsUrl: sheetsUrl,
-    readMap: {},
-    starSet: []
-  };
-  allTabs.push(newTab);
-  activeTabId = newTab.id;
   saveToStorage();
   renderTabs();
-  closeModal();
+  closeModal(true);
+  switchTab(tabId);
+  scrollTabIntoView(tabId);
 
-  if (modalFileRef) {
-    // CSV — open the file panel and use the mapping flow
-    $('panelFile').classList.add('open');
-    $('btnFile').classList.add('on');
-    parseUploadedFile(modalFileRef, rows => {
-      if (!rows || rows.length === 0) { toast('❌ 파일 읽기 실패', 'err'); showDashboard(false); return; }
-      pendingRows = rows;
-      pendingSource = 'modal';
-      showMappingUI(rows);
-    });
-  } else if (sheetsUrl) {
-    fetchGoogleSheets(sheetsUrl, newTab);
+  // Delay file processing so switchTab finishes first
+  if (savedFileRef) {
+    setTimeout(function() {
+      $('panelFile').classList.add('open');
+      $('btnFile').classList.add('on');
+      parseUploadedFile(savedFileRef, null, function(rows) {
+        if (!rows || rows.length === 0) { toast('❌ 파일 읽기 실패', 'err'); showDashboard(false); return; }
+        pendingRows = rows;
+        pendingSource = 'modal';
+        showMappingUI(rows);
+      });
+    }, 100);
+  } else if (savedSheetsUrl) {
+    fetchGoogleSheets(savedSheetsUrl, newTab);
   } else {
     showDashboard(false);
   }
