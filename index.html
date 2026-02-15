@@ -3655,16 +3655,32 @@ function renderHome() {
     stopBulbAnim();
     $('homeCards').innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 200px);width:100%">' +
-      '<div style="text-align:center;padding:60px 20px">' +
+      '<div id="welcomeDropZone" style="text-align:center;padding:60px 40px;border:2px dashed #555;border-radius:16px;cursor:pointer;transition:.2s;max-width:500px;width:100%">' +
       '<div style="font-size:48px;margin-bottom:16px">📚</div>' +
       '<h2 style="color:var(--t1);font-size:20px;margin-bottom:8px">독서 트래커에 오신 걸 환영합니다!</h2>' +
-      '<p style="color:var(--t3);font-size:13px;margin-bottom:32px;line-height:1.6">CSV, Excel, 또는 Google Sheets에서<br>읽기 목록을 불러와 시작하세요.</p>' +
+      '<p style="color:var(--t3);font-size:13px;margin-bottom:8px;line-height:1.6">CSV, Excel, 또는 Google Sheets에서<br>읽기 목록을 불러와 시작하세요.</p>' +
+      '<p style="color:var(--t3);font-size:12px;margin-bottom:32px">📄 파일을 여기에 드래그 앤 드롭하거나 클릭하세요</p>' +
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
-      '<button class="btn btn-g" onclick="openModal()" style="font-size:14px;padding:12px 24px">＋ 새 트래커 만들기</button>' +
-      '<button class="btn" onclick="switchTab(\'tab_settings\')" style="font-size:13px;padding:12px 20px">📖 사용법 보기</button>' +
+      '<button class="btn btn-g" onclick="event.stopPropagation();openModal()" style="font-size:14px;padding:12px 24px">＋ 새 트래커 만들기</button>' +
+      '<button class="btn" onclick="event.stopPropagation();switchTab(\'tab_settings\')" style="font-size:13px;padding:12px 20px">📖 사용법 보기</button>' +
       '</div>' +
       '</div>' +
       '</div>';
+
+    // Welcome drop zone handlers
+    var wdz = $('welcomeDropZone');
+    if (wdz) {
+      wdz.addEventListener('click', function() { fileInput.click(); });
+      wdz.addEventListener('dragover', function(e) { e.preventDefault(); wdz.style.borderColor = 'var(--gold)'; wdz.style.background = 'rgba(232,184,48,0.05)'; });
+      wdz.addEventListener('dragleave', function() { wdz.style.borderColor = '#555'; wdz.style.background = ''; });
+      wdz.addEventListener('drop', function(e) {
+        e.preventDefault();
+        wdz.style.borderColor = '#555';
+        wdz.style.background = '';
+        var file = e.dataTransfer.files[0];
+        if (file) handleFileUpload(file);
+      });
+    }
     return;
   }
 
