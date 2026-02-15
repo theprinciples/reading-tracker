@@ -267,15 +267,15 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .home-guide { padding:24px 40px; width:100%; grid-column:1/-1; }
 
 /* KG */
-.kg-pill { padding:3px 9px; border-radius:10px; font-size:10px; cursor:pointer; transition:.15s; border:1px solid transparent; }
+.kg-pill { padding:5px 11px; border-radius:10px; font-size:12px; cursor:pointer; transition:.15s; border:1px solid transparent; }
 .kg-pill:hover { opacity:.8; }
 .kg-pill.active { border-color:#fff; }
-.kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:8px 10px; margin-bottom:5px; font-size:11px; cursor:pointer; transition:.15s; }
+.kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:10px 12px; margin-bottom:6px; font-size:13px; cursor:pointer; transition:.15s; }
 .kg-article:hover { border-color:var(--gold); }
 .kg-article.hl { border-color:var(--gold); background:var(--card2); }
-.kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:3px; }
-.kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:3px; }
-.kg-article .kg-a-tags span { font-size:9px; padding:1px 5px; border-radius:6px; }
+.kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:4px; }
+.kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:4px; }
+.kg-article .kg-a-tags span { font-size:11px; padding:2px 6px; border-radius:6px; }
 .goal-item { padding:3px 6px; border-radius:6px; margin-bottom:2px; transition:.15s; opacity:0.5; }
 .goal-item.active { opacity:1; background:rgba(232,184,48,0.08); border-left:2px solid #e8b830; padding-left:8px; }
 .home-guide-section { background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:16px 22px; margin-bottom:10px; font-size:14px; line-height:2; }
@@ -796,14 +796,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           </div>
         </div>
       </div>
-      <div style="width:280px;flex-shrink:0">
+      <div style="width:340px;flex-shrink:0">
         <div style="margin-bottom:12px">
-          <select id="kgFilter" class="fsel" onchange="renderKnowledgeGraph()" style="width:100%;font-size:11px;padding:6px 8px"></select>
+          <select id="kgFilter" class="fsel" onchange="renderKnowledgeGraph()" style="width:100%;font-size:13px;padding:8px 10px"></select>
         </div>
-        <div style="font-size:13px;font-weight:600;color:var(--t2);margin-bottom:8px">🏷️ 태그</div>
-        <div id="kgTagCloud" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px"></div>
-        <div id="kgArticleList" style="max-height:300px;overflow-y:auto"></div>
-        <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:12px;margin-top:12px;font-size:11px;color:var(--t3);line-height:1.6"></div>
+        <div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:10px">🏷️ 태그</div>
+        <div id="kgTagCloud" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px"></div>
+        <div id="kgArticleList" style="max-height:400px;overflow-y:auto"></div>
+        <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:14px;margin-top:14px;font-size:13px;color:var(--t3);line-height:1.7"></div>
       </div>
     </div>
   </div>
@@ -3903,15 +3903,17 @@ function renderFavoritesTable(page) {
       var urlMatch = r.notes.match(/https?:\/\/[^\s]+/);
       var noteLink = urlMatch ? urlMatch[0] : '';
       var noteText = r.notes.replace(/https?:\/\/[^\s]+/, '').trim();
+      noteHtml = '<div style="display:flex;align-items:center;gap:4px">';
       if (noteLink) {
-        noteHtml = '<a href="'+esc(noteLink)+'" target="_blank" rel="noopener noreferrer" class="note-link" title="'+esc(noteLink)+'">🗒️</a>';
+        noteHtml += '<a href="'+esc(noteLink)+'" target="_blank" rel="noopener noreferrer" class="note-link" title="'+esc(noteLink)+'">🗒️</a>';
       }
       if (noteText) {
-        noteHtml += ' <span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(noteText)+'</span></span>';
+        noteHtml += '<span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(noteText)+'</span></span>';
       }
       if (!noteLink && !noteText) {
-        noteHtml = '<span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(r.notes)+'</span></span>';
+        noteHtml += '<span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(r.notes)+'</span></span>';
       }
+      noteHtml += '</div>';
     }
     var srcColor = COLORS[r.tabIdx % COLORS.length];
     return '<tr>' +
