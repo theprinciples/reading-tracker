@@ -845,7 +845,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.1.1';
+const APP_VERSION = 'v1.2';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1438,9 +1438,11 @@ $('modalSubmit').addEventListener('click', () => {
     if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
       window._pendingModalTabId = null;
       closeModal(true);
+      switchTab(tabId);
+      scrollTabIntoView(tabId);
       window._modalGroup = group;
       window._modalName = name;
-      handleFileUpload(savedFileRef);
+      setTimeout(function() { handleFileUpload(savedFileRef); }, 100);
       return;
     }
   }
@@ -1714,6 +1716,7 @@ function processNextSheet() {
 function showMappingUI(rows, sheetName) {
   const headers = Object.keys(rows[0]);
   const autoMap = detectColumnMapping(headers);
+  pendingRows = rows;  // Ensure pendingRows is set
 
   // Update mapping box title if multisheet
   var mapTitle = $('mappingBox').querySelector('h4');
@@ -1834,7 +1837,15 @@ function applyMapping() {
   }
 
   // Check if current tab already has data — ask user what to do
-  const tab = getActiveTab();
+  var tab = getActiveTab();
+  // Fallback: if activeTab not found, use last created tab
+  if (!tab) {
+    var regularTabs = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; });
+    if (regularTabs.length > 0) {
+      tab = regularTabs[regularTabs.length - 1];
+      activeTabId = tab.id;
+    }
+  }
   if (!tab || !pendingRows) { toast('❌ 데이터 없음', 'err'); return; }
 
   var normalized = normalizeWithMapping(pendingRows, mapping);
@@ -3832,7 +3843,27 @@ function renderHome() {
     // Welcome drop zone handlers
     var wdz = $('welcomeDropZone');
     if (wdz) {
-      wdz.addEventListener('click', function() { fileInput.click(); });
+      wdz.addEventListener('click', function() { 
+        // Create a tab first if none exist
+        var regularTabs = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; });
+        if (regularTabs.length === 0) {
+          var newTab = {
+            id: 'tab_' + Date.now(),
+            name: '새 트래커',
+            group: '',
+            data: [],
+            sheetsUrl: '',
+            readMap: {},
+            starSet: []
+          };
+          allTabs.push(newTab);
+          activeTabId = newTab.id;
+          saveToStorage();
+          renderTabs();
+          switchTab(newTab.id);
+        }
+        fileInput.click(); 
+      });
       wdz.addEventListener('dragover', function(e) { e.preventDefault(); wdz.style.borderColor = 'var(--gold)'; wdz.style.background = 'rgba(232,184,48,0.05)'; });
       wdz.addEventListener('dragleave', function() { wdz.style.borderColor = '#555'; wdz.style.background = ''; });
       wdz.addEventListener('drop', function(e) {
@@ -3840,7 +3871,24 @@ function renderHome() {
         wdz.style.borderColor = '#555';
         wdz.style.background = '';
         var file = e.dataTransfer.files[0];
-        if (file) handleFileUpload(file);
+        if (file) {
+          // Create a new tab first so handleFileUpload has an active tab
+          var newTab = {
+            id: 'tab_' + Date.now(),
+            name: file.name.replace(/\.[^.]+$/, '') || '새 트래커',
+            group: '',
+            data: [],
+            sheetsUrl: '',
+            readMap: {},
+            starSet: []
+          };
+          allTabs.push(newTab);
+          activeTabId = newTab.id;
+          saveToStorage();
+          renderTabs();
+          switchTab(newTab.id);
+          handleFileUpload(file);
+        }
       });
     }
     return;
