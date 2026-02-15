@@ -4148,15 +4148,10 @@ renderTabs();
 switchTab('tab_home');
 
 // =============================================
-// AUTO UPDATE CHECK (once per day)
+// AUTO UPDATE CHECK (on tab focus)
 // =============================================
-(function checkForUpdates() {
-  var CHECK_KEY = 'pt_last_update_check';
-  var now = Date.now();
-  var last = parseInt(localStorage.getItem(CHECK_KEY) || '0');
-  var oneDay = 24 * 60 * 60 * 1000;
-
-  function doCheck() {
+(function() {
+  function checkForUpdates() {
     fetch('https://theprinciples.github.io/reading-tracker/?_t=' + Date.now())
       .then(function(r) { return r.text(); })
       .then(function(html) {
@@ -4166,15 +4161,21 @@ switchTab('tab_home');
           if (activeTabId === 'tab_home') {
             $('updateBadge').style.display = '';
           }
+        } else {
+          window._updateAvailable = false;
+          $('updateBadge').style.display = 'none';
         }
-        localStorage.setItem(CHECK_KEY, String(Date.now()));
       })
       .catch(function() {});
   }
 
-  if (now - last > oneDay) {
-    setTimeout(doCheck, 3000); // 3초 후 체크 (페이지 로드 방해 안 하게)
-  }
+  // Check when user returns to this tab
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) checkForUpdates();
+  });
+
+  // Initial check 3s after load
+  setTimeout(checkForUpdates, 3000);
 })();
 </script>
 </body>
