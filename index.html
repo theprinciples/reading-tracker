@@ -1329,6 +1329,12 @@ function openModal() {
   switchTab(newTab.id);
   window._pendingModalTabId = newTab.id;
 
+  // Scroll tab bar to show the new tab
+  setTimeout(function() {
+    var bar = $('tabBar');
+    bar.scrollLeft = bar.scrollWidth;
+  }, 50);
+
   $('modalBg').classList.add('open');
   $('modalName').value = '';
   $('modalSheets').value = '';
