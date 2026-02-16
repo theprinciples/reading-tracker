@@ -81,7 +81,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .btn.on { border-color:var(--gold); background:var(--gold2); color:var(--gold); }
 .btn-g { background:var(--gold); color:#000; border:none; font-weight:700; }
 .btn-g:hover { opacity:.85; background:var(--gold); }
-.btn-sm { padding:5px 10px; font-size:11px; }
+.btn-sm { padding:7px 14px; font-size:13px; }
 .btn-r { color:var(--red); }
 .btn-r:hover { border-color:var(--red); background:var(--red2); }
 
@@ -170,12 +170,12 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .cr-v { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); width:42px; text-align:right; min-width:42px; }
 
 /* BULK */
-.bulk { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:14px 20px; margin-bottom:20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.bulk label { font-size:12px; color:var(--t2); font-weight:500; white-space:nowrap; }
-.bulk-i { width:65px; padding:6px 10px; border-radius:var(--rs); border:1px solid var(--bdr); background:var(--inp); color:var(--t1); font-family:'SF Mono','Consolas','Menlo',monospace; font-size:12px; outline:none; text-align:center; }
+.bulk { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:16px 22px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.bulk label { font-size:14px; color:var(--t2); font-weight:500; white-space:nowrap; }
+.bulk-i { width:70px; padding:8px 12px; border-radius:var(--rs); border:1px solid var(--bdr); background:var(--inp); color:var(--t1); font-family:'SF Mono','Consolas','Menlo',monospace; font-size:14px; outline:none; text-align:center; }
 .bulk-i:focus { border-color:var(--gold); }
-.bulk-s { color:var(--t3); font-size:12px; }
-.bulk-d { width:1px; height:24px; background:var(--bdr); margin:0 4px; }
+.bulk-s { color:var(--t3); font-size:14px; }
+.bulk-d { width:1px; height:28px; background:var(--bdr); margin:0 6px; }
 
 /* TABLE */
 .tc { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap; }
@@ -271,15 +271,15 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .home-guide { padding:24px 40px; width:100%; grid-column:1/-1; }
 
 /* KG */
-.kg-pill { padding:6px 13px; border-radius:10px; font-size:13px; cursor:pointer; transition:.15s; border:1px solid transparent; }
+.kg-pill { padding:6px 13px; border-radius:10px; font-size:13px; cursor:pointer; transition:.15s; border:1px solid transparent; white-space:nowrap; flex-shrink:0; }
 .kg-pill:hover { opacity:.8; }
 .kg-pill.active { border-color:#fff; }
-.kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:12px 14px; margin-bottom:7px; font-size:14px; cursor:pointer; transition:.15s; }
+.kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:8px 12px; margin-bottom:5px; font-size:13px; cursor:pointer; transition:.15s; }
 .kg-article:hover { border-color:var(--gold); }
 .kg-article.hl { border-color:var(--gold); background:var(--card2); }
-.kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:5px; }
-.kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:5px; }
-.kg-article .kg-a-tags span { font-size:12px; padding:3px 7px; border-radius:6px; }
+.kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:4px; }
+.kg-article .kg-a-tags span { font-size:11px; padding:2px 6px; border-radius:6px; }
 .goal-item { padding:3px 6px; border-radius:6px; margin-bottom:2px; transition:.15s; opacity:0.5; }
 .goal-item.active { opacity:1; background:rgba(232,184,48,0.08); border-left:2px solid #e8b830; padding-left:8px; }
 .home-guide-section { background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:16px 22px; margin-bottom:10px; font-size:14px; line-height:2; }
@@ -479,6 +479,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <button class="btn" id="btnManual" onclick="togglePanel('manual')">✏️ 수기 추가</button>
       <button class="btn" id="btnSync" onclick="doSyncSheets()" style="display:none">🔄 동기화</button>
       <button class="btn" id="btnDupes" onclick="checkDuplicates()">🔍 중복 체크</button>
+      <button class="btn" id="btnMakeList" onclick="showMakeListPopup()">📝 목록 만들기</button>
     </div>
   </div>
 
@@ -562,7 +563,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       </div>
       <div class="map-row" style="grid-column:1/-1">
         <label>🗒️ 노트 / Notes <span style="font-size:10px;color:var(--t3)">(Notion, Google Doc 링크 또는 메모)</span></label>
-        <input type="text" id="manNotes" class="man-inp" placeholder="https://notion.so/... 또는 메모">
+        <textarea id="manNotes" class="man-inp" placeholder="https://notion.so/... 또는 메모" rows="3" style="resize:vertical;line-height:1.6;font-family:inherit"></textarea>
       </div>
     </div>
     <div class="map-actions">
@@ -610,7 +611,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <label>날짜 / Date</label>
       <input type="text" id="editDate">
       <label>🗒️ 노트 / Notes</label>
-      <input type="text" id="editNotes" placeholder="https://notion.so/... 메모 텍스트">
+      <textarea id="editNotes" placeholder="https://notion.so/... 메모 텍스트" rows="4" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
       <label>🏷️ 태그 / Tags</label>
       <input type="text" id="editTags" placeholder="#AI #투자 #반도체" list="editTagList">
       <datalist id="editTagList"></datalist>
@@ -734,7 +735,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <div class="home-guide">
       <p style="font-size:15px;margin-bottom:12px;line-height:1.6">CSV, Excel, Google Sheets에서 읽기 목록을 불러와 진행률을 체크할 수 있는 독서 트래커</p>
       <p style="color:var(--red);font-size:13px;margin-bottom:20px">⚠️ 브라우저 기록을 삭제하면 읽기 기록도 함께 삭제됨</p>
-      <h3 style="color:var(--t1);font-size:16px;margin-bottom:14px">📚 사용법</h3>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+        <h3 style="color:var(--t1);font-size:16px;margin:0">📚 사용법</h3>
+        <a href="https://theprinciples.github.io/reading-tracker/guide.pdf" target="_blank" rel="noopener noreferrer" class="btn" style="font-size:12px;padding:6px 14px;text-decoration:none">🔗 상세 사용법 보기</a>
+      </div>
       <div class="home-guide-section"><strong style="color:var(--gold)">1. 📂 데이터 불러오기</strong><br>- CSV / Excel 파일을 드래그 앤 드롭하거나 클릭해서 업로드<br>- Excel 여러 시트 자동 인식 → 각 시트를 별도 탭으로 불러오기<br>- Google Sheets URL 붙여넣기 가능 (시트를 "링크가 있는 모든 사용자에게 공개"로 설정, 첫 번째 시트만 불러옴)<br>- 수기 추가 가능 (➕)</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">2. ✅ 읽기 체크</strong><br>- 체크박스 클릭으로 읽음/안읽음 토글<br>- 읽은 날짜 자동 기록<br>- 범위 설정으로 읽은 부분 한번에 체크 가능<br>- 전체 체크/해제 지원<br>- 제목 중복 자동 감지</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">3. 🗂️ 탭 & 그룹</strong><br>- 탭과 그룹 추가로 읽기 목록을 카테고리별(그룹)로 관리<br>- 탭 이름 변경 (✏️)<br>- 그룹 설정 — 같은 그룹의 탭은 홈에서 함께 표시됨<br>- 드래그 앤 드롭으로 탭 순서 변경<br>- 탭 네비게이션: ◀▶ 한 탭씩 이동, ◀◀▶▶ 처음/끝으로 이동</div>
@@ -797,11 +801,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
   <!-- KNOWLEDGE GRAPH VIEW -->
   <div id="kgView" style="display:none;padding:20px">
-    <div style="display:flex;gap:24px;flex-wrap:wrap">
-      <div style="flex:1;min-width:350px">
-        <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rs);padding:16px">
-          <canvas id="kgCanvas" width="560" height="420" style="width:100%;border-radius:8px"></canvas>
-          <div style="font-size:10px;color:var(--t3);margin-top:6px">
+    <div id="kgLayout" style="display:flex;gap:24px;height:calc(100vh - 160px);min-height:400px;max-height:800px">
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column">
+        <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rs);padding:16px;flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <canvas id="kgCanvas" width="560" height="420" style="width:100%;flex:1;border-radius:8px;min-height:0"></canvas>
+          <div style="font-size:10px;color:var(--t3);margin-top:6px;flex-shrink:0">
             <span>● 큰 노드 = 아티클</span> &nbsp;
             <span>● 작은 노드 = 태그</span> &nbsp;
             <span>〰 곡선 = 공유 태그</span> &nbsp;
@@ -809,14 +813,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           </div>
         </div>
       </div>
-      <div style="width:380px;flex-shrink:0">
-        <div style="margin-bottom:14px">
+      <div style="flex:0 0 340px;display:flex;flex-direction:column;overflow:hidden">
+        <div style="margin-bottom:10px;flex-shrink:0">
           <select id="kgFilter" class="fsel" onchange="renderKnowledgeGraph()" style="width:100%;font-size:14px;padding:10px 12px"></select>
         </div>
-        <div style="font-size:16px;font-weight:600;color:var(--t2);margin-bottom:12px">🏷️ 태그</div>
-        <div id="kgTagCloud" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px"></div>
-        <div id="kgArticleList" style="max-height:450px;overflow-y:auto"></div>
-        <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:16px;margin-top:16px;font-size:14px;color:var(--t3);line-height:1.8"></div>
+        <div style="font-size:14px;font-weight:600;color:var(--t2);margin-bottom:8px;flex-shrink:0">🏷️ 태그</div>
+        <div id="kgTagCloud" style="display:flex;flex-wrap:nowrap;gap:7px;margin-bottom:12px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;padding-bottom:4px"></div>
+        <div id="kgArticleList" style="flex:1;overflow-y:auto;min-height:0"></div>
+        <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:14px;margin-top:10px;font-size:13px;color:var(--t3);line-height:1.7;max-height:200px;overflow-y:auto;flex-shrink:0"></div>
       </div>
     </div>
   </div>
@@ -845,7 +849,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.2';
+const APP_VERSION = 'v1.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1153,7 +1157,7 @@ function switchTab(id) {
     $('btnSheets').style.display = 'none';
     $('btnManual').style.display = 'none';
     $('btnSync').style.display = 'none';
-    $('btnDupes').style.display = 'none';
+    $('btnDupes').style.display = 'none'; $('btnMakeList').style.display = 'none';
     $('panelFile').classList.remove('open');
     $('panelSheets').classList.remove('open');
     $('panelManual').classList.remove('open');
@@ -1175,7 +1179,7 @@ function switchTab(id) {
     $('btnSheets').style.display = 'none';
     $('btnManual').style.display = 'none';
     $('btnSync').style.display = 'none';
-    $('btnDupes').style.display = 'none';
+    $('btnDupes').style.display = 'none'; $('btnMakeList').style.display = 'none';
     $('panelFile').classList.remove('open');
     $('panelSheets').classList.remove('open');
     $('panelManual').classList.remove('open');
@@ -1197,7 +1201,7 @@ function switchTab(id) {
     $('btnSheets').style.display = 'none';
     $('btnManual').style.display = 'none';
     $('btnSync').style.display = 'none';
-    $('btnDupes').style.display = 'none';
+    $('btnDupes').style.display = 'none'; $('btnMakeList').style.display = 'none';
     $('panelFile').classList.remove('open');
     $('panelSheets').classList.remove('open');
     $('panelManual').classList.remove('open');
@@ -1219,7 +1223,7 @@ function switchTab(id) {
     $('btnSheets').style.display = 'none';
     $('btnManual').style.display = 'none';
     $('btnSync').style.display = 'none';
-    $('btnDupes').style.display = 'none';
+    $('btnDupes').style.display = 'none'; $('btnMakeList').style.display = 'none';
     $('panelFile').classList.remove('open');
     $('panelSheets').classList.remove('open');
     $('panelManual').classList.remove('open');
@@ -1234,7 +1238,7 @@ function switchTab(id) {
   $('btnFile').style.display = '';
   $('btnSheets').style.display = '';
   $('btnManual').style.display = '';
-  $('btnDupes').style.display = '';
+  $('btnDupes').style.display = ''; $('btnMakeList').style.display = '';
 
   const t = getActiveTab();
   if (!t) return;
@@ -1700,6 +1704,8 @@ function processNextSheet() {
     toast('✅ ' + currentSheetIdx + '개 시트를 불러왔어요!', 'ok');
     window._modalGroup = null;
     window._modalName = null;
+    $('panelFile').classList.remove('open');
+    $('btnFile').classList.remove('on');
     return;
   }
 
@@ -2706,6 +2712,36 @@ function closeSyncModal() {
 }
 
 // =============================================
+// MAKE LIST POPUP (GPT / Gem)
+// =============================================
+function showMakeListPopup() {
+  var html = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" id="makeListBg" onclick="if(event.target===this)this.remove()">';
+  html += '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:28px;max-width:420px;width:90%">';
+  html += '<h3 style="margin-bottom:8px;color:var(--t1);font-size:17px">📝 AI로 목록 만들기</h3>';
+  html += '<p style="font-size:13px;color:var(--t3);margin-bottom:20px;line-height:1.6">AI가 읽기 목록을 엑셀/CSV로 정리해줘요.<br>완성된 파일을 다운받아 트래커에 올리세요!</p>';
+
+  html += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">';
+
+  html += '<a href="https://chatgpt.com/g/g-6991bad2dab08191ad9d033dce6c2d3e-mogca-egsel-jeongrigi" target="_blank" rel="noopener noreferrer" style="text-decoration:none">';
+  html += '<div style="cursor:pointer;padding:14px 16px;background:var(--bg2);border:2px solid #10a37f;border-radius:10px;transition:.15s">';
+  html += '<div style="font-size:14px;font-weight:700;color:#10a37f;margin-bottom:4px">ChatGPT로 만들기</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">GPT가 목차/링크를 엑셀로 정리해줘요</div>';
+  html += '</div></a>';
+
+  html += '<div style="cursor:default;padding:14px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;opacity:0.5">';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:4px">Google Gem으로 만들기</div>';
+  html += '<div style="font-size:12px;color:var(--t3)">준비중... 곧 추가될 예정이에요!</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  html += '<div style="text-align:right"><button class="btn" onclick="document.getElementById(\'makeListBg\').remove()">닫기</button></div>';
+  html += '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// =============================================
 // DUPLICATE CHECK
 // =============================================
 function checkDuplicates() {
@@ -2824,6 +2860,49 @@ function closeDupesModal() {
 // =============================================
 // EDIT / DELETE ITEM
 // =============================================
+function showNoteLinks(num) {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var item = tab.data.find(function(d) { return d.num === num; });
+  if (!item || !item.notes) return;
+
+  var urls = item.notes.match(/https?:\/\/[^\s]+/g) || [];
+  if (urls.length > 3) urls = urls.slice(0, 3);
+  if (urls.length === 0) return;
+
+  var html = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" id="noteLinksBg" onclick="if(event.target===this)this.remove()">';
+  html += '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:24px;max-width:420px;width:90%">';
+  html += '<h3 style="margin-bottom:16px;color:var(--t1);font-size:16px">🗒️ 링크 선택</h3>';
+
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">';
+  urls.forEach(function(url, i) {
+    var display = url.length > 50 ? url.slice(0, 50) + '...' : url;
+    html += '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:12px 14px;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;color:var(--gold);font-size:13px;text-decoration:none;word-break:break-all;transition:.15s" onmouseover="this.style.borderColor=\'var(--gold)\'" onmouseout="this.style.borderColor=\'var(--bdr)\'">' + (i+1) + '. ' + esc(display) + '</a>';
+  });
+  html += '</div>';
+
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end">';
+  html += '<button class="btn" onclick="document.getElementById(\'noteLinksBg\').remove()">닫기</button>';
+  html += '<button class="btn btn-g" onclick="openAllNoteLinks(' + num + ')">전체 열기</button>';
+  html += '</div>';
+
+  html += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function openAllNoteLinks(num) {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var item = tab.data.find(function(d) { return d.num === num; });
+  if (!item || !item.notes) return;
+
+  var urls = item.notes.match(/https?:\/\/[^\s]+/g) || [];
+  if (urls.length > 3) urls = urls.slice(0, 3);
+  urls.forEach(function(url) { window.open(url, '_blank', 'noopener,noreferrer'); });
+  var bg = document.getElementById('noteLinksBg');
+  if (bg) bg.remove();
+}
+
 function editItem(num) {
   const tab = getActiveTab();
   if (!tab) return;
@@ -2841,6 +2920,42 @@ function editItem(num) {
   $('editNotes').value = item.notes || '';
   $('editTags').value = (item.tags || []).map(function(t) { return '#' + t; }).join(' ');
   $('editNum').value = num;
+
+  // Check for auto-saved draft
+  var draftKey = 'pt_draft_' + num;
+  var draft = localStorage.getItem(draftKey);
+  if (draft) {
+    try {
+      var d = JSON.parse(draft);
+      if (Date.now() - d.time < 180000) { // 3 minutes
+        $('editTitle').value = d.title || item.title;
+        $('editCat').value = d.category || item.category;
+        $('editUrl').value = d.url !== undefined ? d.url : item.url;
+        $('editDate').value = d.date !== undefined ? d.date : item.date;
+        $('editNotes').value = d.notes !== undefined ? d.notes : (item.notes || '');
+        $('editTags').value = d.tags || (item.tags || []).map(function(t) { return '#' + t; }).join(' ');
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    } catch(e) { localStorage.removeItem(draftKey); }
+  }
+
+  // Auto-save draft on input
+  var draftFields = ['editTitle','editCat','editUrl','editDate','editNotes','editTags'];
+  draftFields.forEach(function(fid) {
+    $(fid).addEventListener('input', function() {
+      var draftData = {
+        title: $('editTitle').value,
+        category: $('editCat').value,
+        url: $('editUrl').value,
+        date: $('editDate').value,
+        notes: $('editNotes').value,
+        tags: $('editTags').value,
+        time: Date.now()
+      };
+      localStorage.setItem('pt_draft_' + $('editNum').value, JSON.stringify(draftData));
+    });
+  });
 
   // Populate tag autocomplete
   var allTagSet = {};
@@ -2890,6 +3005,7 @@ function saveEdit() {
   saveToStorage();
   renderAll();
   toast('💾 #' + num + ' 수정됨', 'ok');
+  localStorage.removeItem('pt_draft_' + num);
   closeEditModal();
 }
 
@@ -3062,12 +3178,15 @@ function renderTable() {
       : `<span title="${esc(r.title)}">${esc(r.title)}</span>`;
     var noteIcon = '';
     if (r.notes) {
-      var nUrlMatch = r.notes.match(/https?:\/\/[^\s]+/);
-      var nLink = nUrlMatch ? nUrlMatch[0] : '';
-      var nText = r.notes.replace(/https?:\/\/[^\s]+/, '').trim();
-      if (nLink) noteIcon = ` <a href="${esc(nLink)}" target="_blank" rel="noopener noreferrer" class="note-link" title="${esc(nText || nLink)}">🗒️</a>`;
+      var nUrls = r.notes.match(/https?:\/\/[^\s]+/g) || [];
+      if (nUrls.length > 3) nUrls = nUrls.slice(0, 3);
+      var nText = r.notes.replace(/https?:\/\/[^\s]+/g, '').trim();
+      if (nUrls.length === 1) {
+        noteIcon = ` <a href="${esc(nUrls[0])}" target="_blank" rel="noopener noreferrer" class="note-link" title="${esc(nText || nUrls[0])}">🗒️</a>`;
+      } else if (nUrls.length > 1) {
+        noteIcon = ` <span class="note-link" onclick="showNoteLinks(${r.num})" title="링크 ${nUrls.length}개">🗒️</span>`;
+      }
       if (nText) noteIcon += ` <span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">${esc(nText)}</span></span>`;
-      if (!nLink && !nText) noteIcon = ` <span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">${esc(r.notes)}</span></span>`;
     }
     return `<tr class="${rd ? 'read-row' : ''}">
       <td><div class="chk ${rd ? 'on' : ''}" onclick="toggleRead('${escKey(r.key)}')"></div></td>
@@ -3093,6 +3212,8 @@ function renderTable() {
   });
   html += `<button class="pg-b" ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">›</button>`;
   html += `<span class="pg-info">${filtered.length}개</span>`;
+  html += `<input type="number" min="1" max="${totalPages}" value="${currentPage}" onkeydown="if(event.key==='Enter'){goPage(Math.min(Math.max(1,+this.value),${totalPages}))}" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;text-align:center;margin-left:6px;outline:none" title="페이지 번호 입력 후 Enter">`;
+  html += `<span class="pg-info" style="opacity:0.5">/ ${totalPages}</span>`;
   html += `<select class="fsel" onchange="changePageSize(+this.value)" style="font-size:11px;padding:3px 6px;margin-left:8px">`;
   [15,30,50].forEach(function(n) { html += '<option value="'+n+'"'+(PAGE_SIZE===n?' selected':'')+'>'+n+'개씩</option>'; });
   html += '</select>';
@@ -3139,8 +3260,13 @@ function renderCharts() {
   var yfHtml = '<option value="">전체</option>';
   years.forEach(function(y) { yfHtml += '<option value="'+y+'">'+y+'년</option>'; });
   yf.innerHTML = yfHtml;
-  yf.value = prevYear;
-  if (!yf.value) yf.value = '';
+  if (prevYear) {
+    yf.value = prevYear;
+  } else {
+    var curYear = String(new Date().getFullYear());
+    yf.value = years.indexOf(curYear) >= 0 ? curYear : '';
+  }
+  if (!yf.value && !prevYear) yf.value = '';
   const selectedYear = yf.value;
 
   // Monthly reading chart - based on WHEN user read
@@ -3190,15 +3316,15 @@ function renderCharts() {
       responsive: true, maintainAspectRatio: false,
       layout: { padding: { left: months.length <= 2 ? 40 : 0, right: months.length <= 2 ? 40 : 0 } },
       plugins: {
-        legend: { labels: { color: '#c0c0d8', font: { size: 10 }, padding: 12, boxWidth: 10, boxHeight: 10 } },
+        legend: { labels: { color: '#ffffff', font: { size: 12 }, padding: 12, boxWidth: 10, boxHeight: 10 } },
         tooltip: {
           backgroundColor: '#16161f', titleColor: '#e8b830', bodyColor: '#fff',
           borderColor: '#252538', borderWidth: 1, padding: 10, cornerRadius: 6
         }
       },
       scales: {
-        x: { ticks: { color: '#7a7a9e', font: { size: 10 }, maxRotation: 45 }, grid: { color: 'rgba(37,37,56,.25)' } },
-        y: { title: { display: true, text: '월별 읽음', color: '#7a7a9e', font: { size: 10 } }, ticks: { color: '#7a7a9e', font: { size: 9 }, stepSize: months.length <= 2 ? 1 : undefined }, grid: { color: 'rgba(37,37,56,.25)' }, beginAtZero: true }
+        x: { ticks: { color: '#ffffff', font: { size: 12 }, maxRotation: 45 }, grid: { color: 'rgba(37,37,56,.25)' } },
+        y: { title: { display: true, text: '월별 읽음', color: '#ffffff', font: { size: 12 } }, ticks: { color: '#ffffff', font: { size: 11 }, stepSize: months.length <= 2 ? 1 : undefined }, grid: { color: 'rgba(37,37,56,.25)' }, beginAtZero: true }
       }
     }
   });
@@ -3207,8 +3333,14 @@ function renderCharts() {
   const catCount = {};
   tab.data.forEach(r => { catCount[r.category] = (catCount[r.category] || 0) + 1; });
   const sortedCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
-  const topCats = sortedCats.slice(0, 10);
-  const restCats = sortedCats.slice(10);
+  var topCats, restCats;
+  if (sortedCats.length < 15) {
+    topCats = sortedCats.slice();
+    restCats = [];
+  } else {
+    topCats = sortedCats.slice(0, 10);
+    restCats = sortedCats.slice(10);
+  }
   const restCount = restCats.reduce((sum, e) => sum + e[1], 0);
   var etcNames = restCats.map(e => e[0]);
   if (restCount > 0) topCats.push(['기타', restCount]);
@@ -3223,7 +3355,7 @@ function renderCharts() {
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '52%',
       plugins: {
-        legend: { position: 'right', labels: { color: '#c0c0d8', font: { size: 10, family: 'system-ui, sans-serif' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
+        legend: { position: 'right', labels: { color: '#ffffff', font: { size: 12, family: 'system-ui, sans-serif' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
         tooltip: { backgroundColor: '#16161f', titleColor: '#e8b830', bodyColor: '#fff', borderColor: '#252538', borderWidth: 1, padding: 10, cornerRadius: 6 }
       }
     }
@@ -3290,7 +3422,7 @@ function renderKnowledgeGraph() {
   includeTabs.forEach(function(tab) {
     (tab.data || []).forEach(function(d) {
       if (d.tags && d.tags.length > 0) {
-        articles.push({ id: articles.length, title: d.title, tags: d.tags, tabName: tab.name });
+        articles.push({ id: articles.length, title: d.title, tags: d.tags, tabName: tab.name, tabId: tab.id, num: d.num });
         d.tags.forEach(function(t) { allTagSet[t] = (allTagSet[t] || 0) + 1; });
       }
     });
@@ -3305,7 +3437,7 @@ function renderKnowledgeGraph() {
     $('kgArticleList').innerHTML = '<div style="color:var(--t3);font-size:12px;padding:20px;text-align:center">태그가 있는 아티클이 없어요.<br>아티클 편집에서 🏷️ 태그를 추가해보세요!</div>';
     $('kgInfo').innerHTML = '각 아티클의 ✏️ 편집에서 태그를 입력하면 여기에 마인드맵이 만들어집니다.';
     var ctx = $('kgCanvas').getContext('2d');
-    ctx.clearRect(0,0,560,420);
+    ctx.clearRect(0,0,W,H);
     ctx.fillStyle = '#333';
     ctx.font = '14px system-ui';
     ctx.textAlign = 'center';
@@ -3313,15 +3445,29 @@ function renderKnowledgeGraph() {
     return;
   }
 
+  // High-DPI canvas setup — fit container height
+  var canvas = $('kgCanvas');
+  var container = canvas.parentElement;
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  var canvasH = Math.max(300, container.clientHeight - 30);
+  canvas.width = rect.width * dpr;
+  canvas.height = canvasH * dpr;
+  canvas.style.height = canvasH + 'px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
   // Build nodes
   kgNodes = [];
+  var initW = canvas.width / dpr, initH = canvas.height / dpr;
+  window._kgLastW = initW; window._kgLastH = initH;
   articles.forEach(function(a, i) {
     var angle = (i / articles.length) * Math.PI * 2;
     var r = 100 + Math.random() * 60;
     kgNodes.push({
       id: 'a_' + a.id, type: 'article', label: a.title.length > 16 ? a.title.slice(0,16)+'…' : a.title,
       fullLabel: a.title, tags: a.tags, tabName: a.tabName, articleId: a.id,
-      x: 280 + Math.cos(angle)*r, y: 210 + Math.sin(angle)*r, vx:0, vy:0,
+      x: initW/2 + Math.cos(angle)*r, y: initH/2 + Math.sin(angle)*r, vx:0, vy:0,
       color: '#e0e0f0', size: 5
     });
   });
@@ -3330,7 +3476,7 @@ function renderKnowledgeGraph() {
     var r = 40 + Math.random() * 30;
     kgNodes.push({
       id: 't_' + t, type: 'tag', label: '#' + t, fullLabel: t,
-      x: 280 + Math.cos(angle)*r, y: 210 + Math.sin(angle)*r, vx:0, vy:0,
+      x: initW/2 + Math.cos(angle)*r, y: initH/2 + Math.sin(angle)*r, vx:0, vy:0,
       color: tagColorMap[t], size: 6 + Math.min(allTagSet[t], 8) * 1.2
     });
   });
@@ -3345,21 +3491,35 @@ function renderKnowledgeGraph() {
   updateKgUI(articles, allKgTags, tagColorMap);
   kgAnimId = requestAnimationFrame(function() { drawKg(articles, allKgTags, tagColorMap); });
 
-  // High-DPI canvas setup
-  var canvas = $('kgCanvas');
-  var dpr = window.devicePixelRatio || 1;
-  var rect = canvas.getBoundingClientRect();
-  canvas.width = 560 * dpr;
-  canvas.height = 420 * dpr;
-  canvas.style.width = '100%';
-  var ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
+  // Resize handler — rescale canvas and node positions
+  window._kgResizeHandler = function() {
+    if ($('kgView').style.display === 'none') return;
+    var container = canvas.parentElement;
+    var newRect = canvas.getBoundingClientRect();
+    var newW = newRect.width;
+    var newH = Math.max(300, container.clientHeight - 30);
+    var oldW = window._kgLastW || newW;
+    var oldH = window._kgLastH || newH;
+    if (Math.abs(newW - oldW) < 2 && Math.abs(newH - oldH) < 2) return;
+    var scaleX = newW / oldW, scaleY = newH / oldH;
+    canvas.width = newW * dpr;
+    canvas.height = newH * dpr;
+    canvas.style.height = newH + 'px';
+    var ctx2 = canvas.getContext('2d');
+    ctx2.scale(dpr, dpr);
+    kgNodes.forEach(function(n) {
+      n.x *= scaleX; n.y *= scaleY;
+    });
+    window._kgLastW = newW; window._kgLastH = newH;
+  };
+  window.addEventListener('resize', window._kgResizeHandler);
 
   // Canvas interaction
   canvas.onmousemove = function(e) {
     var rect = canvas.getBoundingClientRect();
-    var mx = (e.clientX - rect.left) * (560 / rect.width);
-    var my = (e.clientY - rect.top) * (420 / rect.height);
+    var W2 = canvas.width / dpr, H2 = canvas.height / dpr;
+    var mx = (e.clientX - rect.left) * (W2 / rect.width);
+    var my = (e.clientY - rect.top) * (H2 / rect.height);
     kgHoverNode = null;
     for (var i = 0; i < kgNodes.length; i++) {
       var dx = kgNodes[i].x - mx, dy = kgNodes[i].y - my;
@@ -3385,13 +3545,13 @@ function drawKg(articles, allKgTags, tagColorMap) {
   var dpr = window.devicePixelRatio || 1;
   kgTime += 0.01;
 
-  var W = 560, H = 420;
+  var W = canvas.width / dpr, H = canvas.height / dpr;
 
   // Reset transform and apply DPR scale each frame
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   // Force sim
-  var CX = 280, CY = 210;
+  var CX = W / 2, CY = H / 2;
   for (var i = 0; i < kgNodes.length; i++) {
     for (var j = i+1; j < kgNodes.length; j++) {
       var dx = kgNodes[j].x-kgNodes[i].x, dy = kgNodes[j].y-kgNodes[i].y;
@@ -3498,10 +3658,17 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
     var hlc = kgSelectedArticle === a.id ? ' hl' : '';
     var tagsH = a.tags.map(function(t){return '<span style="background:'+tagColorMap[t]+'22;color:'+tagColorMap[t]+'">'+esc('#'+t)+'</span>';}).join('');
     listHtml += '<div class="kg-article'+hlc+'" onclick="kgClickArticle('+a.id+')">';
+    var shortTab = a.tabName.length > 12 ? a.tabName.slice(0,12) + '...' : a.tabName;
+    listHtml += '<div style="font-size:11px;color:var(--t3);margin-bottom:3px"><span style="cursor:pointer;color:var(--gold);text-decoration:underline" onclick="event.stopPropagation();goToArticle(\''+a.tabId+'\','+a.num+')">'+esc(shortTab)+' #'+a.num+'</span></div>';
     listHtml += '<div class="kg-a-title">'+esc(a.title)+'</div>';
-    listHtml += '<div class="kg-a-tags">'+tagsH+'</div></div>';
+    listHtml += '<div class="kg-a-tags">'+tagsH+'</div>';
+    listHtml += '</div>';
   });
   $('kgArticleList').innerHTML = listHtml || '<div style="color:var(--t3);font-size:11px;padding:12px">선택된 태그에 해당하는 아티클이 없어요</div>';
+
+  // Scroll to highlighted article
+  var hlEl = $('kgArticleList').querySelector('.hl');
+  if (hlEl) hlEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   // Info
   var info = '';
@@ -3536,17 +3703,47 @@ function kgClickTag(t) {
   kgSelectedTag = kgSelectedTag === t ? null : t;
   kgSelectedArticle = null;
   var articles = [], allTagSet = {};
-  allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){if(d.tags&&d.tags.length>0){articles.push({id:articles.length,title:d.title,tags:d.tags,tabName:tab.name});d.tags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}});});
+  allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){if(d.tags&&d.tags.length>0){articles.push({id:articles.length,title:d.title,tags:d.tags,tabName:tab.name,tabId:tab.id,num:d.num});d.tags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}});});
   var allKgTags = Object.keys(allTagSet).sort(function(a,b){return allTagSet[b]-allTagSet[a];});
   var tagColorMap = {};
   allKgTags.forEach(function(t2,i){tagColorMap[t2]=COLORS[i%COLORS.length];});
   updateKgUI(articles, allKgTags, tagColorMap);
 }
+function goToArticle(tabId, num) {
+  history.replaceState({ page: 'mindmap' }, '');
+  history.pushState({ page: 'article', tabId: tabId, num: num }, '');
+  switchTab(tabId);
+  // Calculate which page the article is on
+  setTimeout(function() {
+    var tab = getActiveTab();
+    if (!tab) return;
+    var idx = tab.data.findIndex(function(d) { return d.num === num; });
+    if (idx < 0) return;
+    currentPage = Math.floor(idx / PAGE_SIZE) + 1;
+    renderTable();
+    // Scroll to the row
+    setTimeout(function() {
+      var row = document.querySelector('tr td.td-n');
+      var rows = document.querySelectorAll('tr');
+      for (var i = 0; i < rows.length; i++) {
+        var numCell = rows[i].querySelector('.td-n');
+        if (numCell && numCell.textContent.trim() == num) {
+          rows[i].style.outline = '2px solid var(--gold)';
+          rows[i].style.outlineOffset = '-2px';
+          rows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(function() { rows[i].style.outline = ''; }, 2000);
+          break;
+        }
+      }
+    }, 100);
+  }, 100);
+}
+
 function kgClickArticle(id) {
   kgSelectedArticle = kgSelectedArticle === id ? null : id;
   kgSelectedTag = null;
   var articles = [], allTagSet = {};
-  allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){if(d.tags&&d.tags.length>0){articles.push({id:articles.length,title:d.title,tags:d.tags,tabName:tab.name});d.tags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}});});
+  allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){if(d.tags&&d.tags.length>0){articles.push({id:articles.length,title:d.title,tags:d.tags,tabName:tab.name,tabId:tab.id,num:d.num});d.tags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}});});
   var allKgTags = Object.keys(allTagSet).sort(function(a,b){return allTagSet[b]-allTagSet[a];});
   var tagColorMap = {};
   allKgTags.forEach(function(t2,i){tagColorMap[t2]=COLORS[i%COLORS.length];});
@@ -3836,6 +4033,7 @@ function renderHome() {
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
       '<button class="btn btn-g" onclick="event.stopPropagation();openModal()" style="font-size:14px;padding:12px 24px">＋ 새 트래커 만들기</button>' +
       '<button class="btn" onclick="event.stopPropagation();switchTab(\'tab_settings\')" style="font-size:13px;padding:12px 20px">📖 사용법 보기</button>' +
+      '<button class="btn" onclick="event.stopPropagation();showMakeListPopup()" style="font-size:13px;padding:12px 20px">📝 목록 만들기</button>' +
       '</div>' +
       '</div>' +
       '</div>';
@@ -4052,18 +4250,17 @@ function renderFavoritesTable(page) {
       : '<span title="' + esc(r.title) + '">' + esc(r.title) + '</span>';
     var noteHtml = '';
     if (r.notes) {
-      var urlMatch = r.notes.match(/https?:\/\/[^\s]+/);
-      var noteLink = urlMatch ? urlMatch[0] : '';
-      var noteText = r.notes.replace(/https?:\/\/[^\s]+/, '').trim();
+      var urlMatches = r.notes.match(/https?:\/\/[^\s]+/g) || [];
+      if (urlMatches.length > 3) urlMatches = urlMatches.slice(0, 3);
+      var noteText = r.notes.replace(/https?:\/\/[^\s]+/g, '').trim();
       noteHtml = '<div style="display:flex;align-items:center;gap:4px">';
-      if (noteLink) {
-        noteHtml += '<a href="'+esc(noteLink)+'" target="_blank" rel="noopener noreferrer" class="note-link" title="'+esc(noteLink)+'">🗒️</a>';
+      if (urlMatches.length === 1) {
+        noteHtml += '<a href="'+esc(urlMatches[0])+'" target="_blank" rel="noopener noreferrer" class="note-link" title="'+esc(urlMatches[0])+'">🗒️</a>';
+      } else if (urlMatches.length > 1) {
+        noteHtml += '<span class="note-link" onclick="showNoteLinks('+r.num+')" title="링크 '+urlMatches.length+'개">🗒️</span>';
       }
       if (noteText) {
         noteHtml += '<span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(noteText)+'</span></span>';
-      }
-      if (!noteLink && !noteText) {
-        noteHtml += '<span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(r.notes)+'</span></span>';
       }
       noteHtml += '</div>';
     }
@@ -4220,6 +4417,13 @@ switchTab('tab_home');
   // Check when user returns to this tab
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) checkForUpdates();
+  });
+
+  // Back button: return to mindmap
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.page === 'mindmap') {
+      switchTab('tab_kg');
+    }
   });
 
   // Initial check 3s after load
