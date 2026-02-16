@@ -754,7 +754,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <p style="color:var(--red);font-size:13px;margin-bottom:20px">⚠️ 브라우저 기록을 삭제하면 읽기 기록도 함께 삭제됨</p>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
         <h3 style="color:var(--t1);font-size:16px;margin:0">📚 사용법</h3>
-        <a href="https://theprinciples.github.io/reading-tracker/guide.pdf" target="_blank" rel="noopener noreferrer" class="btn" style="font-size:12px;padding:6px 14px;text-decoration:none">🔗 상세 사용법 보기</a>
+        <a href="#" onclick="event.preventDefault();window.open('https://theprinciples.github.io/reading-tracker/guide.pdf?t='+Date.now(),'_blank')" rel="noopener noreferrer" class="btn" style="font-size:12px;padding:6px 14px;text-decoration:none">🔗 상세 사용법 보기</a>
       </div>
       <div class="home-guide-section"><strong style="color:var(--gold)">1. 📂 데이터 불러오기</strong><br>- CSV / Excel 파일을 드래그 앤 드롭하거나 클릭해서 업로드<br>- Excel 여러 시트 자동 인식 → 각 시트를 별도 탭으로 불러오기<br>- Google Sheets URL 붙여넣기 가능 (시트를 "링크가 있는 모든 사용자에게 공개"로 설정, 첫 번째 시트만 불러옴)<br>- 수기 추가 가능 (➕)</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">2. ✅ 읽기 체크</strong><br>- 체크박스 클릭으로 읽음/안읽음 토글<br>- 읽은 날짜 자동 기록<br>- 범위 설정으로 읽은 부분 한번에 체크 가능<br>- 전체 체크/해제 지원<br>- 제목 중복 자동 감지</div>
@@ -4322,7 +4322,7 @@ function renderHome() {
       '<p style="color:var(--t3);font-size:12px;margin-bottom:32px">📄 파일을 여기에 드래그 앤 드롭하거나 클릭하세요</p>' +
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
       '<button class="btn btn-g" onclick="event.stopPropagation();openModal()" style="font-size:14px;padding:12px 24px">＋ 새 트래커 만들기</button>' +
-      '<button class="btn" onclick="event.stopPropagation();window.open(\'https://theprinciples.github.io/reading-tracker/guide.pdf\',\'_blank\')" style="font-size:13px;padding:12px 20px">📖 상세 사용법 보기</button>' +
+      '<button class="btn" onclick="event.stopPropagation();window.open(\'https://theprinciples.github.io/reading-tracker/guide.pdf?t=\'+Date.now(),\'_blank\')" style="font-size:13px;padding:12px 20px">📖 상세 사용법 보기</button>' +
       '</div>' +
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px">' +
       '<button class="btn" onclick="event.stopPropagation();showMakeListPopup()" style="font-size:13px;padding:12px 20px">📝 목록 만들기</button>' +
