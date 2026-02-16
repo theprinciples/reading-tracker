@@ -426,11 +426,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     </select>
   </div>
   <input type="text" id="modalGroupCustom" placeholder="새 그룹 이름 입력..." style="display:none;width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;margin-bottom:12px">
-  <label>날짜 항목 이름</label>
-  <select id="modalDateLabel" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;cursor:pointer;margin-bottom:12px">
-    <option value="날짜">날짜</option>
-    <option value="페이지">페이지</option>
-  </select>
+  <label>항목 이름</label>
+  <input type="text" id="modalDateLabel" placeholder="예: 날짜, 페이지, 회차, 챕터..." value="날짜" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;margin-bottom:12px">
   <label>파일 업로드 (선택)</label>
   <div style="margin-bottom:12px">
     <label class="btn" style="cursor:pointer">📄 CSV / Excel 선택
@@ -525,8 +522,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           <select id="mapUrl" class="map-sel"></select>
         </div>
         <div class="map-row">
-          <label id="mapDateLabel">📅 날짜 / Date</label>
-          <select id="mapDate" class="map-sel"></select>
+          <label id="mapDateLabel">항목 이름 <span style="font-weight:400;font-size:11px;color:var(--t3)">(아래에서 수정 가능)</span></label>
+          <div class="tag-ac-wrap" id="dateLabelAcWrap">
+            <input type="text" id="mapDateLabelInput" placeholder="항목 이름을 정해주세요 (예: 날짜, 페이지, 회차...)" value="날짜" autocomplete="off" style="padding:8px 12px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:11px;outline:none;font-family:inherit;width:100%">
+            <div class="tag-ac-drop" id="dateLabelAcDrop"></div>
+          </div>
+          <select id="mapDate" class="map-sel" style="margin-top:4px"></select>
         </div>
       </div>
       <div id="previewBox" class="map-preview"></div>
@@ -873,7 +874,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.4';
+const APP_VERSION = 'v1.4.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -964,6 +965,7 @@ function saveToStorage() {
   try {
     const data = allTabs.filter(t => t.id !== 'tab_favorites').map(t => ({
       id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
+      dateLabel: t.dateLabel || '날짜',
       articles: t.data,
       readMap: t.readMap,
       starSet: t.starSet || []
@@ -974,6 +976,7 @@ function saveToStorage() {
     try {
       const lite = allTabs.filter(t => t.id !== 'tab_favorites').map(t => ({
         id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
+        dateLabel: t.dateLabel || '날짜',
         readMap: t.readMap,
         starSet: t.starSet || []
       }));
@@ -1005,6 +1008,7 @@ function loadFromStorage() {
         allTabs.push({
           id: t.id, name: t.name,
           group: t.group || '',
+          dateLabel: t.dateLabel || '날짜',
           data: articles,
           sheetsUrl: t.sheetsUrl || '',
           readMap: readMap,
@@ -1030,7 +1034,7 @@ function saveAttendance() {
 // JSON BACKUP EXPORT/IMPORT
 function exportBackup() {
   var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
-    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
+    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', dateLabel: t.dateLabel || '날짜', articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
   });
   var backup = {
     version: 'pt_backup_v1',
@@ -1071,7 +1075,7 @@ function importBackup() {
           else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
           var articles = t.articles || [];
           articles.forEach(function(a) { if (!a.notes) a.notes = ''; });
-          allTabs.push({ id: t.id, name: t.name, group: t.group || '', data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
+          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
@@ -1546,7 +1550,7 @@ $('modalSubmit').addEventListener('click', () => {
   newTab.name = name;
   newTab.group = group;
   newTab.sheetsUrl = sheetsUrl;
-  newTab.dateLabel = $('modalDateLabel').value;
+  newTab.dateLabel = $('modalDateLabel').value.trim() || '날짜';
   var tabId = newTab.id;
   window._pendingModalTabId = null;
 
@@ -1863,7 +1867,14 @@ function showMappingUI(rows, sheetName) {
   // Populate dropdowns
   var tab = getActiveTab();
   var dateLbl = (tab && tab.dateLabel) || '날짜';
-  $('mapDateLabel').textContent = '📅 ' + dateLbl + ' / Date';
+  $('mapDateLabelInput').value = dateLbl;
+
+  // Setup dateLabel autocomplete from existing tabs
+  var existingLabels = {};
+  allTabs.forEach(function(t) { if (t.id !== 'tab_favorites' && t.dateLabel) existingLabels[t.dateLabel] = (existingLabels[t.dateLabel] || 0) + 1; });
+  if (!existingLabels['날짜']) existingLabels['날짜'] = 0;
+  if (!existingLabels['페이지']) existingLabels['페이지'] = 0;
+  setupDateLabelAutocomplete($('mapDateLabelInput'), $('dateLabelAcDrop'), existingLabels);
 
   const fields = ['mapTitle', 'mapCategory', 'mapUrl', 'mapDate'];
   const mapKeys = ['title', 'category', 'url', 'date'];
@@ -1945,7 +1956,8 @@ function applyMapping() {
       toast('❌ 적용 결과 0개 — 매핑을 확인하세요', 'err');
       return;
     }
-    allTabs.push({ id: tabId, name: sheetName, group: sheetGroup, data: normalized, sheetsUrl: '', readMap: {}, starSet: [] });
+    var customDateLabel = $('mapDateLabelInput').value.trim() || '날짜';
+    allTabs.push({ id: tabId, name: sheetName, group: sheetGroup, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel });
     log('시트 "' + sheetName + '" → 탭 추가 (' + normalized.length + '행)');
 
     // Clean up mapping UI
@@ -2034,12 +2046,13 @@ function pickUploadMode(mode) {
 }
 
 function finishApplyMapping(normalized, mapping, mode) {
+  var customDateLabel = $('mapDateLabelInput').value.trim() || '날짜';
   if (mode === 'newtab') {
     var tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
     var tabName = window._currentSheetName || '새 트래커';
     var tab = getActiveTab();
     var group = tab ? tab.group || '' : '';
-    allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: '', readMap: {}, starSet: [] });
+    allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel });
     saveToStorage();
     renderTabs();
     switchTab(tabId);
@@ -2047,6 +2060,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     toast('✅ 새 탭 "' + tabName + '" 추가! (' + normalized.length + '개)', 'ok');
   } else if (mode === 'append') {
     const tab = getActiveTab();
+    tab.dateLabel = customDateLabel;
     var startNum = tab.data.length > 0 ? Math.max.apply(null, tab.data.map(function(d) { return d.num || 0; })) + 1 : 1;
     normalized.forEach(function(item, i) { item.num = startNum + i; });
     tab.data = tab.data.concat(normalized);
@@ -2056,6 +2070,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     toast('✅ ' + normalized.length + '개 추가! (총 ' + tab.data.length + '개)', 'ok');
   } else {
     const tab = getActiveTab();
+    tab.dateLabel = customDateLabel;
     tab.data = normalized;
 
     if (pendingSource === 'sheets' && pendingRawUrl) {
@@ -3166,6 +3181,60 @@ function setupTagAutocomplete(input, drop, tagSet) {
     var w = getWordAt();
     if (w.word.startsWith('#')) show(w.word);
   });
+}
+
+// ── Date Label Autocomplete ──
+var _dlAcBound = false, _dlAcLabels = {};
+function setupDateLabelAutocomplete(input, drop, labels) {
+  _dlAcLabels = labels;
+  if (_dlAcBound) return;
+  _dlAcBound = true;
+  var sel = -1;
+
+  function show(q) {
+    var keys = Object.keys(_dlAcLabels).filter(function(k) { return k.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+    if (keys.length === 0) { hide(); return; }
+    drop.innerHTML = keys.map(function(k, i) {
+      return '<div class="tag-ac-item' + (i === sel ? ' sel' : '') + '" data-val="' + esc(k) + '">' + esc(k) + '</div>';
+    }).join('');
+    drop.classList.add('open');
+  }
+
+  function hide() { drop.classList.remove('open'); drop.innerHTML = ''; sel = -1; }
+
+  function pick(val) {
+    input.value = val;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    hide();
+    input.focus();
+  }
+
+  input.addEventListener('input', function() {
+    var v = input.value.trim();
+    if (v.length > 0) { sel = -1; show(v); }
+    else { sel = -1; show(''); }
+  });
+
+  input.addEventListener('keydown', function(e) {
+    if (!drop.classList.contains('open')) return;
+    var items = drop.querySelectorAll('.tag-ac-item');
+    if (items.length === 0) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, items.length - 1); upSel(items); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); upSel(items); }
+    else if ((e.key === 'Enter' || e.key === 'Tab') && sel >= 0) { e.preventDefault(); pick(items[sel].dataset.val); }
+    else if (e.key === 'Escape') hide();
+  });
+
+  function upSel(items) { items.forEach(function(el, i) { el.classList.toggle('sel', i === sel); }); }
+
+  drop.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    var el = e.target.closest('.tag-ac-item');
+    if (el) pick(el.dataset.val);
+  });
+
+  input.addEventListener('blur', function() { setTimeout(hide, 150); });
+  input.addEventListener('focus', function() { var v = input.value.trim(); show(v); });
 }
 
 function saveEdit() {
