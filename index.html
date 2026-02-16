@@ -236,10 +236,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 #favView td { padding:14px 12px; }
 #favView th:nth-child(1), #favView td:nth-child(1) { width:40px; text-align:center; }
 #favView th:nth-child(2), #favView td:nth-child(2) { width:10%; }
-#favView th:nth-child(3), #favView td:nth-child(3) { width:12%; }
-#favView th:nth-child(4), #favView td:nth-child(4) { width:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#favView th:nth-child(5), #favView td:nth-child(5) { width:50px; text-align:center; }
-#favView th:nth-child(6), #favView td:nth-child(6) { width:100px; }
+#favView th:nth-child(3), #favView td:nth-child(3) { width:36px; text-align:center; }
+#favView th:nth-child(4), #favView td:nth-child(4) { width:10%; }
+#favView th:nth-child(5), #favView td:nth-child(5) { width:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#favView th:nth-child(6), #favView td:nth-child(6) { width:50px; text-align:center; }
+#favView th:nth-child(7), #favView td:nth-child(7) { width:100px; }
 #favView .td-c { max-width:100%; }
 
 /* HOME OVERVIEW */
@@ -280,6 +281,16 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .kg-article .kg-a-title { color:var(--t1); font-weight:600; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .kg-article .kg-a-tags { display:flex; flex-wrap:wrap; gap:4px; }
 .kg-article .kg-a-tags span { font-size:11px; padding:2px 6px; border-radius:6px; }
+
+/* TAG AUTOCOMPLETE */
+.tag-ac-wrap { position:relative; }
+.tag-ac-drop { position:absolute; left:0; right:0; top:100%; z-index:999; background:var(--card); border:1px solid var(--bdr2); border-radius:var(--rs); max-height:180px; overflow-y:auto; display:none; box-shadow:0 8px 24px rgba(0,0,0,.45); }
+.tag-ac-drop.open { display:block; }
+.tag-ac-item { padding:8px 14px; font-size:13px; color:var(--t2); cursor:pointer; display:flex; align-items:center; gap:8px; transition:background .1s; }
+.tag-ac-item:hover, .tag-ac-item.sel { background:var(--gold2); color:var(--gold); }
+.tag-ac-item .tag-ac-cnt { font-size:10px; color:var(--t3); margin-left:auto; opacity:.6; }
+.tag-ac-item .tag-ac-hash { color:var(--gold); font-weight:700; }
+.tag-ac-empty { padding:8px 14px; font-size:12px; color:var(--t3); opacity:.5; }
 .goal-item { padding:3px 6px; border-radius:6px; margin-bottom:2px; transition:.15s; opacity:0.5; }
 .goal-item.active { opacity:1; background:rgba(232,184,48,0.08); border-left:2px solid #e8b830; padding-left:8px; }
 .home-guide-section { background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:16px 22px; margin-bottom:10px; font-size:14px; line-height:2; }
@@ -350,10 +361,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   thead th { padding:10px; }
 
   /* Favorites table - mobile optimized */
-  #favView table { min-width:520px; }
-  #favView th:nth-child(2), #favView td:nth-child(2) { width:14%; }
-  #favView th:nth-child(3), #favView td:nth-child(3) { width:14%; }
-  #favView th:nth-child(6), #favView td:nth-child(6) { width:85px; }
+  #favView table { min-width:560px; }
+  #favView th:nth-child(2), #favView td:nth-child(2) { width:12%; }
+  #favView th:nth-child(4), #favView td:nth-child(4) { width:12%; }
+  #favView th:nth-child(7), #favView td:nth-child(7) { width:85px; }
   #favView .fav-src { font-size:9px; }
   #favView .td-c { font-size:9px; }
   #favView .td-dt { font-size:10px; }
@@ -466,7 +477,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   <!-- HEADER -->
   <div class="hdr">
     <div>
-      <h1 id="headerTitle">📚 독서 트래커</h1>
+      <div style="display:flex;align-items:center;gap:8px">
+        <h1 id="headerTitle">📚 독서 트래커</h1>
+        <span id="titleEditBtn" onclick="editCustomTitle()" style="display:none;font-size:14px;cursor:pointer;opacity:0.5;user-select:none" title="이름 변경">✏️</span>
+      </div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="hdr-sub" id="headerSub">탭을 추가하고 파일을 업로드하세요</div>
         <span id="appVersion" style="font-size:11px;color:var(--t3);opacity:0.6"></span>
@@ -613,8 +627,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <label>🗒️ 노트 / Notes</label>
       <textarea id="editNotes" placeholder="https://notion.so/... 메모 텍스트" rows="4" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
       <label>🏷️ 태그 / Tags</label>
-      <input type="text" id="editTags" placeholder="#AI #투자 #반도체" list="editTagList">
-      <datalist id="editTagList"></datalist>
+      <div class="tag-ac-wrap" id="tagAcWrap">
+        <input type="text" id="editTags" placeholder="#AI #투자 #반도체" autocomplete="off">
+        <div class="tag-ac-drop" id="tagAcDrop"></div>
+      </div>
       <input type="hidden" id="editNum">
       <div class="modal-btns">
         <button class="btn" onclick="closeEditModal()">취소</button>
@@ -687,7 +703,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         </select>
       </div>
       <div class="tc-r">
-        <select class="fsel" id="sortOrder" onchange="renderTable()">
+        <select class="fsel" id="sortOrder" onchange="applySortToData()">
           <option value="num-asc"># ↑</option><option value="num-desc"># ↓</option>
           <option value="date-desc">최신순</option><option value="date-asc">오래된순</option>
         </select>
@@ -723,7 +739,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:30px">⭐</th>
-          <th>출처</th><th>카테고리</th><th>제목</th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
+          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
         </tr></thead>
         <tbody id="favBody"></tbody>
       </table>
@@ -746,6 +762,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <div class="home-guide-section"><strong style="color:var(--gold)">5. 🧠 마인드맵</strong><br>- 아티클 편집(✏️)에서 태그 입력 (#키워드; 예시: #AI #코인 #구글 #버티브)<br>- 태그로 연결된 아티클이 노드 네트워크로 시각화됨<br>- 드롭다운으로 전체 / 그룹별 / 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">6. ⭐ 즐겨찾기</strong><br>- 아티클 옆 ☆ 클릭으로 즐겨찾기 추가<br>- 즐겨찾기 탭에서 모든 탭의 별표 항목을 통합 조회<br>- 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">7. 📊 대시보드/탭</strong><br>- 노트 편집(✏️)에서 노트 입력 — URL 입력 시 🗒️ 클릭으로 링크 열기, 텍스트 입력 시 💬에 팝업 표시<br>- 각 탭에서 진행률, 월별 추이, 카테고리 분포 확인 가능<br>- 검색 & 필터 — 제목, 카테고리, URL 통합 검색. 카테고리별 / 읽음 상태별 필터, 정렬 지원</div>
+      <div class="home-guide-section" style="margin-top:24px;border-color:var(--gold);opacity:0.85">
+        <strong style="color:var(--gold)">💾 트래커 백업</strong><br>
+        <span style="font-size:12px;color:var(--t3)">모든 탭, 읽기 기록, 즐겨찾기, 출석 체크 등을 JSON 파일로 저장합니다.<br>브라우저 데이터를 지우거나 다른 기기로 옮길 때 사용하세요.</span><br><br>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="exportBackup()" style="font-size:11px">📤 백업 저장하기</button>
+          <button class="btn btn-sm" onclick="importBackup()" style="font-size:11px">📥 백업 불러오기</button>
+        </div>
+      </div>
       <div class="home-guide-section" style="margin-top:24px;border-color:var(--red);opacity:0.7">
         <strong style="color:var(--red)">⚠️ 데이터 초기화</strong><br>
         <span style="font-size:12px;color:var(--t3)">모든 탭, 읽기 기록, 즐겨찾기, 출석 체크 등 저장된 데이터를 완전히 삭제하고 처음 상태로 돌아갑니다.</span><br><br>
@@ -806,9 +830,9 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rs);padding:16px;flex:1;display:flex;flex-direction:column;overflow:hidden">
           <canvas id="kgCanvas" width="560" height="420" style="width:100%;flex:1;border-radius:8px;min-height:0"></canvas>
           <div style="font-size:10px;color:var(--t3);margin-top:6px;flex-shrink:0">
-            <span>● 큰 노드 = 아티클</span> &nbsp;
-            <span>● 작은 노드 = 태그</span> &nbsp;
-            <span>〰 곡선 = 공유 태그</span> &nbsp;
+            <span>● 큰 노드 = 태그</span> &nbsp;
+            <span>● 작은 노드 = 아티클</span> &nbsp;
+            <span>― 연결선 = 공유 태그</span> &nbsp;
             <span style="opacity:0.6">노드 클릭 → 연결 탐색 · 빈 곳 클릭 → 전체 보기</span>
           </div>
         </div>
@@ -849,10 +873,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.3';
+const APP_VERSION = 'v1.4';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
+const CUSTOM_TITLE_KEY = 'pt_custom_title';
 const THEME_KEY = 'pt_theme';
 var BULB_NODE_COUNT = 190; // 전구 안 총 노드 수 (고정)
 var BULB_GOAL_DAYS = 100; // 목표 일수 (사용자 선택)
@@ -957,6 +982,7 @@ function saveToStorage() {
     } catch(e2) { console.error('Lite save also failed:', e2); }
   }
 }
+var saveData = saveToStorage; // alias for backward compatibility
 
 function loadFromStorage() {
   try {
@@ -999,6 +1025,95 @@ function loadFromStorage() {
 
 function saveAttendance() {
   try { localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendance)); } catch(e) {}
+}
+
+// JSON BACKUP EXPORT/IMPORT
+function exportBackup() {
+  var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
+    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
+  });
+  var backup = {
+    version: 'pt_backup_v1',
+    exportDate: new Date().toISOString(),
+    customTitle: localStorage.getItem(CUSTOM_TITLE_KEY) || '',
+    theme: localStorage.getItem(THEME_KEY) || 'gold',
+    attendance: attendance,
+    attendanceGoal: BULB_GOAL_DAYS,
+    tabs: data
+  };
+  var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '독서트래커_백업_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('💾 백업 파일이 다운로드되었습니다');
+}
+
+function importBackup() {
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json';
+  inp.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var backup = JSON.parse(ev.target.result);
+        if (!backup.tabs || !Array.isArray(backup.tabs)) { toast('⚠️ 올바른 백업 파일이 아닙니다', 'err'); return; }
+        if (!confirm('현재 데이터를 백업 파일로 교체합니다.\n기존 데이터는 사라집니다. 계속하시겠습니까?')) return;
+        // Restore
+        allTabs = [{ id: 'tab_favorites', name: '⭐ 즐겨찾기', data: [], readMap: {}, starSet: [] }];
+        backup.tabs.forEach(function(t) {
+          var readMap = {};
+          if (t.readMap && typeof t.readMap === 'object' && !Array.isArray(t.readMap)) { readMap = t.readMap; }
+          else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
+          var articles = t.articles || [];
+          articles.forEach(function(a) { if (!a.notes) a.notes = ''; });
+          allTabs.push({ id: t.id, name: t.name, group: t.group || '', data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
+        });
+        if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
+        if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
+        if (backup.theme) setTheme(backup.theme);
+        if (backup.customTitle) { localStorage.setItem(CUSTOM_TITLE_KEY, backup.customTitle); }
+        activeTabId = backup.tabs.length > 0 ? backup.tabs[0].id : 'tab_home';
+        saveToStorage();
+        toast('✅ 백업이 복원되었습니다!');
+        switchTab('tab_home');
+        renderTabs();
+      } catch(err) { toast('⚠️ 파일 읽기 실패: ' + err.message, 'err'); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+// CUSTOM TITLE
+function getCustomTitle() {
+  return localStorage.getItem(CUSTOM_TITLE_KEY) || '독서 트래커';
+}
+
+function editCustomTitle() {
+  var current = getCustomTitle();
+  var newTitle = prompt('트래커 이름을 입력하세요:', current);
+  if (newTitle !== null && newTitle.trim()) {
+    localStorage.setItem(CUSTOM_TITLE_KEY, newTitle.trim());
+    applyCustomTitle();
+  }
+}
+
+function applyCustomTitle() {
+  var title = getCustomTitle();
+  var el = $('headerTitle');
+  var btn = $('titleEditBtn');
+  if (el && (!activeTabId || activeTabId === 'tab_home')) {
+    el.textContent = '📚 ' + title;
+    if (btn) btn.style.display = '';
+  } else {
+    if (btn) btn.style.display = 'none';
+  }
+  document.title = '📚 ' + title;
 }
 
 var GOAL_DESC = {
@@ -1140,6 +1255,7 @@ function switchTab(id) {
   renderTabs();
   $('appVersion').textContent = '';
   $('updateBadge').style.display = 'none';
+  $('titleEditBtn').style.display = 'none';
 
   // Home tab
   if (id === 'tab_home') {
@@ -1150,6 +1266,7 @@ function switchTab(id) {
     $('kgView').style.display = 'none';
     $('settingsView').style.display = 'none';
     $('headerTitle').textContent = '📚 독서 트래커';
+    applyCustomTitle();
     $('appVersion').textContent = APP_VERSION;
     if (window._updateAvailable) $('updateBadge').style.display = '';
     $('headerSub').textContent = '전체 요약';
@@ -2860,8 +2977,8 @@ function closeDupesModal() {
 // =============================================
 // EDIT / DELETE ITEM
 // =============================================
-function showNoteLinks(num) {
-  var tab = getActiveTab();
+function showNoteLinks(num, tabId) {
+  var tab = tabId ? allTabs.find(function(t) { return t.id === tabId; }) : getActiveTab();
   if (!tab) return;
   var item = tab.data.find(function(d) { return d.num === num; });
   if (!item || !item.notes) return;
@@ -2883,15 +3000,15 @@ function showNoteLinks(num) {
 
   html += '<div style="display:flex;gap:8px;justify-content:flex-end">';
   html += '<button class="btn" onclick="document.getElementById(\'noteLinksBg\').remove()">닫기</button>';
-  html += '<button class="btn btn-g" onclick="openAllNoteLinks(' + num + ')">전체 열기</button>';
+  html += '<button class="btn btn-g" onclick="openAllNoteLinks(' + num + ',\'' + (tabId || '') + '\')">전체 열기</button>';
   html += '</div>';
 
   html += '</div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function openAllNoteLinks(num) {
-  var tab = getActiveTab();
+function openAllNoteLinks(num, tabId) {
+  var tab = tabId ? allTabs.find(function(t) { return t.id === tabId; }) : getActiveTab();
   if (!tab) return;
   var item = tab.data.find(function(d) { return d.num === num; });
   if (!item || !item.notes) return;
@@ -2957,12 +3074,98 @@ function editItem(num) {
     });
   });
 
-  // Populate tag autocomplete
+  // Populate tag autocomplete (all tabs)
   var allTagSet = {};
-  tab.data.forEach(function(d) { (d.tags || []).forEach(function(t) { allTagSet[t] = 1; }); });
-  $('editTagList').innerHTML = Object.keys(allTagSet).sort().map(function(t) { return '<option value="' + t + '">'; }).join('');
+  allTabs.forEach(function(t) { (t.data || []).forEach(function(d) { (d.tags || []).forEach(function(tag) { allTagSet[tag] = (allTagSet[tag] || 0) + 1; }); }); });
+  setupTagAutocomplete($('editTags'), $('tagAcDrop'), allTagSet);
 
   $('editModalBg').classList.add('open');
+}
+
+// ── Tag Autocomplete ──
+var _tagAcSel = -1, _tagAcBound = false, _tagAcTags = [], _tagAcSet = {};
+function setupTagAutocomplete(input, drop, tagSet) {
+  _tagAcSet = tagSet;
+  _tagAcTags = Object.keys(tagSet).sort(function(a,b) { return (tagSet[b]||0) - (tagSet[a]||0); });
+  _tagAcSel = -1;
+  drop.innerHTML = '';
+  drop.classList.remove('open');
+  if (_tagAcBound) return;
+  _tagAcBound = true;
+
+  function getWordAt() {
+    var v = input.value, pos = input.selectionStart || v.length;
+    var left = v.lastIndexOf(' ', pos - 1);
+    var word = v.substring(left + 1, pos);
+    return { word: word, start: left + 1, end: pos };
+  }
+
+  function show(filter) {
+    var q = filter.replace(/^#/, '').toLowerCase();
+    var matches = _tagAcTags.filter(function(t) { return t.toLowerCase().indexOf(q) >= 0; });
+    if (matches.length === 0 && q.length > 0) {
+      drop.innerHTML = '<div class="tag-ac-empty">새 태그: <b>#' + esc(filter.replace(/^#/,'')) + '</b></div>';
+      drop.classList.add('open');
+      _tagAcSel = -1;
+      return;
+    }
+    if (matches.length === 0) { hide(); return; }
+    drop.innerHTML = matches.slice(0, 12).map(function(t, i) {
+      return '<div class="tag-ac-item' + (i === _tagAcSel ? ' sel' : '') + '" data-tag="' + esc(t) + '">'
+        + '<span><span class="tag-ac-hash">#</span>' + esc(t) + '</span>'
+        + '<span class="tag-ac-cnt">' + (_tagAcSet[t] || 0) + '회</span></div>';
+    }).join('');
+    drop.classList.add('open');
+  }
+
+  function hide() { drop.classList.remove('open'); drop.innerHTML = ''; _tagAcSel = -1; }
+
+  function pick(tag) {
+    var w = getWordAt();
+    var v = input.value;
+    var before = v.substring(0, w.start);
+    var after = v.substring(w.end);
+    var insert = '#' + tag + ' ';
+    input.value = before + insert + after.replace(/^\s+/, '');
+    input.selectionStart = input.selectionEnd = before.length + insert.length;
+    hide();
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  input.addEventListener('input', function() {
+    var w = getWordAt();
+    if (w.word.startsWith('#')) { _tagAcSel = -1; show(w.word); }
+    else hide();
+  });
+
+  input.addEventListener('keydown', function(e) {
+    if (!drop.classList.contains('open')) return;
+    var items = drop.querySelectorAll('.tag-ac-item');
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') { e.preventDefault(); _tagAcSel = Math.min(_tagAcSel + 1, items.length - 1); updateSel(items); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _tagAcSel = Math.max(_tagAcSel - 1, 0); updateSel(items); }
+    else if ((e.key === 'Enter' || e.key === 'Tab') && _tagAcSel >= 0) { e.preventDefault(); pick(items[_tagAcSel].dataset.tag); }
+    else if (e.key === 'Escape') { hide(); }
+  });
+
+  function updateSel(items) {
+    items.forEach(function(el, i) { el.classList.toggle('sel', i === _tagAcSel); });
+    if (items[_tagAcSel]) items[_tagAcSel].scrollIntoView({ block:'nearest' });
+  }
+
+  drop.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    var el = e.target.closest('.tag-ac-item');
+    if (el) pick(el.dataset.tag);
+  });
+
+  input.addEventListener('blur', function() { setTimeout(hide, 150); });
+  input.addEventListener('focus', function() {
+    var w = getWordAt();
+    if (w.word.startsWith('#')) show(w.word);
+  });
 }
 
 function saveEdit() {
@@ -3160,6 +3363,24 @@ function getFilteredData() {
   });
 
   return list;
+}
+
+function applySortToData() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  const sortVal = $('sortOrder').value;
+  tab.data.sort(function(a, b) {
+    switch (sortVal) {
+      case 'num-asc': return a.num - b.num;
+      case 'num-desc': return b.num - a.num;
+      case 'date-desc': return b.date.localeCompare(a.date);
+      case 'date-asc': return a.date.localeCompare(b.date);
+      default: return 0;
+    }
+  });
+  saveToStorage();
+  currentPage = 1;
+  renderTable();
 }
 
 function renderTable() {
@@ -4032,8 +4253,11 @@ function renderHome() {
       '<p style="color:var(--t3);font-size:12px;margin-bottom:32px">📄 파일을 여기에 드래그 앤 드롭하거나 클릭하세요</p>' +
       '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
       '<button class="btn btn-g" onclick="event.stopPropagation();openModal()" style="font-size:14px;padding:12px 24px">＋ 새 트래커 만들기</button>' +
-      '<button class="btn" onclick="event.stopPropagation();switchTab(\'tab_settings\')" style="font-size:13px;padding:12px 20px">📖 사용법 보기</button>' +
+      '<button class="btn" onclick="event.stopPropagation();window.open(\'https://theprinciples.github.io/reading-tracker/guide.pdf\',\'_blank\')" style="font-size:13px;padding:12px 20px">📖 상세 사용법 보기</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px">' +
       '<button class="btn" onclick="event.stopPropagation();showMakeListPopup()" style="font-size:13px;padding:12px 20px">📝 목록 만들기</button>' +
+      '<button class="btn" onclick="event.stopPropagation();importBackup()" style="font-size:13px;padding:12px 20px">📥 백업 불러오기</button>' +
       '</div>' +
       '</div>' +
       '</div>';
@@ -4214,7 +4438,8 @@ function renderFavoritesTable(page) {
           url: item.url,
           date: item.date,
           notes: item.notes || '',
-          key: item.key
+          key: item.key,
+          num: item.num
         });
       }
     });
@@ -4257,7 +4482,7 @@ function renderFavoritesTable(page) {
       if (urlMatches.length === 1) {
         noteHtml += '<a href="'+esc(urlMatches[0])+'" target="_blank" rel="noopener noreferrer" class="note-link" title="'+esc(urlMatches[0])+'">🗒️</a>';
       } else if (urlMatches.length > 1) {
-        noteHtml += '<span class="note-link" onclick="showNoteLinks('+r.num+')" title="링크 '+urlMatches.length+'개">🗒️</span>';
+        noteHtml += '<span class="note-link" onclick="showNoteLinks('+r.num+',\''+r.tabId+'\')" title="링크 '+urlMatches.length+'개">🗒️</span>';
       }
       if (noteText) {
         noteHtml += '<span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">'+esc(noteText)+'</span></span>';
@@ -4268,6 +4493,7 @@ function renderFavoritesTable(page) {
     return '<tr>' +
       '<td><div class="star on" onclick="unstarFromFav(\'' + r.tabId + '\',\'' + escKey(r.key) + '\')">★</div></td>' +
       '<td><span class="fav-src" style="background:' + srcColor + '22;color:' + srcColor + ';border:1px solid ' + srcColor + '44">' + esc(r.tabName) + '</span></td>' +
+      '<td style="text-align:center;color:var(--t3);font-size:13px">' + (r.num || '') + '</td>' +
       '<td><span class="td-c" title="' + esc(r.category) + '">' + esc(r.category) + '</span></td>' +
       '<td class="td-ti">' + titleHtml + '</td>' +
       '<td>' + noteHtml + '</td>' +
@@ -4391,6 +4617,7 @@ if (!activeTabId || !allTabs.find(t => t.id === activeTabId)) {
 
 renderTabs();
 switchTab('tab_home');
+applyCustomTitle();
 
 // =============================================
 // AUTO UPDATE CHECK (on tab focus)
