@@ -697,7 +697,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <!-- TABLE CONTROLS -->
     <div class="tc">
       <div class="tc-l">
-        <input class="sinp" id="searchInput" placeholder="🔍 검색..." oninput="renderTable()">
+        <input class="sinp" id="searchInput" placeholder="🔍 검색..." oninput="debouncedRenderTable()">
         <select class="fsel" id="catFilter" onchange="renderTable()"><option value="">전체</option></select>
         <select class="fsel" id="readFilter" onchange="renderTable()">
           <option value="">전체</option><option value="unread">안읽음</option><option value="read">읽음</option>
@@ -843,6 +843,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           <select id="kgFilter" class="fsel" onchange="renderKnowledgeGraph()" style="width:100%;font-size:14px;padding:10px 12px"></select>
         </div>
         <div style="font-size:14px;font-weight:600;color:var(--t2);margin-bottom:8px;flex-shrink:0">🏷️ 태그</div>
+        <div id="kgLimitNotice" style="display:none;flex-shrink:0;margin-bottom:8px;padding:10px 14px;background:var(--gold2);border:1px solid var(--gold);border-radius:var(--rs);font-size:12px;color:var(--gold);align-items:center;gap:8px;flex-wrap:wrap"></div>
         <div id="kgTagCloud" style="display:flex;flex-wrap:nowrap;gap:7px;margin-bottom:12px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;padding-bottom:4px"></div>
         <div id="kgArticleList" style="flex:1;overflow-y:auto;min-height:0"></div>
         <div id="kgInfo" style="background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:14px;margin-top:10px;font-size:13px;color:var(--t3);line-height:1.7;max-height:200px;overflow-y:auto;flex-shrink:0"></div>
@@ -874,7 +875,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.4.2';
+const APP_VERSION = 'v1.5';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -923,6 +924,24 @@ let attendance = []; // array of date strings like "2026-02-12"
 // UTILITY
 // =============================================
 function $(id) { return document.getElementById(id); }
+
+// Debounce: delays execution until user stops typing
+var _dbTimer = null;
+function debouncedRenderTable() {
+  clearTimeout(_dbTimer);
+  _dbTimer = setTimeout(function() { renderTable(); }, 200);
+}
+
+// Save throttle: batches rapid saves into one
+var _saveTimer = null, _savePending = false;
+function throttledSave() {
+  _savePending = true;
+  if (_saveTimer) return;
+  _saveTimer = setTimeout(function() {
+    _saveTimer = null;
+    if (_savePending) { _savePending = false; saveToStorage(); }
+  }, 500);
+}
 
 function toast(msg, type) {
   const box = $('toastBox');
@@ -2513,7 +2532,7 @@ function toggleRead(key) {
   if (!tab) return;
   if (key in tab.readMap) delete tab.readMap[key];
   else tab.readMap[key] = todayStr();
-  saveToStorage();
+  throttledSave();
   renderProgress();
   renderTable();
   renderCharts();
@@ -2543,7 +2562,7 @@ function toggleStar(key) {
   var idx = tab.starSet.indexOf(key);
   if (idx !== -1) tab.starSet.splice(idx, 1);
   else tab.starSet.push(key);
-  saveToStorage();
+  throttledSave();
   renderTabs();
   renderTable();
 }
@@ -3404,24 +3423,15 @@ function renderProgress() {
   $('catBars').innerHTML = barsHtml;
 }
 
-function getFilteredData() {
+var _sortedCache = null, _sortedCacheKey = '';
+function getSortedData() {
   const tab = getActiveTab();
   if (!tab) return [];
-
-  const search = $('searchInput').value.toLowerCase();
-  const catVal = $('catFilter').value;
-  const readVal = $('readFilter').value;
   const sortVal = $('sortOrder').value;
-
-  let list = tab.data.filter(r => {
-    if (catVal && r.category !== catVal) return false;
-    if (readVal === 'read' && !isRead(r.key)) return false;
-    if (readVal === 'unread' && isRead(r.key)) return false;
-    if (search && !r.title.toLowerCase().includes(search) && !r.category.toLowerCase().includes(search)) return false;
-    return true;
-  });
-
-  list.sort((a, b) => {
+  var cacheKey = tab.id + '_' + sortVal + '_' + tab.data.length;
+  if (_sortedCache && _sortedCacheKey === cacheKey) return _sortedCache;
+  var list = tab.data.slice();
+  list.sort(function(a, b) {
     switch (sortVal) {
       case 'num-asc': return a.num - b.num;
       case 'num-desc': return b.num - a.num;
@@ -3430,11 +3440,33 @@ function getFilteredData() {
       default: return 0;
     }
   });
+  _sortedCache = list;
+  _sortedCacheKey = cacheKey;
+  return list;
+}
+
+function getFilteredData() {
+  const tab = getActiveTab();
+  if (!tab) return [];
+
+  const search = $('searchInput').value.toLowerCase();
+  const catVal = $('catFilter').value;
+  const readVal = $('readFilter').value;
+
+  var sorted = getSortedData();
+  let list = sorted.filter(r => {
+    if (catVal && r.category !== catVal) return false;
+    if (readVal === 'read' && !isRead(r.key)) return false;
+    if (readVal === 'unread' && isRead(r.key)) return false;
+    if (search && !r.title.toLowerCase().includes(search) && !r.category.toLowerCase().includes(search)) return false;
+    return true;
+  });
 
   return list;
 }
 
 function applySortToData() {
+  _sortedCache = null; _sortedCacheKey = '';
   const tab = getActiveTab();
   if (!tab) return;
   const sortVal = $('sortOrder').value;
@@ -3663,6 +3695,8 @@ var kgAnimId = null;
 var kgNodes = [], kgEdges = [];
 var kgSelectedTag = null, kgSelectedArticle = null, kgHoverNode = null;
 var kgTime = 0;
+window._kgShowAll = false;
+window._kgIsLimited = false;
 
 function renderKnowledgeGraph() {
   // Stop any previous animation
@@ -3719,6 +3753,28 @@ function renderKnowledgeGraph() {
   });
 
   var allKgTags = Object.keys(allTagSet).sort(function(a,b) { return allTagSet[b] - allTagSet[a]; });
+
+  // Tiered node limit for performance
+  var totalNodes = articles.length + allKgTags.length;
+  var kgTagLimit = 0; // 0 = no limit
+  var kgLimited = false;
+  if (totalNodes > 800) { kgTagLimit = 20; kgLimited = true; }
+  else if (totalNodes > 500) { kgTagLimit = 30; kgLimited = true; }
+
+  if (kgLimited && !window._kgShowAll) {
+    window._kgIsLimited = true;
+    var limitedTags = allKgTags.slice(0, kgTagLimit);
+    var limitedTagSet = {};
+    limitedTags.forEach(function(t) { limitedTagSet[t] = 1; });
+    // Filter articles to only those with at least one visible tag
+    articles = articles.filter(function(a) { return a.tags.some(function(t) { return limitedTagSet[t]; }); });
+    // Filter article tags to only visible ones
+    articles.forEach(function(a) { a.tags = a.tags.filter(function(t) { return limitedTagSet[t]; }); });
+    allKgTags = limitedTags;
+  } else {
+    window._kgIsLimited = false;
+  }
+
   var tagColorMap = {};
   allKgTags.forEach(function(t, i) { tagColorMap[t] = COLORS[i % COLORS.length]; });
 
@@ -3726,6 +3782,7 @@ function renderKnowledgeGraph() {
     $('kgTagCloud').innerHTML = '';
     $('kgArticleList').innerHTML = '<div style="color:var(--t3);font-size:12px;padding:20px;text-align:center">태그가 있는 아티클이 없어요.<br>아티클 편집에서 🏷️ 태그를 추가해보세요!</div>';
     $('kgInfo').innerHTML = '각 아티클의 ✏️ 편집에서 태그를 입력하면 여기에 마인드맵이 만들어집니다.';
+    $('kgLimitNotice').style.display = 'none';
     var ctx = $('kgCanvas').getContext('2d');
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle = '#333';
@@ -3985,6 +4042,19 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
     info = '📊 태그된 아티클 '+taggedCount+'개, 태그 '+allKgTags.length+'개<br><br>태그나 아티클을 클릭하면 연결 정보가 표시됩니다.';
   }
   $('kgInfo').innerHTML = info;
+
+  // Limit notice (always visible area)
+  var noticeEl = $('kgLimitNotice');
+  if (window._kgIsLimited) {
+    noticeEl.style.display = 'flex';
+    noticeEl.innerHTML = '⚡ 데이터가 많아 상위 ' + allKgTags.length + '개 태그만 표시 중 <button class="btn btn-sm" style="font-size:10px;padding:4px 10px;margin-left:auto;border-color:var(--gold);color:var(--gold)" onclick="window._kgShowAll=true;renderKnowledgeGraph()">🔓 전체 보기</button>';
+  } else if (window._kgShowAll) {
+    noticeEl.style.display = 'flex';
+    noticeEl.innerHTML = '🔓 전체 표시 중 (느려질 수 있음) <button class="btn btn-sm" style="font-size:10px;padding:4px 10px;margin-left:auto;border-color:var(--gold);color:var(--gold)" onclick="window._kgShowAll=false;renderKnowledgeGraph()">⚡ 최적화 모드</button>';
+  } else {
+    noticeEl.style.display = 'none';
+    noticeEl.innerHTML = '';
+  }
 }
 
 // Global click handlers for KG
