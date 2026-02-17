@@ -168,6 +168,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .cat-box h3 { font-size:13px; font-weight:700; margin-bottom:14px; color:var(--t2); }
 .cr { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .cr-n { font-size:12px; width:170px; min-width:170px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--t2); }
+.cat-arrow { display:none; font-size:12px; color:var(--t3); transition:transform .2s; }
 .cr-b { flex:1; height:8px; background:var(--bg); border-radius:4px; overflow:hidden; min-width:60px; }
 .cr-f { height:100%; border-radius:4px; transition:width .6s; }
 .cr-v { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); width:42px; text-align:right; min-width:42px; }
@@ -349,6 +350,9 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .bulk-i { width:52px; padding:6px 8px; font-size:12px; }
   .bulk .btn-sm { font-size:11px; padding:5px 8px; white-space:nowrap; }
   .cr-n { width:120px; min-width:120px; }
+  .cat-arrow { display:inline; }
+  #catToggle { cursor:pointer; }
+  #catBars.collapsed { display:none; }
   .sinp { width:140px; }
 
   /* Tab bar - touch friendly */
@@ -415,6 +419,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   #kgLayout > div:first-child { min-width:100% !important; flex-shrink:0 !important; }
   #kgLayout > div:last-child { min-width:280px !important; flex-shrink:0 !important; }
   #kgView { padding:10px !important; }
+
+  /* Pagination - match table width, centered */
+  .pg { min-width:580px; flex-wrap:nowrap; gap:4px; padding:10px; }
+  .pg-b { padding:4px 8px; font-size:10px; flex-shrink:0; }
+  .pg-info { font-size:10px; flex-shrink:0; white-space:nowrap; }
 
   /* Favorites filter */
   #favView > div:first-child { flex-direction:column; gap:8px; }
@@ -682,7 +691,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <div class="prog-d" id="progDesc">시작하세요!</div>
       </div>
       <div class="cat-box">
-        <h3>카테고리별 진행률</h3>
+        <h3 id="catToggle" onclick="toggleCatBars()">카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼</span></h3>
         <div id="catBars"></div>
       </div>
     </div>
@@ -737,7 +746,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
     <!-- CHARTS -->
     <div class="charts">
-      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderCharts()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
+      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
       <div class="chrt"><h3>🗂️ 카테고리 분포</h3><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div>
     </div>
   </div>
@@ -942,6 +951,20 @@ var _dbTimer = null;
 function debouncedRenderTable() {
   clearTimeout(_dbTimer);
   _dbTimer = setTimeout(function() { renderTable(); }, 200);
+}
+
+// Category bars collapse (mobile only)
+function toggleCatBars() {
+  if (window.innerWidth > 640) return;
+  var bars = $('catBars');
+  var arrow = $('catArrow');
+  if (bars.classList.contains('collapsed')) {
+    bars.classList.remove('collapsed');
+    arrow.textContent = '▲';
+  } else {
+    bars.classList.add('collapsed');
+    arrow.textContent = '▼';
+  }
 }
 
 // Save throttle: batches rapid saves into one
@@ -2547,7 +2570,7 @@ function toggleRead(key) {
   throttledSave();
   renderProgress();
   renderTable();
-  renderCharts();
+  renderReadingChart();
 }
 
 // =============================================
@@ -2604,7 +2627,7 @@ function doBulkRange(markAsRead) {
     }
   });
   saveToStorage();
-  renderProgress(); renderTable(); renderCharts();
+  renderProgress(); renderTable(); renderReadingChart();
   toast((markAsRead ? '✅' : '🗑️') + ' #' + from + '~#' + to + ' (' + count + '개)', 'ok');
 }
 
@@ -2617,7 +2640,7 @@ function doBulkOne(markAsRead) {
     if (markAsRead) tab.readMap[item.key] = todayStr();
     else delete tab.readMap[item.key];
     saveToStorage();
-    renderProgress(); renderTable(); renderCharts();
+    renderProgress(); renderTable(); renderReadingChart();
     toast((markAsRead ? '✅' : '🗑️') + ' #' + num, 'ok');
   } else toast('#' + num + ' 없음', 'err');
 }
@@ -2633,7 +2656,7 @@ function doMarkAll(markAsRead) {
     tab.readMap = {};
   }
   saveToStorage();
-  renderProgress(); renderTable(); renderCharts();
+  renderProgress(); renderTable(); renderReadingChart();
   toast(markAsRead ? '✅ 전체 읽음' : '🗑️ 초기화 완료', 'ok');
 }
 
@@ -3295,8 +3318,11 @@ function saveEdit() {
     if (starIdx !== -1) tab.starSet[starIdx] = newKey;
   }
 
+  var newCat = $('editCat').value.trim() || '미분류';
+  var catChanged = item.category !== newCat;
+
   item.title = newTitle;
-  item.category = $('editCat').value.trim() || '미분류';
+  item.category = newCat;
   item.url = newUrl;
   item.date = newDate;
   item.notes = $('editNotes').value.trim();
@@ -3306,7 +3332,9 @@ function saveEdit() {
   item.key = newKey;
 
   saveToStorage();
-  renderAll();
+  _sortedCache = null; _sortedCacheKey = '';
+  renderTable();
+  if (catChanged) { renderProgress(); renderCatChart(); }
   toast('💾 #' + num + ' 수정됨', 'ok');
   localStorage.removeItem('pt_draft_' + num);
   closeEditModal();
@@ -3433,6 +3461,13 @@ function renderProgress() {
   }).join('');
 
   $('catBars').innerHTML = barsHtml;
+  // Auto-collapse on mobile
+  if (window.innerWidth <= 640) {
+    $('catBars').classList.add('collapsed');
+    $('catArrow').textContent = '▼';
+  } else {
+    $('catBars').classList.remove('collapsed');
+  }
 }
 
 var _sortedCache = null, _sortedCacheKey = '';
@@ -3546,7 +3581,7 @@ function renderTable() {
   });
   html += `<button class="pg-b" ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">›</button>`;
   html += `<span class="pg-info">${filtered.length}개</span>`;
-  html += `<input type="number" min="1" max="${totalPages}" value="${currentPage}" onkeydown="if(event.key==='Enter'){goPage(Math.min(Math.max(1,+this.value),${totalPages}))}" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;text-align:center;margin-left:6px;outline:none" title="페이지 번호 입력 후 Enter">`;
+  html += `<input type="number" min="1" max="${totalPages}" value="${currentPage}" onkeydown="if(event.key==='Enter'){goPage(Math.min(Math.max(1,+this.value),${totalPages}))}" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;text-align:center;outline:none" title="페이지 번호 입력 후 Enter">`;
   html += `<span class="pg-info" style="opacity:0.5">/ ${totalPages}</span>`;
   html += `<select class="fsel" onchange="changePageSize(+this.value)" style="font-size:11px;padding:3px 6px;margin-left:8px">`;
   [15,30,50].forEach(function(n) { html += '<option value="'+n+'"'+(PAGE_SIZE===n?' selected':'')+'>'+n+'개씩</option>'; });
@@ -3554,7 +3589,12 @@ function renderTable() {
   pg.innerHTML = html;
 }
 
-function goPage(p) { currentPage = p; renderTable(); }
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+  var pg = $('pagination');
+  if (pg) pg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 function changePageSize(n) { PAGE_SIZE = n; currentPage = 1; favCurrentPage = 1; renderTable(); }
 function getPageRange(cur, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -3574,9 +3614,13 @@ function populateFilters() {
 }
 
 function renderCharts() {
+  renderReadingChart();
+  renderCatChart();
+}
+
+function renderReadingChart() {
   const tab = getActiveTab();
   if (!tab) return;
-  $('catEtcNote').innerHTML = '';
 
   // Collect all years from read dates
   const allYears = new Set();
@@ -3662,8 +3706,12 @@ function renderCharts() {
       }
     }
   });
+}
 
-  // Category donut
+function renderCatChart() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  $('catEtcNote').innerHTML = '';
   const catCount = {};
   tab.data.forEach(r => { catCount[r.category] = (catCount[r.category] || 0) + 1; });
   const sortedCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
@@ -3886,7 +3934,7 @@ function renderKnowledgeGraph() {
     }
     canvas.style.cursor = 'default';
   };
-  canvas.onclick = function() {
+  canvas.onclick = function(e) {
     if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
     else {
       var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
@@ -3895,6 +3943,30 @@ function renderKnowledgeGraph() {
     }
     updateKgUI(articles, allKgTags, tagColorMap);
   };
+
+  // Mobile touch support
+  canvas.addEventListener('touchstart', function(e) {
+    var touch = e.touches[0];
+    var rect = canvas.getBoundingClientRect();
+    var W2 = canvas.width / dpr, H2 = canvas.height / dpr;
+    var mx = (touch.clientX - rect.left) * (W2 / rect.width);
+    var my = (touch.clientY - rect.top) * (H2 / rect.height);
+    kgHoverNode = null;
+    for (var i = 0; i < kgNodes.length; i++) {
+      var dx = kgNodes[i].x - mx, dy = kgNodes[i].y - my;
+      if (Math.sqrt(dx*dx+dy*dy) < kgNodes[i].size * 2.5) { kgHoverNode = kgNodes[i].id; break; }
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchend', function(e) {
+    if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
+    else {
+      var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
+      if (n.type === 'tag') { kgSelectedTag = kgSelectedTag === n.fullLabel ? null : n.fullLabel; kgSelectedArticle = null; }
+      else { kgSelectedArticle = kgSelectedArticle === n.articleId ? null : n.articleId; kgSelectedTag = null; }
+    }
+    kgHoverNode = null;
+    updateKgUI(articles, allKgTags, tagColorMap);
+  });
 }
 
 function drawKg(articles, allKgTags, tagColorMap) {
@@ -4027,7 +4099,12 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
 
   // Scroll to highlighted article
   var hlEl = $('kgArticleList').querySelector('.hl');
-  if (hlEl) hlEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (hlEl) {
+    // Use setTimeout to ensure DOM is updated before scrolling
+    setTimeout(function() {
+      hlEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }
 
   // Info
   var info = '';
