@@ -506,7 +506,16 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <div style="display:flex;align-items:center;gap:8px">
         <div class="hdr-sub" id="headerSub">탭을 추가하고 파일을 업로드하세요</div>
         <span id="appVersion" style="font-size:11px;color:var(--t3);opacity:0.6"></span>
-        <span id="updateBadge" style="display:none;font-size:13px;color:var(--gold);cursor:pointer;white-space:nowrap;animation:pulse 2s ease-in-out infinite" onclick="location.reload()">🔄 새 업데이트!</span>
+        <span id="updateBadge" style="display:none;font-size:13px;color:var(--gold);cursor:pointer;white-space:nowrap;animation:pulse 2s ease-in-out infinite" onclick="showUpdateBanner()">🔄 새 업데이트!</span>
+      </div>
+      <!-- Update changelog banner -->
+      <div id="updateBanner" style="display:none;background:rgba(232,184,48,.12);border:1px solid var(--gold);border-radius:var(--rs);padding:16px;margin-top:10px;animation:fadeIn .3s ease">
+        <div id="updateBannerTitle" style="color:var(--gold);font-size:14px;font-weight:600;margin-bottom:10px"></div>
+        <ul id="updateChangelog" style="font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px;padding-left:20px"></ul>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="dismissUpdateBanner()" style="font-size:11px;color:var(--t3);cursor:pointer;border:none;background:none;padding:6px 10px;font-family:inherit">나중에</button>
+          <button id="updateConfirmBtn" class="btn" style="background:var(--gold);color:#000;border-color:var(--gold);font-weight:600;font-size:12px" onclick="doUpdate()">✅ 업데이트하기</button>
+        </div>
       </div>
     </div>
     <div class="hdr-btns">
@@ -900,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.3';
+const APP_VERSION = 'v1.5.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -4871,13 +4880,17 @@ applyCustomTitle();
 // AUTO UPDATE CHECK (on tab focus)
 // =============================================
 (function() {
+  window._updateChangelog = [];
+  window._updateVersion = '';
+
   function checkForUpdates() {
-    fetch('https://theprinciples.github.io/reading-tracker/?_t=' + Date.now())
-      .then(function(r) { return r.text(); })
-      .then(function(html) {
-        var match = html.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
-        if (match && match[1] !== APP_VERSION) {
+    fetch('https://theprinciples.github.io/reading-tracker/version.json?_t=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.version && data.version !== APP_VERSION) {
           window._updateAvailable = true;
+          window._updateVersion = data.version;
+          window._updateChangelog = data.changelog || [];
           if (activeTabId === 'tab_home') {
             $('updateBadge').style.display = '';
           }
@@ -4889,10 +4902,35 @@ applyCustomTitle();
       .catch(function() {});
   }
 
+  // Show "updated!" banner if just updated
+  var lastVersion = localStorage.getItem('pt_last_version');
+  if (lastVersion && lastVersion !== APP_VERSION) {
+    var lastChangelog = [];
+    try { lastChangelog = JSON.parse(localStorage.getItem('pt_last_changelog') || '[]'); } catch(e) {}
+    localStorage.setItem('pt_last_version', APP_VERSION);
+    localStorage.removeItem('pt_last_changelog');
+    if (lastChangelog.length) {
+      setTimeout(function() {
+        $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
+        $('updateChangelog').innerHTML = lastChangelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+        $('updateConfirmBtn').textContent = '확인!';
+        $('updateConfirmBtn').onclick = function() { $('updateBanner').style.display = 'none'; };
+        var dismissBtn = $('updateBanner').querySelector('button:first-child');
+        if (dismissBtn) dismissBtn.style.display = 'none';
+        $('updateBanner').style.display = '';
+      }, 500);
+    }
+  } else {
+    localStorage.setItem('pt_last_version', APP_VERSION);
+  }
+
   // Check when user returns to this tab
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) checkForUpdates();
   });
+
+  // Initial check 3s after load
+  setTimeout(checkForUpdates, 3000);
 
   // Back button: return to mindmap
   window.addEventListener('popstate', function(e) {
@@ -4900,10 +4938,28 @@ applyCustomTitle();
       switchTab('tab_kg');
     }
   });
-
-  // Initial check 3s after load
-  setTimeout(checkForUpdates, 3000);
 })();
+
+function showUpdateBanner() {
+  $('updateBannerTitle').textContent = '🎉 새 업데이트가 있어요! (' + (window._updateVersion || '') + ')';
+  $('updateChangelog').innerHTML = (window._updateChangelog || []).map(function(c) { return '<li>' + c + '</li>'; }).join('');
+  $('updateConfirmBtn').textContent = '✅ 업데이트하기';
+  $('updateConfirmBtn').onclick = doUpdate;
+  var dismissBtn = $('updateBanner').querySelector('button:first-child');
+  if (dismissBtn) dismissBtn.style.display = '';
+  $('updateBanner').style.display = '';
+  $('updateBadge').style.display = 'none';
+}
+
+function dismissUpdateBanner() {
+  $('updateBanner').style.display = 'none';
+  $('updateBadge').style.display = '';
+}
+
+function doUpdate() {
+  localStorage.setItem('pt_last_changelog', JSON.stringify(window._updateChangelog || []));
+  location.reload();
+}
 </script>
 </body>
 </html>
