@@ -352,7 +352,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .cr-n { width:120px; min-width:120px; }
   .cat-arrow { display:inline; }
   #catToggle { cursor:pointer; }
-  #catBars.collapsed { display:none; }
+  #catBars .cr:nth-child(n+6) { display:none; }
+  #catBars.expanded .cr:nth-child(n+6) { display:flex; }
+  #catChartToggle { cursor:pointer; }
+  .cat-chart-content { display:none; }
+  .cat-chart-content.expanded { display:block; }
   .sinp { width:140px; }
 
   /* Tab bar - touch friendly */
@@ -691,7 +695,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <div class="prog-d" id="progDesc">시작하세요!</div>
       </div>
       <div class="cat-box">
-        <h3 id="catToggle" onclick="toggleCatBars()">카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼</span></h3>
+        <h3 id="catToggle" onclick="toggleCatBars()">카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼ 펼쳐보기</span></h3>
         <div id="catBars"></div>
       </div>
     </div>
@@ -747,7 +751,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <!-- CHARTS -->
     <div class="charts">
       <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
-      <div class="chrt"><h3>🗂️ 카테고리 분포</h3><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div>
+      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ 펼쳐보기</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
     </div>
   </div>
 
@@ -896,7 +900,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.0';
+const APP_VERSION = 'v1.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -958,12 +962,26 @@ function toggleCatBars() {
   if (window.innerWidth > 640) return;
   var bars = $('catBars');
   var arrow = $('catArrow');
-  if (bars.classList.contains('collapsed')) {
-    bars.classList.remove('collapsed');
-    arrow.textContent = '▲';
+  if (bars.classList.contains('expanded')) {
+    bars.classList.remove('expanded');
+    arrow.textContent = '▼ 펼쳐보기';
   } else {
-    bars.classList.add('collapsed');
-    arrow.textContent = '▼';
+    bars.classList.add('expanded');
+    arrow.textContent = '▲ 접기';
+  }
+}
+
+// Category distribution chart collapse (mobile only)
+function toggleCatChart() {
+  if (window.innerWidth > 640) return;
+  var content = $('catChartContent');
+  var arrow = $('catChartArrow');
+  if (content.classList.contains('expanded')) {
+    content.classList.remove('expanded');
+    arrow.textContent = '▼ 펼쳐보기';
+  } else {
+    content.classList.add('expanded');
+    arrow.textContent = '▲ 접기';
   }
 }
 
@@ -3461,12 +3479,12 @@ function renderProgress() {
   }).join('');
 
   $('catBars').innerHTML = barsHtml;
-  // Auto-collapse on mobile
+  // Auto-set mobile state (show first 5)
   if (window.innerWidth <= 640) {
-    $('catBars').classList.add('collapsed');
-    $('catArrow').textContent = '▼';
+    $('catBars').classList.remove('expanded');
+    $('catArrow').textContent = '▼ 펼쳐보기';
   } else {
-    $('catBars').classList.remove('collapsed');
+    $('catBars').classList.add('expanded');
   }
 }
 
@@ -3593,7 +3611,7 @@ function goPage(p) {
   currentPage = p;
   renderTable();
   var pg = $('pagination');
-  if (pg) pg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (pg) pg.scrollIntoView({ behavior: 'instant', block: 'nearest' });
 }
 function changePageSize(n) { PAGE_SIZE = n; currentPage = 1; favCurrentPage = 1; renderTable(); }
 function getPageRange(cur, total) {
