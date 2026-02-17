@@ -4,7 +4,7 @@
   
   Licensed under CC BY-NC-SA 4.0
   https://creativecommons.org/licenses/by-nc-sa/4.0/
-
+  
   ✅ 개인 사용, 수정, 공유 가능
   ❌ 상업적 사용 금지
   🔗 원본: https://github.com/theprinciples
@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
-<title>📚 독서 트래커</title>
+<title>독서 트래커</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -881,7 +881,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5.1';
+const APP_VERSION = 'v1.5.2';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1142,7 +1142,7 @@ function applyCustomTitle() {
   } else {
     if (btn) btn.style.display = 'none';
   }
-  document.title = '📚 ' + title;
+  document.title = title;
 }
 
 var GOAL_DESC = {
