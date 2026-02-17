@@ -410,6 +410,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   /* Modals */
   .modal { width:95vw; padding:16px; }
 
+  /* Mindmap - canvas full width, scroll right for panel */
+  #kgLayout { flex-wrap:nowrap !important; overflow-x:auto !important; -webkit-overflow-scrolling:touch; gap:12px !important; }
+  #kgLayout > div:first-child { min-width:100% !important; flex-shrink:0 !important; }
+  #kgLayout > div:last-child { min-width:280px !important; flex-shrink:0 !important; }
+  #kgView { padding:10px !important; }
+
   /* Favorites filter */
   #favView > div:first-child { flex-direction:column; gap:8px; }
 }
@@ -881,7 +887,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5.2';
+const APP_VERSION = 'v1.5.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
