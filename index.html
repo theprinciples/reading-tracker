@@ -4,7 +4,7 @@
   
   Licensed under CC BY-NC-SA 4.0
   https://creativecommons.org/licenses/by-nc-sa/4.0/
-  
+
   ✅ 개인 사용, 수정, 공유 가능
   ❌ 상업적 사용 금지
   🔗 원본: https://github.com/theprinciples
@@ -21,6 +21,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="독서 트래커">
 <meta name="theme-color" content="#08080d">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
 <title>📚 독서 트래커</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -340,8 +343,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .hdr-btns { width:100%; }
   .hdr-btns .btn { flex:1; justify-content:center; font-size:11px; padding:8px 6px; }
   .prog-grid { grid-template-columns:1fr; }
-  .bulk { flex-direction:column; align-items:flex-start; }
-  .bulk-d { width:100%; height:1px; margin:4px 0; }
+  .bulk { flex-direction:row; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; align-items:center; padding:12px 14px; gap:8px; }
+  .bulk-d { width:1px; height:24px; min-width:1px; margin:0 4px; }
+  .bulk label { font-size:12px; }
+  .bulk-i { width:52px; padding:6px 8px; font-size:12px; }
+  .bulk .btn-sm { font-size:11px; padding:5px 8px; white-space:nowrap; }
   .cr-n { width:120px; min-width:120px; }
   .sinp { width:140px; }
 
@@ -372,10 +378,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .act-btn { padding:8px 10px; font-size:16px; }
 
   /* Toolbar */
-  .tc { flex-direction:column; align-items:stretch; }
-  .tc-l, .tc-r { width:100%; }
-  .sinp { width:100%; }
-  .fsel { width:100%; }
+  .tc { flex-direction:row; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; align-items:center; gap:8px; padding-bottom:4px; }
+  .tc-l, .tc-r { width:auto; flex-shrink:0; flex-wrap:nowrap; }
+  .sinp { width:120px; min-width:120px; font-size:12px; }
+  .fsel { width:auto; min-width:70px; font-size:11px; flex-shrink:0; }
 
   /* Panels */
   .pnl { padding:16px 12px; }
@@ -875,7 +881,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5';
+const APP_VERSION = 'v1.5.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
