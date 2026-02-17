@@ -171,7 +171,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .cat-arrow { display:none; font-size:12px; color:var(--t3); transition:transform .2s; }
 .cr-b { flex:1; height:8px; background:var(--bg); border-radius:4px; overflow:hidden; min-width:60px; }
 .cr-f { height:100%; border-radius:4px; transition:width .6s; }
-.cr-v { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); width:42px; text-align:right; min-width:42px; }
+.cr-v { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); width:72px; text-align:right; min-width:72px; white-space:nowrap; }
 
 /* BULK */
 .bulk { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:16px 22px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -352,8 +352,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .cr-n { width:120px; min-width:120px; }
   .cat-arrow { display:inline; }
   #catToggle { cursor:pointer; }
-  #catBars .cr:nth-child(n+6) { display:none; }
-  #catBars.expanded .cr:nth-child(n+6) { display:flex; }
+  #catBars .cr:nth-child(n+2) { display:none; }
+  #catBars.expanded .cr:nth-child(n+2) { display:flex; }
   #catChartToggle { cursor:pointer; }
   .cat-chart-content { display:none; }
   .cat-chart-content.expanded { display:block; }
@@ -695,7 +695,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <div class="prog-d" id="progDesc">시작하세요!</div>
       </div>
       <div class="cat-box">
-        <h3 id="catToggle" onclick="toggleCatBars()">카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼ 펼쳐보기</span></h3>
+        <h3 id="catToggle" onclick="toggleCatBars()">카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3>
         <div id="catBars"></div>
       </div>
     </div>
@@ -751,7 +751,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <!-- CHARTS -->
     <div class="charts">
       <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
-      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ 펼쳐보기</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
+      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
     </div>
   </div>
 
@@ -900,7 +900,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.1';
+const APP_VERSION = 'v1.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -964,10 +964,10 @@ function toggleCatBars() {
   var arrow = $('catArrow');
   if (bars.classList.contains('expanded')) {
     bars.classList.remove('expanded');
-    arrow.textContent = '▼ 펼쳐보기';
+    arrow.textContent = '▼ (펼쳐보기)';
   } else {
     bars.classList.add('expanded');
-    arrow.textContent = '▲ 접기';
+    arrow.textContent = '▲ (접기)';
   }
 }
 
@@ -978,10 +978,10 @@ function toggleCatChart() {
   var arrow = $('catChartArrow');
   if (content.classList.contains('expanded')) {
     content.classList.remove('expanded');
-    arrow.textContent = '▼ 펼쳐보기';
+    arrow.textContent = '▼ (펼쳐보기)';
   } else {
     content.classList.add('expanded');
-    arrow.textContent = '▲ 접기';
+    arrow.textContent = '▲ (접기)';
   }
 }
 
@@ -3475,14 +3475,14 @@ function renderProgress() {
 
   var barsHtml = sorted.map(([cat, v], i) => {
     const p = v.total ? Math.round(v.read / v.total * 100) : 0;
-    return `<div class="cr"><div class="cr-n" title="${esc(cat)}">${esc(cat)}</div><div class="cr-b"><div class="cr-f" style="width:${p}%;background:${COLORS[i % COLORS.length]}"></div></div><div class="cr-v">${v.read}/${v.total}</div></div>`;
+    return `<div class="cr"><div class="cr-n" title="${esc(cat)}">${esc(cat)}</div><div class="cr-b"><div class="cr-f" style="width:${p}%;background:${COLORS[i % COLORS.length]}"></div></div><div class="cr-v">${v.read}/${v.total} (${p}%)</div></div>`;
   }).join('');
 
   $('catBars').innerHTML = barsHtml;
   // Auto-set mobile state (show first 5)
   if (window.innerWidth <= 640) {
     $('catBars').classList.remove('expanded');
-    $('catArrow').textContent = '▼ 펼쳐보기';
+    $('catArrow').textContent = '▼ (펼쳐보기)';
   } else {
     $('catBars').classList.add('expanded');
   }
@@ -3610,8 +3610,10 @@ function renderTable() {
 function goPage(p) {
   currentPage = p;
   renderTable();
-  var pg = $('pagination');
-  if (pg) pg.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+  setTimeout(function() {
+    var pg = $('pagination');
+    if (pg) pg.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+  }, 0);
 }
 function changePageSize(n) { PAGE_SIZE = n; currentPage = 1; favCurrentPage = 1; renderTable(); }
 function getPageRange(cur, total) {
