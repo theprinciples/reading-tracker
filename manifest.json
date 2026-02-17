@@ -2,7 +2,7 @@
   "name": "독서 트래커",
   "short_name": "독서 트래커",
   "start_url": ".",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#08080d",
   "theme_color": "#08080d",
   "icons": [
