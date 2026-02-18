@@ -909,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.6';
+const APP_VERSION = 'v1.6.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -2152,6 +2152,24 @@ function finishApplyMapping(normalized, mapping, mode) {
   } else {
     const tab = getActiveTab();
     tab.dateLabel = customDateLabel;
+
+    // Preserve existing notes and tags by key + title matching
+    if (tab.data && tab.data.length > 0) {
+      var oldKeyMap = {};
+      var oldTitleMap = {};
+      tab.data.forEach(function(d) {
+        if (d.key) oldKeyMap[d.key] = d;
+        if (d.title) oldTitleMap[d.title] = d;
+      });
+      normalized.forEach(function(item) {
+        var old = oldKeyMap[item.key] || oldTitleMap[item.title];
+        if (old) {
+          if (old.notes && !item.notes) item.notes = old.notes;
+          if (old.tags && old.tags.length > 0 && (!item.tags || item.tags.length === 0)) item.tags = old.tags;
+        }
+      });
+    }
+
     tab.data = normalized;
 
     if (pendingSource === 'sheets' && pendingRawUrl) {
@@ -2540,8 +2558,8 @@ function handleSheetsData(rows, tab, rawUrl) {
     return;
   }
 
-  tab.data = normalizeRows(rows);
-  if (tab.data.length === 0) {
+  var newData = normalizeRows(rows);
+  if (newData.length === 0) {
     // Show mapping UI
     pendingRows = rows;
     pendingSource = 'sheets';
@@ -2553,6 +2571,24 @@ function handleSheetsData(rows, tab, rawUrl) {
     return;
   }
 
+  // Preserve existing notes and tags by key + title matching
+  if (tab.data && tab.data.length > 0) {
+    var oldKeyMap = {};
+    var oldTitleMap = {};
+    tab.data.forEach(function(d) {
+      if (d.key) oldKeyMap[d.key] = d;
+      if (d.title) oldTitleMap[d.title] = d;
+    });
+    newData.forEach(function(item) {
+      var old = oldKeyMap[item.key] || oldTitleMap[item.title];
+      if (old) {
+        if (old.notes && !item.notes) item.notes = old.notes;
+        if (old.tags && old.tags.length > 0 && (!item.tags || item.tags.length === 0)) item.tags = old.tags;
+      }
+    });
+  }
+
+  tab.data = newData;
   tab.sheetsUrl = rawUrl;
   saveToStorage();
   updateSheetsUI(true);
