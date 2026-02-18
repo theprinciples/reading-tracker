@@ -909,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5.4';
+const APP_VERSION = 'v1.5.5';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -4882,8 +4882,10 @@ applyCustomTitle();
 (function() {
   window._updateChangelog = [];
   window._updateVersion = '';
+  window._updateHasChangelog = false;
 
   function checkForUpdates() {
+    // 1. Try version.json first (for changelog updates)
     fetch('https://theprinciples.github.io/reading-tracker/version.json?_t=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -4891,6 +4893,31 @@ applyCustomTitle();
           window._updateAvailable = true;
           window._updateVersion = data.version;
           window._updateChangelog = data.changelog || [];
+          window._updateHasChangelog = window._updateChangelog.length > 0;
+          if (activeTabId === 'tab_home') {
+            $('updateBadge').style.display = '';
+          }
+        } else {
+          // 2. version.json same version — fallback: check HTML directly
+          checkHtmlVersion();
+        }
+      })
+      .catch(function() {
+        // version.json failed — fallback: check HTML directly
+        checkHtmlVersion();
+      });
+  }
+
+  function checkHtmlVersion() {
+    fetch('https://theprinciples.github.io/reading-tracker/?_t=' + Date.now())
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        var match = html.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+        if (match && match[1] !== APP_VERSION) {
+          window._updateAvailable = true;
+          window._updateVersion = match[1];
+          window._updateChangelog = [];
+          window._updateHasChangelog = false;
           if (activeTabId === 'tab_home') {
             $('updateBadge').style.display = '';
           }
@@ -4941,14 +4968,20 @@ applyCustomTitle();
 })();
 
 function showUpdateBanner() {
-  $('updateBannerTitle').textContent = '🎉 새 업데이트가 있어요! (' + (window._updateVersion || '') + ')';
-  $('updateChangelog').innerHTML = (window._updateChangelog || []).map(function(c) { return '<li>' + c + '</li>'; }).join('');
-  $('updateConfirmBtn').textContent = '✅ 업데이트하기';
-  $('updateConfirmBtn').onclick = doUpdate;
-  var dismissBtn = $('updateBanner').querySelector('button:first-child');
-  if (dismissBtn) dismissBtn.style.display = '';
-  $('updateBanner').style.display = '';
-  $('updateBadge').style.display = 'none';
+  if (window._updateHasChangelog) {
+    // Changelog mode: show banner with details
+    $('updateBannerTitle').textContent = '🎉 새 업데이트가 있어요! (' + (window._updateVersion || '') + ')';
+    $('updateChangelog').innerHTML = (window._updateChangelog || []).map(function(c) { return '<li>' + c + '</li>'; }).join('');
+    $('updateConfirmBtn').textContent = '✅ 업데이트하기';
+    $('updateConfirmBtn').onclick = doUpdate;
+    var dismissBtn = $('updateBanner').querySelector('button:first-child');
+    if (dismissBtn) dismissBtn.style.display = '';
+    $('updateBanner').style.display = '';
+    $('updateBadge').style.display = 'none';
+  } else {
+    // No changelog: just reload
+    location.reload();
+  }
 }
 
 function dismissUpdateBanner() {
