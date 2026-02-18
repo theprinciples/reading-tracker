@@ -909,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5.8';
+const APP_VERSION = 'v1.5.9';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -4932,21 +4932,40 @@ applyCustomTitle();
   // Show "updated!" banner if just updated
   var lastVersion = localStorage.getItem('pt_last_version');
   if (lastVersion && lastVersion !== APP_VERSION) {
+    var wasManual = localStorage.getItem('pt_update_manual') === 'true';
     var lastChangelog = [];
     try { lastChangelog = JSON.parse(localStorage.getItem('pt_last_changelog') || '[]'); } catch(e) {}
     localStorage.setItem('pt_last_version', APP_VERSION);
     localStorage.removeItem('pt_last_changelog');
-    if (lastChangelog.length) {
-      setTimeout(function() {
+    localStorage.removeItem('pt_update_manual');
+
+    setTimeout(function() {
+      if (wasManual) {
+        // Scenario 1: user clicked "업데이트하기" — simple message, no changelog
         $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
-        $('updateChangelog').innerHTML = lastChangelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
-        $('updateConfirmBtn').textContent = '확인!';
-        $('updateConfirmBtn').onclick = function() { $('updateBanner').style.display = 'none'; };
-        var dismissBtn = $('updateBanner').querySelector('button:first-child');
-        if (dismissBtn) dismissBtn.style.display = 'none';
-        $('updateBanner').style.display = '';
-      }, 500);
-    }
+        $('updateChangelog').innerHTML = '';
+      } else {
+        // Scenario 2: auto update (new tab, browser restart) — show changelog
+        $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
+        if (lastChangelog.length) {
+          $('updateChangelog').innerHTML = lastChangelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+        } else {
+          // No changelog available, try fetching from version.json
+          fetch('https://theprinciples.github.io/reading-tracker/test/version.json?_t=' + Date.now())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.changelog && data.changelog.length) {
+                $('updateChangelog').innerHTML = data.changelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+              }
+            }).catch(function() {});
+        }
+      }
+      $('updateConfirmBtn').textContent = '확인!';
+      $('updateConfirmBtn').onclick = function() { $('updateBanner').style.display = 'none'; };
+      var dismissBtn = $('updateBanner').querySelector('button:first-child');
+      if (dismissBtn) dismissBtn.style.display = 'none';
+      $('updateBanner').style.display = '';
+    }, 500);
   } else {
     localStorage.setItem('pt_last_version', APP_VERSION);
   }
@@ -4990,6 +5009,7 @@ function dismissUpdateBanner() {
 }
 
 function doUpdate() {
+  localStorage.setItem('pt_update_manual', 'true');
   localStorage.setItem('pt_last_changelog', JSON.stringify(window._updateChangelog || []));
   location.reload();
 }
