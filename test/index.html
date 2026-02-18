@@ -2157,17 +2157,22 @@ function finishApplyMapping(normalized, mapping, mode) {
     if (tab.data && tab.data.length > 0) {
       var oldKeyMap = {};
       var oldTitleMap = {};
+      var oldWithNotes = 0;
+      var matchCount = 0;
       tab.data.forEach(function(d) {
         if (d.key) oldKeyMap[d.key] = d;
         if (d.title) oldTitleMap[d.title] = d;
+        if (d.notes || (d.tags && d.tags.length > 0)) oldWithNotes++;
       });
       normalized.forEach(function(item) {
         var old = oldKeyMap[item.key] || oldTitleMap[item.title];
         if (old) {
+          matchCount++;
           if (old.notes && !item.notes) item.notes = old.notes;
           if (old.tags && old.tags.length > 0 && (!item.tags || item.tags.length === 0)) item.tags = old.tags;
         }
       });
+      toast('🔍 기존 노트/태그 ' + oldWithNotes + '개, 매칭 ' + matchCount + '개', 'ok');
     }
 
     tab.data = normalized;
