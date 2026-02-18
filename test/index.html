@@ -909,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5.5';
+const APP_VERSION = 'v1.5.6';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -4886,7 +4886,7 @@ applyCustomTitle();
 
   function checkForUpdates() {
     // 1. Try version.json first (for changelog updates)
-    fetch('https://theprinciples.github.io/reading-tracker/version.json?_t=' + Date.now())
+    fetch('https://theprinciples.github.io/reading-tracker/test/version.json?_t=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.version && data.version !== APP_VERSION) {
@@ -4909,7 +4909,7 @@ applyCustomTitle();
   }
 
   function checkHtmlVersion() {
-    fetch('https://theprinciples.github.io/reading-tracker/?_t=' + Date.now())
+    fetch('https://theprinciples.github.io/reading-tracker/test/?_t=' + Date.now())
       .then(function(r) { return r.text(); })
       .then(function(html) {
         var match = html.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
