@@ -168,9 +168,10 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .cat-box h3 { font-size:13px; font-weight:700; margin-bottom:14px; color:var(--t2); }
 .cr { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .cr-n { font-size:12px; width:170px; min-width:170px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--t2); }
+.cat-arrow { display:none; font-size:12px; color:var(--t3); transition:transform .2s; }
 .cr-b { flex:1; height:8px; background:var(--bg); border-radius:4px; overflow:hidden; min-width:60px; }
 .cr-f { height:100%; border-radius:4px; transition:width .6s; }
-.cr-v { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); width:42px; text-align:right; min-width:42px; }
+.cr-v { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); width:72px; text-align:right; min-width:72px; white-space:nowrap; }
 
 /* BULK */
 .bulk { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:16px 22px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -349,6 +350,13 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .bulk-i { width:52px; padding:6px 8px; font-size:12px; }
   .bulk .btn-sm { font-size:11px; padding:5px 8px; white-space:nowrap; }
   .cr-n { width:120px; min-width:120px; }
+  .cat-arrow { display:inline; }
+  #catToggle { cursor:pointer; }
+  #catBars .cr:nth-child(n+2) { display:none; }
+  #catBars.expanded .cr:nth-child(n+2) { display:flex; }
+  #catChartToggle { cursor:pointer; }
+  .cat-chart-content { display:none; }
+  .cat-chart-content.expanded { display:block; }
   .sinp { width:140px; }
 
   /* Tab bar - touch friendly */
@@ -415,6 +423,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   #kgLayout > div:first-child { min-width:100% !important; flex-shrink:0 !important; }
   #kgLayout > div:last-child { min-width:280px !important; flex-shrink:0 !important; }
   #kgView { padding:10px !important; }
+
+  /* Pagination - match table width, centered */
+  .pg { min-width:580px; flex-wrap:nowrap; gap:4px; padding:10px; }
+  .pg-b { padding:4px 8px; font-size:10px; flex-shrink:0; }
+  .pg-info { font-size:10px; flex-shrink:0; white-space:nowrap; }
 
   /* Favorites filter */
   #favView > div:first-child { flex-direction:column; gap:8px; }
@@ -493,7 +506,16 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <div style="display:flex;align-items:center;gap:8px">
         <div class="hdr-sub" id="headerSub">탭을 추가하고 파일을 업로드하세요</div>
         <span id="appVersion" style="font-size:11px;color:var(--t3);opacity:0.6"></span>
-        <span id="updateBadge" style="display:none;font-size:13px;color:var(--gold);cursor:pointer;white-space:nowrap;animation:pulse 2s ease-in-out infinite" onclick="location.reload()">🔄 새 업데이트!</span>
+        <span id="updateBadge" style="display:none;font-size:13px;color:var(--gold);cursor:pointer;white-space:nowrap;animation:pulse 2s ease-in-out infinite" onclick="showUpdateBanner()">🔄 새 업데이트!</span>
+      </div>
+      <!-- Update changelog banner -->
+      <div id="updateBanner" style="display:none;background:rgba(232,184,48,.12);border:1px solid var(--gold);border-radius:var(--rs);padding:16px;margin-top:10px;animation:fadeIn .3s ease">
+        <div id="updateBannerTitle" style="color:var(--gold);font-size:14px;font-weight:600;margin-bottom:10px"></div>
+        <ul id="updateChangelog" style="font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px;padding-left:20px"></ul>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="dismissUpdateBanner()" style="font-size:11px;color:var(--t3);cursor:pointer;border:none;background:none;padding:6px 10px;font-family:inherit">나중에</button>
+          <button id="updateConfirmBtn" class="btn" style="background:var(--gold);color:#000;border-color:var(--gold);font-weight:600;font-size:12px" onclick="doUpdate()">✅ 업데이트하기</button>
+        </div>
       </div>
     </div>
     <div class="hdr-btns">
@@ -682,7 +704,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <div class="prog-d" id="progDesc">시작하세요!</div>
       </div>
       <div class="cat-box">
-        <h3>카테고리별 진행률</h3>
+        <h3 id="catToggle" onclick="toggleCatBars()">카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3>
         <div id="catBars"></div>
       </div>
     </div>
@@ -737,8 +759,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
     <!-- CHARTS -->
     <div class="charts">
-      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderCharts()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
-      <div class="chrt"><h3>🗂️ 카테고리 분포</h3><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div>
+      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
+      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
     </div>
   </div>
 
@@ -887,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.5.3';
+const APP_VERSION = 'v1.6';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -942,6 +964,34 @@ var _dbTimer = null;
 function debouncedRenderTable() {
   clearTimeout(_dbTimer);
   _dbTimer = setTimeout(function() { renderTable(); }, 200);
+}
+
+// Category bars collapse (mobile only)
+function toggleCatBars() {
+  if (window.innerWidth > 640) return;
+  var bars = $('catBars');
+  var arrow = $('catArrow');
+  if (bars.classList.contains('expanded')) {
+    bars.classList.remove('expanded');
+    arrow.textContent = '▼ (펼쳐보기)';
+  } else {
+    bars.classList.add('expanded');
+    arrow.textContent = '▲ (접기)';
+  }
+}
+
+// Category distribution chart collapse (mobile only)
+function toggleCatChart() {
+  if (window.innerWidth > 640) return;
+  var content = $('catChartContent');
+  var arrow = $('catChartArrow');
+  if (content.classList.contains('expanded')) {
+    content.classList.remove('expanded');
+    arrow.textContent = '▼ (펼쳐보기)';
+  } else {
+    content.classList.add('expanded');
+    arrow.textContent = '▲ (접기)';
+  }
 }
 
 // Save throttle: batches rapid saves into one
@@ -2547,7 +2597,7 @@ function toggleRead(key) {
   throttledSave();
   renderProgress();
   renderTable();
-  renderCharts();
+  renderReadingChart();
 }
 
 // =============================================
@@ -2604,7 +2654,7 @@ function doBulkRange(markAsRead) {
     }
   });
   saveToStorage();
-  renderProgress(); renderTable(); renderCharts();
+  renderProgress(); renderTable(); renderReadingChart();
   toast((markAsRead ? '✅' : '🗑️') + ' #' + from + '~#' + to + ' (' + count + '개)', 'ok');
 }
 
@@ -2617,7 +2667,7 @@ function doBulkOne(markAsRead) {
     if (markAsRead) tab.readMap[item.key] = todayStr();
     else delete tab.readMap[item.key];
     saveToStorage();
-    renderProgress(); renderTable(); renderCharts();
+    renderProgress(); renderTable(); renderReadingChart();
     toast((markAsRead ? '✅' : '🗑️') + ' #' + num, 'ok');
   } else toast('#' + num + ' 없음', 'err');
 }
@@ -2633,7 +2683,7 @@ function doMarkAll(markAsRead) {
     tab.readMap = {};
   }
   saveToStorage();
-  renderProgress(); renderTable(); renderCharts();
+  renderProgress(); renderTable(); renderReadingChart();
   toast(markAsRead ? '✅ 전체 읽음' : '🗑️ 초기화 완료', 'ok');
 }
 
@@ -3295,8 +3345,11 @@ function saveEdit() {
     if (starIdx !== -1) tab.starSet[starIdx] = newKey;
   }
 
+  var newCat = $('editCat').value.trim() || '미분류';
+  var catChanged = item.category !== newCat;
+
   item.title = newTitle;
-  item.category = $('editCat').value.trim() || '미분류';
+  item.category = newCat;
   item.url = newUrl;
   item.date = newDate;
   item.notes = $('editNotes').value.trim();
@@ -3306,7 +3359,9 @@ function saveEdit() {
   item.key = newKey;
 
   saveToStorage();
-  renderAll();
+  _sortedCache = null; _sortedCacheKey = '';
+  renderTable();
+  if (catChanged) { renderProgress(); renderCatChart(); }
   toast('💾 #' + num + ' 수정됨', 'ok');
   localStorage.removeItem('pt_draft_' + num);
   closeEditModal();
@@ -3429,10 +3484,17 @@ function renderProgress() {
 
   var barsHtml = sorted.map(([cat, v], i) => {
     const p = v.total ? Math.round(v.read / v.total * 100) : 0;
-    return `<div class="cr"><div class="cr-n" title="${esc(cat)}">${esc(cat)}</div><div class="cr-b"><div class="cr-f" style="width:${p}%;background:${COLORS[i % COLORS.length]}"></div></div><div class="cr-v">${v.read}/${v.total}</div></div>`;
+    return `<div class="cr"><div class="cr-n" title="${esc(cat)}">${esc(cat)}</div><div class="cr-b"><div class="cr-f" style="width:${p}%;background:${COLORS[i % COLORS.length]}"></div></div><div class="cr-v">${v.read}/${v.total} (${p}%)</div></div>`;
   }).join('');
 
   $('catBars').innerHTML = barsHtml;
+  // Auto-set mobile state (show first 5)
+  if (window.innerWidth <= 640) {
+    $('catBars').classList.remove('expanded');
+    $('catArrow').textContent = '▼ (펼쳐보기)';
+  } else {
+    $('catBars').classList.add('expanded');
+  }
 }
 
 var _sortedCache = null, _sortedCacheKey = '';
@@ -3546,7 +3608,7 @@ function renderTable() {
   });
   html += `<button class="pg-b" ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">›</button>`;
   html += `<span class="pg-info">${filtered.length}개</span>`;
-  html += `<input type="number" min="1" max="${totalPages}" value="${currentPage}" onkeydown="if(event.key==='Enter'){goPage(Math.min(Math.max(1,+this.value),${totalPages}))}" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;text-align:center;margin-left:6px;outline:none" title="페이지 번호 입력 후 Enter">`;
+  html += `<input type="number" min="1" max="${totalPages}" value="${currentPage}" onkeydown="if(event.key==='Enter'){goPage(Math.min(Math.max(1,+this.value),${totalPages}))}" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;text-align:center;outline:none" title="페이지 번호 입력 후 Enter">`;
   html += `<span class="pg-info" style="opacity:0.5">/ ${totalPages}</span>`;
   html += `<select class="fsel" onchange="changePageSize(+this.value)" style="font-size:11px;padding:3px 6px;margin-left:8px">`;
   [15,30,50].forEach(function(n) { html += '<option value="'+n+'"'+(PAGE_SIZE===n?' selected':'')+'>'+n+'개씩</option>'; });
@@ -3554,7 +3616,14 @@ function renderTable() {
   pg.innerHTML = html;
 }
 
-function goPage(p) { currentPage = p; renderTable(); }
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+  setTimeout(function() {
+    var pg = $('pagination');
+    if (pg) pg.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+  }, 0);
+}
 function changePageSize(n) { PAGE_SIZE = n; currentPage = 1; favCurrentPage = 1; renderTable(); }
 function getPageRange(cur, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -3574,9 +3643,13 @@ function populateFilters() {
 }
 
 function renderCharts() {
+  renderReadingChart();
+  renderCatChart();
+}
+
+function renderReadingChart() {
   const tab = getActiveTab();
   if (!tab) return;
-  $('catEtcNote').innerHTML = '';
 
   // Collect all years from read dates
   const allYears = new Set();
@@ -3662,8 +3735,12 @@ function renderCharts() {
       }
     }
   });
+}
 
-  // Category donut
+function renderCatChart() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  $('catEtcNote').innerHTML = '';
   const catCount = {};
   tab.data.forEach(r => { catCount[r.category] = (catCount[r.category] || 0) + 1; });
   const sortedCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
@@ -3886,7 +3963,35 @@ function renderKnowledgeGraph() {
     }
     canvas.style.cursor = 'default';
   };
-  canvas.onclick = function() {
+  // Mobile touch support
+  var _kgTouchHandled = false;
+  canvas.addEventListener('touchstart', function(e) {
+    var touch = e.touches[0];
+    var rect = canvas.getBoundingClientRect();
+    var W2 = canvas.width / dpr, H2 = canvas.height / dpr;
+    var mx = (touch.clientX - rect.left) * (W2 / rect.width);
+    var my = (touch.clientY - rect.top) * (H2 / rect.height);
+    kgHoverNode = null;
+    for (var i = 0; i < kgNodes.length; i++) {
+      var dx = kgNodes[i].x - mx, dy = kgNodes[i].y - my;
+      if (Math.sqrt(dx*dx+dy*dy) < kgNodes[i].size * 2.5) { kgHoverNode = kgNodes[i].id; break; }
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    _kgTouchHandled = true;
+    if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
+    else {
+      var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
+      if (n.type === 'tag') { kgSelectedTag = kgSelectedTag === n.fullLabel ? null : n.fullLabel; kgSelectedArticle = null; }
+      else { kgSelectedArticle = kgSelectedArticle === n.articleId ? null : n.articleId; kgSelectedTag = null; }
+    }
+    kgHoverNode = null;
+    updateKgUI(articles, allKgTags, tagColorMap);
+    setTimeout(function() { _kgTouchHandled = false; }, 300);
+  });
+  canvas.onclick = function(e) {
+    if (_kgTouchHandled) return;
     if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
     else {
       var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
@@ -4027,7 +4132,12 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
 
   // Scroll to highlighted article
   var hlEl = $('kgArticleList').querySelector('.hl');
-  if (hlEl) hlEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (hlEl) {
+    // Use setTimeout to ensure DOM is updated before scrolling
+    setTimeout(function() {
+      hlEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }
 
   // Info
   var info = '';
@@ -4774,13 +4884,44 @@ applyCustomTitle();
 // AUTO UPDATE CHECK (on tab focus)
 // =============================================
 (function() {
+  window._updateChangelog = [];
+  window._updateVersion = '';
+  window._updateHasChangelog = false;
+
   function checkForUpdates() {
+    // 1. Try version.json first (for changelog updates)
+    fetch('https://theprinciples.github.io/reading-tracker/version.json?_t=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.version && data.version !== APP_VERSION) {
+          window._updateAvailable = true;
+          window._updateVersion = data.version;
+          window._updateChangelog = data.changelog || [];
+          window._updateHasChangelog = window._updateChangelog.length > 0;
+          if (activeTabId === 'tab_home') {
+            $('updateBadge').style.display = '';
+          }
+        } else {
+          // 2. version.json same version — fallback: check HTML directly
+          checkHtmlVersion();
+        }
+      })
+      .catch(function() {
+        // version.json failed — fallback: check HTML directly
+        checkHtmlVersion();
+      });
+  }
+
+  function checkHtmlVersion() {
     fetch('https://theprinciples.github.io/reading-tracker/?_t=' + Date.now())
       .then(function(r) { return r.text(); })
       .then(function(html) {
         var match = html.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
         if (match && match[1] !== APP_VERSION) {
           window._updateAvailable = true;
+          window._updateVersion = match[1];
+          window._updateChangelog = [];
+          window._updateHasChangelog = false;
           if (activeTabId === 'tab_home') {
             $('updateBadge').style.display = '';
           }
@@ -4792,10 +4933,54 @@ applyCustomTitle();
       .catch(function() {});
   }
 
+  // Show "updated!" banner if just updated
+  var lastVersion = localStorage.getItem('pt_last_version');
+  if (lastVersion && lastVersion !== APP_VERSION) {
+    var wasManual = localStorage.getItem('pt_update_manual') === 'true';
+    var lastChangelog = [];
+    try { lastChangelog = JSON.parse(localStorage.getItem('pt_last_changelog') || '[]'); } catch(e) {}
+    localStorage.setItem('pt_last_version', APP_VERSION);
+    localStorage.removeItem('pt_last_changelog');
+    localStorage.removeItem('pt_update_manual');
+
+    setTimeout(function() {
+      if (wasManual) {
+        // Scenario 1: user clicked "업데이트하기" — simple message, no changelog
+        $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
+        $('updateChangelog').innerHTML = '';
+      } else {
+        // Scenario 2: auto update (new tab, browser restart) — show changelog
+        $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
+        if (lastChangelog.length) {
+          $('updateChangelog').innerHTML = lastChangelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+        } else {
+          // No changelog available, try fetching from version.json
+          fetch('https://theprinciples.github.io/reading-tracker/version.json?_t=' + Date.now())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.changelog && data.changelog.length) {
+                $('updateChangelog').innerHTML = data.changelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
+              }
+            }).catch(function() {});
+        }
+      }
+      $('updateConfirmBtn').textContent = '확인!';
+      $('updateConfirmBtn').onclick = function() { $('updateBanner').style.display = 'none'; };
+      var dismissBtn = $('updateBanner').querySelector('button:first-child');
+      if (dismissBtn) dismissBtn.style.display = 'none';
+      $('updateBanner').style.display = '';
+    }, 500);
+  } else {
+    localStorage.setItem('pt_last_version', APP_VERSION);
+  }
+
   // Check when user returns to this tab
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) checkForUpdates();
   });
+
+  // Initial check 3s after load
+  setTimeout(checkForUpdates, 3000);
 
   // Back button: return to mindmap
   window.addEventListener('popstate', function(e) {
@@ -4803,10 +4988,35 @@ applyCustomTitle();
       switchTab('tab_kg');
     }
   });
-
-  // Initial check 3s after load
-  setTimeout(checkForUpdates, 3000);
 })();
+
+function showUpdateBanner() {
+  if (window._updateHasChangelog) {
+    // Changelog mode: show banner with details
+    $('updateBannerTitle').textContent = '🎉 새 업데이트가 있어요! (' + (window._updateVersion || '') + ')';
+    $('updateChangelog').innerHTML = (window._updateChangelog || []).map(function(c) { return '<li>' + c + '</li>'; }).join('');
+    $('updateConfirmBtn').textContent = '✅ 업데이트하기';
+    $('updateConfirmBtn').onclick = doUpdate;
+    var dismissBtn = $('updateBanner').querySelector('button:first-child');
+    if (dismissBtn) dismissBtn.style.display = '';
+    $('updateBanner').style.display = '';
+    $('updateBadge').style.display = 'none';
+  } else {
+    // No changelog: just reload
+    location.reload();
+  }
+}
+
+function dismissUpdateBanner() {
+  $('updateBanner').style.display = 'none';
+  $('updateBadge').style.display = '';
+}
+
+function doUpdate() {
+  localStorage.setItem('pt_update_manual', 'true');
+  localStorage.setItem('pt_last_changelog', JSON.stringify(window._updateChangelog || []));
+  location.reload();
+}
 </script>
 </body>
 </html>
