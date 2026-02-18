@@ -909,7 +909,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.6.2';
+const APP_VERSION = 'v1.6.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -3963,17 +3963,8 @@ function renderKnowledgeGraph() {
     }
     canvas.style.cursor = 'default';
   };
-  canvas.onclick = function(e) {
-    if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
-    else {
-      var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
-      if (n.type === 'tag') { kgSelectedTag = kgSelectedTag === n.fullLabel ? null : n.fullLabel; kgSelectedArticle = null; }
-      else { kgSelectedArticle = kgSelectedArticle === n.articleId ? null : n.articleId; kgSelectedTag = null; }
-    }
-    updateKgUI(articles, allKgTags, tagColorMap);
-  };
-
   // Mobile touch support
+  var _kgTouchHandled = false;
   canvas.addEventListener('touchstart', function(e) {
     var touch = e.touches[0];
     var rect = canvas.getBoundingClientRect();
@@ -3987,6 +3978,8 @@ function renderKnowledgeGraph() {
     }
   }, { passive: true });
   canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    _kgTouchHandled = true;
     if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
     else {
       var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
@@ -3995,7 +3988,18 @@ function renderKnowledgeGraph() {
     }
     kgHoverNode = null;
     updateKgUI(articles, allKgTags, tagColorMap);
+    setTimeout(function() { _kgTouchHandled = false; }, 300);
   });
+  canvas.onclick = function(e) {
+    if (_kgTouchHandled) return;
+    if (!kgHoverNode) { kgSelectedTag = null; kgSelectedArticle = null; }
+    else {
+      var n = kgNodes.find(function(n2){return n2.id===kgHoverNode;});
+      if (n.type === 'tag') { kgSelectedTag = kgSelectedTag === n.fullLabel ? null : n.fullLabel; kgSelectedArticle = null; }
+      else { kgSelectedArticle = kgSelectedArticle === n.articleId ? null : n.articleId; kgSelectedTag = null; }
+    }
+    updateKgUI(articles, allKgTags, tagColorMap);
+  };
 }
 
 function drawKg(articles, allKgTags, tagColorMap) {
