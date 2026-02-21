@@ -387,10 +387,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .td-cc-inner { max-width:90px; }
 
   /* Favorites table - mobile optimized */
-  #favView table { min-width:560px; }
+  #favView table { min-width:620px; }
   #favView th:nth-child(2), #favView td:nth-child(2) { width:12%; }
   #favView th:nth-child(4), #favView td:nth-child(4) { width:12%; }
-  #favView th:nth-child(7), #favView td:nth-child(7) { width:85px; }
+  #favView .td-cc { max-width:80px; }
+  #favView .td-cc-inner { max-width:70px; }
+  #favView th:nth-child(8), #favView td:nth-child(8) { width:85px; }
   #favView .fav-src { font-size:9px; }
   #favView .td-c { font-size:9px; }
   #favView .td-dt { font-size:10px; }
@@ -810,7 +812,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:30px">⭐</th>
-          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
+          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th id="favThCustomCol" style="width:130px">📌 키워드</th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
         </tr></thead>
         <tbody id="favBody"></tbody>
       </table>
@@ -1232,6 +1234,12 @@ function applyCustomColUI() {
     th.style.display = ccEnabled ? '' : 'none';
     th.innerHTML = ccEnabled ? '<span onclick="editCustomColHeader()" style="cursor:pointer" title="클릭하여 컬럼 이름 변경">' + emojiLabel(ccEmoji, esc(ccLabel)) + ' <span style="font-size:9px;opacity:.35">✏️</span></span>' : '';
   }
+  // Favorites table header
+  var favTh = $('favThCustomCol');
+  if (favTh) {
+    favTh.style.display = ccEnabled ? '' : 'none';
+    if (ccEnabled) favTh.textContent = emojiLabel(ccEmoji, ccLabel);
+  }
   // Manual add row
   var manRow = $('manCustomColRow');
   if (manRow) manRow.style.display = ccEnabled ? '' : 'none';
@@ -1614,6 +1622,7 @@ function switchTab(id) {
     $('panelFile').classList.remove('open');
     $('panelSheets').classList.remove('open');
     $('panelManual').classList.remove('open');
+    applyCustomColUI();
     renderFavoritesTable();
     return;
   }
@@ -5043,6 +5052,8 @@ function renderFavoritesTable(page) {
           url: item.url,
           date: item.date,
           notes: item.notes || '',
+          customCol: item.customCol || '',
+          customColMm: item.customColMm || false,
           key: item.key,
           num: item.num
         });
@@ -5101,6 +5112,7 @@ function renderFavoritesTable(page) {
       '<td style="text-align:center;color:var(--t3);font-size:13px">' + (r.num || '') + '</td>' +
       '<td><span class="td-c" title="' + esc(r.category) + '">' + esc(r.category) + '</span></td>' +
       '<td class="td-ti">' + titleHtml + '</td>' +
+      (ccEnabled ? '<td class="td-cc">' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + (r.customColMm ? '<span class="cc-mm-icon">🧠</span>' : '') + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '') + '</td>' : '') +
       '<td>' + noteHtml + '</td>' +
       '<td class="td-dt">' + formatDate(r.date) + '</td>' +
     '</tr>';
