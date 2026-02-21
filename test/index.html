@@ -576,8 +576,9 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           <select id="mapDate" class="map-sel" style="margin-top:4px"></select>
         </div>
         <div class="map-row">
-          <label id="mapCustomColLabel">📝 커스텀 컬럼 <span style="font-weight:400;font-size:11px;color:var(--t3)">(선택)</span></label>
-          <select id="mapCustomCol" class="map-sel"></select>
+          <label id="mapCustomColLabel">📌 커스텀 컬럼 <span style="font-weight:400;font-size:11px;color:var(--t3)">(선택)</span></label>
+          <input type="text" id="mapCustomColNameInput" placeholder="컬럼 이름 (예: 키워드, 메모, 출처...)" autocomplete="off" style="padding:8px 12px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:11px;outline:none;font-family:inherit;width:100%">
+          <select id="mapCustomCol" class="map-sel" style="margin-top:4px"></select>
         </div>
       </div>
       <div id="previewBox" class="map-preview"></div>
@@ -632,7 +633,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       </div>
       <div class="map-row" style="grid-column:1/-1" id="manCustomColRow">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <label id="manCustomColLabel" style="margin:0">📝 키워드</label>
+          <label id="manCustomColLabel" style="margin:0">📌 키워드</label>
           <div id="manCustomColMmBtn" onclick="toggleManMindmap()" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #333;color:#888;transition:.15s;user-select:none">
             <span id="manCustomColMmChk" style="width:14px;height:14px;border-radius:3px;border:2px solid #555;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.15s"></span>
             🧠 마인드맵
@@ -686,7 +687,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <label id="editDateLabel">날짜 / Date</label>
       <input type="text" id="editDate">
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:4px">
-        <label id="editCustomColLabel" style="margin:0">📝 키워드</label>
+        <label id="editCustomColLabel" style="margin:0">📌 키워드</label>
         <div id="editCustomColMmBtn" onclick="toggleEditMindmap()" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #333;color:#888;transition:.15s;user-select:none">
           <span id="editCustomColMmChk" style="width:14px;height:14px;border-radius:3px;border:2px solid #555;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.15s"></span>
           🧠 마인드맵
@@ -785,7 +786,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:44px">#</th>
-          <th>카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px" id="thCustomCol">📝 키워드</th><th style="width:90px"></th>
+          <th>카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px" id="thCustomCol">📌 키워드</th><th style="width:90px"></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -836,7 +837,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <h3 style="color:var(--gold);font-size:14px;margin-bottom:16px">📅 날짜 컬럼 설정</h3>
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12px;font-weight:600;color:var(--t3);margin-bottom:6px">컬럼 이름</label>
-          <div style="font-size:11px;color:var(--t3);margin-bottom:4px">테이블 헤더를 클릭하거나, 파일/시트 매핑 모달에서 변경 가능</div>
+          <input type="text" id="dateLabelInput" class="man-inp" value="날짜" onchange="saveDateLabelFromSettings()" placeholder="예: 날짜, 페이지, 회차...">
+          <div style="font-size:10px;color:var(--t3);margin-top:4px">현재 활성 탭의 날짜 컬럼 이름을 변경합니다</div>
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:var(--t3);margin-bottom:8px">아이콘</label>
@@ -845,7 +847,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       </div>
 
       <div class="cc-settings-box" id="ccSettingsBox2">
-        <h3 style="color:var(--gold);font-size:14px;margin-bottom:16px">📝 커스텀 컬럼 설정</h3>
+        <h3 style="color:var(--gold);font-size:14px;margin-bottom:16px">📌 커스텀 컬럼 설정</h3>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:12px 16px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--bdr)">
           <div>
             <div style="font-size:13px;font-weight:600;color:var(--t2)">커스텀 컬럼 사용</div>
@@ -984,7 +986,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.7.0-test';
+const APP_VERSION = 'v1.7.1-test';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1036,7 +1038,7 @@ let activeTabId = null;
 let currentPage = 1;
 let chartRing = null, chartMonthly = null, chartCat = null;
 let attendance = []; // array of date strings like "2026-02-12"
-var ccEnabled = true, ccLabel = '키워드', ccEmoji = '📝';
+var ccEnabled = true, ccLabel = '키워드', ccEmoji = '📌';
 var dateEmoji = '📅';
 
 // Helper: join emoji + label without extra space when emoji is empty
@@ -1217,7 +1219,7 @@ function loadCustomColSettings() {
       var s = JSON.parse(raw);
       ccEnabled = s.enabled !== false;
       ccLabel = s.label || '키워드';
-      ccEmoji = s.emoji || '📝';
+      ccEmoji = s.emoji || '📌';
     }
   } catch(e) {}
   try { var de = localStorage.getItem(DATE_EMOJI_KEY); if (de) dateEmoji = de; } catch(e) {}
@@ -1263,6 +1265,12 @@ function applyCustomColUI() {
   // KG mode button label
   var kgModeKwBtn = $('kgModeKw');
   if (kgModeKwBtn) kgModeKwBtn.textContent = ccLabel;
+  // Date label input in settings
+  var dli = $('dateLabelInput');
+  if (dli) {
+    var tab = getActiveTab();
+    if (tab) dli.value = tab.dateLabel || '날짜';
+  }
   // Re-render table if visible
   if ($('dashboard').style.display !== 'none') renderTable();
 }
@@ -1285,6 +1293,16 @@ function pickDateEmoji(e) {
   if (tab && $('thDate')) {
     var dateLabel = tab.dateLabel || '날짜';
     $('thDate').innerHTML = '<span onclick="editDateHeader()" style="cursor:pointer" title="클릭하여 컬럼 이름 변경">' + emojiLabel(dateEmoji, esc(dateLabel)) + ' <span style="font-size:9px;opacity:.35">✏️</span></span>';
+  }
+}
+
+function saveDateLabelFromSettings() {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var inp = $('dateLabelInput');
+  if (inp) {
+    tab.dateLabel = inp.value.trim() || '날짜';
+    saveToStorage();
   }
 }
 
@@ -1367,7 +1385,7 @@ function importBackup() {
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
-        if (backup.ccSettings) { ccEnabled = backup.ccSettings.enabled !== false; ccLabel = backup.ccSettings.label || '키워드'; ccEmoji = backup.ccSettings.emoji || '📝'; saveCustomColSettings(); }
+        if (backup.ccSettings) { ccEnabled = backup.ccSettings.enabled !== false; ccLabel = backup.ccSettings.label || '키워드'; ccEmoji = backup.ccSettings.emoji || '📌'; saveCustomColSettings(); }
         if (backup.dateEmoji) { dateEmoji = backup.dateEmoji; try { localStorage.setItem(DATE_EMOJI_KEY, dateEmoji); } catch(e) {} }
         if (backup.theme) setTheme(backup.theme);
         if (backup.customTitle) { localStorage.setItem(CUSTOM_TITLE_KEY, backup.customTitle); }
@@ -2163,6 +2181,7 @@ function showMappingUI(rows, sheetName) {
   var tab = getActiveTab();
   var dateLbl = (tab && tab.dateLabel) || '날짜';
   $('mapDateLabelInput').value = dateLbl;
+  $('mapCustomColNameInput').value = ccLabel;
 
   // Setup dateLabel autocomplete from existing tabs
   var existingLabels = {};
@@ -2257,6 +2276,8 @@ function applyMapping() {
       return;
     }
     var customDateLabel = $('mapDateLabelInput').value.trim() || '날짜';
+    var customCcLabel = $('mapCustomColNameInput').value.trim();
+    if (customCcLabel) { ccLabel = customCcLabel; saveCustomColSettings(); }
     allTabs.push({ id: tabId, name: sheetName, group: sheetGroup, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel });
     log('시트 "' + sheetName + '" → 탭 추가 (' + normalized.length + '행)');
 
@@ -2347,6 +2368,8 @@ function pickUploadMode(mode) {
 
 function finishApplyMapping(normalized, mapping, mode) {
   var customDateLabel = $('mapDateLabelInput').value.trim() || '날짜';
+  var customCcLabel = $('mapCustomColNameInput') ? $('mapCustomColNameInput').value.trim() : '';
+  if (customCcLabel) { ccLabel = customCcLabel; saveCustomColSettings(); }
   if (mode === 'newtab') {
     var tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
     var tabName = window._currentSheetName || '새 트래커';
@@ -3888,7 +3911,7 @@ function renderTable() {
       <td><span class="td-c" style="${window._catColors && window._catColors[r.category] ? 'background:' + window._catColors[r.category] + '22;color:' + window._catColors[r.category] : ''}" title="${esc(r.category)}">${esc(r.category)}</span></td>
       <td class="td-ti">${titleHtml}</td>
       <td class="td-dt">${formatDate(r.date)}</td>
-      ${ccEnabled ? '<td class="td-cc">' + (r.customCol ? '<div class="note-tip-wrap"><div class="td-cc-inner" onclick="editItem(' + r.num + ')">' + (r.customColMm ? '<span class="cc-mm-icon">🧠</span>' : '') + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '<span class="td-cc-add" onclick="editItem(' + r.num + ')">+ 추가</span>') + '</td>' : ''}
+      ${ccEnabled ? '<td class="td-cc">' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" onclick="editItem(' + r.num + ')">' + (r.customColMm ? '<span class="cc-mm-icon">🧠</span>' : '') + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '<span class="td-cc-add" onclick="editItem(' + r.num + ')">+ 추가</span>') + '</td>' : ''}
       <td class="td-act" id="act_${r.num}"><div class="act-wrap">${noteIcon}<div class="act-btn" onclick="editItem(${r.num})">✏️</div><div class="act-btn act-del" onclick="deleteItem(${r.num})">✕</div></div></td>
     </tr>`;
   }).join('');
@@ -5148,6 +5171,13 @@ document.addEventListener('mouseover', function(e) {
   if (!wrap) return;
   var srcPopup = wrap.querySelector('.note-tip-popup');
   if (!srcPopup) return;
+
+  // Custom column: only show tooltip when text is truncated
+  if (wrap.classList.contains('cc-tip-wrap')) {
+    var inner = wrap.querySelector('.td-cc-inner');
+    if (inner && inner.scrollWidth <= inner.clientWidth) return;
+  }
+
   var gt = $('globalTooltip');
   if (!gt) return;
 
@@ -5409,8 +5439,33 @@ function updateManualLabels() {
     }
   }
   if (cl) {
-    cl.textContent = emojiLabel(ccEmoji, ccLabel);
+    if (isEmpty) {
+      // Editable: click to rename
+      cl.innerHTML = emojiLabel(ccEmoji, esc(ccLabel)) + ' <span style="font-size:9px;opacity:.35;cursor:pointer">✏️</span>';
+      cl.style.cursor = 'pointer';
+      cl.onclick = function() { editManualCustomColLabel(); };
+    } else {
+      // Fixed: matches table header
+      cl.innerHTML = emojiLabel(ccEmoji, esc(ccLabel));
+      cl.style.cursor = 'default';
+      cl.onclick = null;
+    }
   }
+}
+
+function editManualCustomColLabel() {
+  var cl = $('manCustomColLabel');
+  var curLabel = ccLabel;
+  cl.innerHTML = '<input id="manCcLabelInput" value="' + esc(curLabel) + '" style="background:var(--inp);border:1px solid var(--gold);border-radius:4px;color:var(--gold);font-size:12px;font-weight:600;padding:3px 8px;outline:none;width:100px">';
+  var inp = $('manCcLabelInput');
+  inp.focus();
+  inp.select();
+  inp.onblur = function() {
+    ccLabel = inp.value.trim() || '키워드';
+    saveCustomColSettings();
+    updateManualLabels();
+  };
+  inp.onkeydown = function(e) { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = curLabel; inp.blur(); } };
 }
 
 function editManualDateLabel() {
