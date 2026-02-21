@@ -217,7 +217,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .td-cc-inner:hover { background:rgba(255,255,255,.06); }
 .td-cc-add { font-size:11px; color:var(--t3); cursor:pointer; opacity:.4; }
 .td-cc-add:hover { opacity:.8; color:var(--gold); }
-.cc-mm-icon { font-size:9px; margin-right:3px; opacity:.7; }
+.mission-chk { width:18px; height:18px; border-radius:4px; border:2px solid rgba(61,204,122,.4); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; font-size:10px; flex-shrink:0; }
+.mission-chk:hover { border-color:#3dcc7a; background:rgba(61,204,122,.1); }
+.mission-chk.done { background:#3dcc7a; border-color:#3dcc7a; color:#000; }
+.mission-label { color:var(--t2); }
+.mission-label.done { color:#3dcc7a; text-decoration:line-through; opacity:.6; }
+.cc-cell { display:flex; align-items:center; gap:5px; }
 .cc-settings-box { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:20px; margin-top:20px; }
 .cc-toggle { width:44px; height:24px; border-radius:12px; cursor:pointer; transition:.2s; position:relative; display:inline-block; vertical-align:middle; }
 .cc-toggle-knob { width:20px; height:20px; border-radius:10px; background:#fff; position:absolute; top:2px; transition:.2s; }
@@ -318,8 +323,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .pg-info { font-size:11px; color:var(--t3); margin:0 6px; }
 
 /* CHARTS */
-.charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; margin-top:24px; }
-@media(max-width:900px) { .charts { grid-template-columns:1fr; } }
+.charts { display:flex; flex-direction:column; gap:16px; margin-bottom:24px; margin-top:24px; }
+.speed-mode-btn { background:var(--inp); color:var(--t3); }
+.speed-mode-btn.active { background:var(--gold); color:#000; font-weight:600; }
+
 .chrt { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:20px; }
 .chrt h3 { font-size:13px; font-weight:700; margin-bottom:16px; color:var(--t2); }
 .chrt-w { position:relative; height:260px; }
@@ -385,6 +392,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   thead th { padding:10px; }
   .td-cc { max-width:100px; }
   .td-cc-inner { max-width:90px; }
+  .td-ti { max-width:180px; }
+  .td-ti a, .td-ti span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; white-space:normal; }
 
   /* Favorites table - mobile optimized */
   #favView table { min-width:620px; }
@@ -424,7 +433,6 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .home-card { min-width:100%; padding:14px; }
 
   /* Charts */
-  .charts { grid-template-columns:1fr; }
 
   /* Empty state drop zone */
   .empty { padding:30px 12px; }
@@ -633,15 +641,15 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <label>🗒️ 노트 / Notes <span style="font-size:10px;color:var(--t3)">(Notion, Google Doc 링크 또는 메모)</span></label>
         <textarea id="manNotes" class="man-inp" placeholder="https://notion.so/... 또는 메모" rows="3" style="resize:vertical;line-height:1.6;font-family:inherit"></textarea>
       </div>
-      <div class="map-row" style="grid-column:1/-1" id="manCustomColRow">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <label id="manCustomColLabel" style="margin:0">📌 키워드</label>
-          <div id="manCustomColMmBtn" onclick="toggleManMindmap()" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #333;color:#888;transition:.15s;user-select:none">
-            <span id="manCustomColMmChk" style="width:14px;height:14px;border-radius:3px;border:2px solid #555;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.15s"></span>
-            🧠 마인드맵
+      <div class="map-row" style="grid-column:1/-1;display:none" id="manCustomColRow">
+        <label id="manCustomColLabel" style="margin:0;margin-bottom:4px">📌 추가 항목</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="manCustomCol" class="man-inp" placeholder="메모, 페이지 수, 미션 등 자유롭게..." style="flex:1">
+          <div id="manMissionToggle" onclick="toggleManMission()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap">
+            <span id="manMissionChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
+            🎯
           </div>
         </div>
-        <input type="text" id="manCustomCol" class="man-inp" placeholder="키워드를 스페이스로 구분 (예: AI 반도체 투자전략)">
       </div>
     </div>
     <div class="map-actions">
@@ -688,20 +696,20 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <input type="text" id="editUrl">
       <label id="editDateLabel">날짜 / Date</label>
       <input type="text" id="editDate">
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:4px">
-        <label id="editCustomColLabel" style="margin:0">📌 키워드</label>
-        <div id="editCustomColMmBtn" onclick="toggleEditMindmap()" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #333;color:#888;transition:.15s;user-select:none">
-          <span id="editCustomColMmChk" style="width:14px;height:14px;border-radius:3px;border:2px solid #555;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:.15s"></span>
-          🧠 마인드맵
+      <label id="editCustomColLabel" style="margin-top:8px">📌 추가 항목</label>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <textarea id="editCustomCol" placeholder="메모, 페이지 수, 미션 등 자유롭게..." rows="2" style="flex:1;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
+        <div id="editMissionToggle" onclick="toggleEditMission()" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap;margin-top:2px">
+          <span id="editMissionChk" style="width:16px;height:16px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:10px;transition:.15s"></span>
+          🎯 미션
         </div>
       </div>
-      <textarea id="editCustomCol" placeholder="키워드를 스페이스로 구분 (예: AI 반도체 투자전략)" rows="2" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
-      <div id="editCustomColHint" style="font-size:10px;color:var(--t3);margin-top:3px;margin-bottom:8px">마인드맵 체크 시 스페이스로 구분된 키워드가 마인드맵에 표시됩니다</div>
+      <div id="editMissionHint" style="font-size:10px;color:var(--t3);margin-top:3px;margin-bottom:8px">🎯 미션 체크 시 테이블에 체크박스 표시, 미션 진행률에 반영</div>
       <label>🗒️ 노트 / Notes</label>
       <textarea id="editNotes" placeholder="https://notion.so/... 메모 텍스트" rows="4" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
       <label>🏷️ 태그 / Tags</label>
       <div class="tag-ac-wrap" id="tagAcWrap">
-        <input type="text" id="editTags" placeholder="#AI #투자 #반도체" autocomplete="off">
+        <input type="text" id="editTags" placeholder="AI 투자 반도체 (# 없이도 가능)" autocomplete="off">
         <div class="tag-ac-drop" id="tagAcDrop"></div>
       </div>
       <input type="hidden" id="editNum">
@@ -735,8 +743,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <!-- PROGRESS -->
     <div class="prog-grid">
       <div class="prog-main">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <select class="fsel" id="progModeSelect" onchange="renderProgress()" style="font-size:11px;padding:4px 8px;display:none">
+            <option value="read">📖 읽음 진행률</option>
+            <option value="mission">🎯 미션 진행률</option>
+          </select>
+        </div>
         <div class="ring-c"><canvas id="ringCanvas"></canvas>
-          <div class="ring-lbl"><div class="ring-pct" id="ringPct">0%</div><div class="ring-sub">읽음</div></div>
+          <div class="ring-lbl"><div class="ring-pct" id="ringPct">0%</div><div class="ring-sub" id="ringSub">읽음</div></div>
         </div>
         <div class="prog-t" id="progText">0 / 0 읽음</div>
         <div class="prog-d" id="progDesc">시작하세요!</div>
@@ -788,7 +802,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:44px">#</th>
-          <th>카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px" id="thCustomCol">📌 키워드</th><th style="width:90px"></th>
+          <th>카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:90px"></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -797,8 +811,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
     <!-- CHARTS -->
     <div class="charts">
-      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📊 나의 읽기 속도</h3><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
-      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
+      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px"><h3 style="margin:0">📊 나의 읽기 속도</h3><div style="display:flex;align-items:center;gap:8px"><div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--bdr)"><button class="speed-mode-btn active" id="speedModeMonthly" onclick="setSpeedMode('monthly')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">월별</button><button class="speed-mode-btn" id="speedModeWeekly" onclick="setSpeedMode('weekly')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">주별</button></div><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select><select id="monthFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;display:none"></select></div></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
+      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w" style="max-width:500px;margin:0 auto"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
     </div>
   </div>
 
@@ -812,7 +826,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:30px">⭐</th>
-          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th id="favThCustomCol" style="width:130px">📌 키워드</th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
+          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th id="favThCustomCol" style="width:100px;display:none"></th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
         </tr></thead>
         <tbody id="favBody"></tbody>
       </table>
@@ -832,7 +846,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <div class="home-guide-section"><strong style="color:var(--gold)">2. ✅ 읽기 체크</strong><br>- 체크박스 클릭으로 읽음/안읽음 토글<br>- 읽은 날짜 자동 기록<br>- 범위 설정으로 읽은 부분 한번에 체크 가능<br>- 전체 체크/해제 지원<br>- 제목 중복 자동 감지</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">3. 🗂️ 탭 & 그룹</strong><br>- 탭과 그룹 추가로 읽기 목록을 카테고리별(그룹)로 관리<br>- 탭 이름 변경 (✏️)<br>- 그룹 설정 — 같은 그룹의 탭은 홈에서 함께 표시됨<br>- 드래그 앤 드롭으로 탭 순서 변경<br>- 탭 네비게이션: ◀▶ 한 탭씩 이동, ◀◀▶▶ 처음/끝으로 이동</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">4. 💡 출석 체크 & 전구</strong><br>- 캘린더에서 읽은 날짜를 클릭하면 출석 체크<br>- 체크할 때마다 전구에 빛이 채워지고, 목표 달성 시 전구가 환하게 빛남<br>- 목표: 30 / 66 / 100 / 200 / 365일 설정 가능<br>- 리셋 가능<br>- 탭 바 오른쪽 컬러 닷으로 테마 색 변경 (골드 / 블루 / 그린 / 퍼플 / 로즈)</div>
-      <div class="home-guide-section"><strong style="color:var(--gold)">5. 🧠 마인드맵</strong><br>- 아티클 편집(✏️)에서 태그 입력 (#키워드; 예시: #AI #코인 #구글 #버티브)<br>- 커스텀 컬럼에서 🧠 마인드맵 체크 시 키워드도 마인드맵에 표시<br>- 태그만 / 키워드만 / 둘 다 모드 전환 가능<br>- 드롭다운으로 전체 / 그룹별 / 탭별 필터 가능</div>
+      <div class="home-guide-section"><strong style="color:var(--gold)">5. 🧠 마인드맵</strong><br>- 아티클 편집(✏️)에서 태그 입력 (예시: AI 코인 구글 버티브)<br>- 태그 기반 연결 관계 시각화<br>- 드롭다운으로 전체 / 그룹별 / 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">6. ⭐ 즐겨찾기</strong><br>- 아티클 옆 ☆ 클릭으로 즐겨찾기 추가<br>- 즐겨찾기 탭에서 모든 탭의 별표 항목을 통합 조회<br>- 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">7. 📊 대시보드/탭</strong><br>- 노트 편집(✏️)에서 노트 입력 — URL 입력 시 🗒️ 클릭으로 링크 열기, 텍스트 입력 시 💬에 팝업 표시<br>- 각 탭에서 진행률, 월별 추이, 카테고리 분포 확인 가능<br>- 검색 & 필터 — 제목, 카테고리, URL 통합 검색. 카테고리별 / 읽음 상태별 필터, 정렬 지원</div>
       <div class="cc-settings-box" id="ccSettingsBox">
@@ -861,7 +875,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         </div>
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12px;font-weight:600;color:var(--t3);margin-bottom:6px">컬럼 이름</label>
-          <input type="text" id="ccNameInput" class="man-inp" value="키워드" onchange="saveCustomColSettings()" placeholder="예: 키워드, 메모, 링크...">
+          <input type="text" id="ccNameInput" class="man-inp" value="추가 항목" onchange="saveCustomColSettings()" placeholder="예: 추가 항목, 메모, 링크...">
           <div style="font-size:10px;color:var(--t3);margin-top:4px">테이블 헤더를 클릭해서도 변경 가능</div>
         </div>
         <div>
@@ -951,7 +965,6 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0;flex-wrap:wrap">
           <span style="font-size:14px;font-weight:600;color:var(--t2)">🏷️</span>
           <button class="kg-mode-btn active" id="kgModeTags" onclick="toggleKgMode('tags')">태그</button>
-          <button class="kg-mode-btn active" id="kgModeKw" onclick="toggleKgMode('keywords')">키워드</button>
         </div>
         <div id="kgLimitNotice" style="display:none;flex-shrink:0;margin-bottom:8px;padding:10px 14px;background:var(--gold2);border:1px solid var(--gold);border-radius:var(--rs);font-size:12px;color:var(--gold);align-items:center;gap:8px;flex-wrap:wrap"></div>
         <div id="kgTagCloud" style="display:flex;flex-wrap:nowrap;gap:7px;margin-bottom:12px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;padding-bottom:4px"></div>
@@ -1040,14 +1053,37 @@ let activeTabId = null;
 let currentPage = 1;
 let chartRing = null, chartMonthly = null, chartCat = null;
 let attendance = []; // array of date strings like "2026-02-12"
-var ccEnabled = true, ccLabel = '키워드', ccEmoji = '📌';
+var ccEnabled = false, ccLabel = '추가 항목', ccEmoji = '📌';
 var dateEmoji = '📅';
 
 // Helper: join emoji + label without extra space when emoji is empty
 function emojiLabel(emoji, label) { return emoji ? emoji + ' ' + label : label; }
-var kgMode = 'both'; // derived from kgShowTags + kgShowKw
-var kgShowTags = true, kgShowKw = true;
-var _manCustomColMm = false; // manual add mindmap state
+
+// Helper: check if custom column should be visible in table
+function isCcVisible() {
+  if (ccEnabled) return true;
+  return allTabs.some(function(t) {
+    return t.id !== 'tab_favorites' && t.data && t.data.some(function(d) { return d.customCol && d.customCol.trim(); });
+  });
+}
+
+function hasAnyCcData() {
+  return allTabs.some(function(t) {
+    return t.id !== 'tab_favorites' && t.data && t.data.some(function(d) { return d.customCol && d.customCol.trim(); });
+  });
+}
+
+// Auto-adjust ccEnabled based on data presence
+function autoAdjustCcEnabled() {
+  if (hasAnyCcData()) {
+    if (!ccEnabled) { ccEnabled = true; saveCustomColSettings(); }
+  } else {
+    if (ccEnabled) { ccEnabled = false; saveCustomColSettings(); }
+  }
+}
+var kgMode = 'tags';
+var kgShowTags = true;
+// Mission feature: item.customColMission (bool) + item.missionDone (bool). Text is in item.customCol
 
 // =============================================
 // UTILITY
@@ -1180,7 +1216,7 @@ function loadFromStorage() {
         }
         var articles = t.articles || [];
         // Ensure notes & customCol fields exist on all items (backward compat)
-        articles.forEach(function(a) { if (!a.notes) a.notes = ''; if (!a.customCol) a.customCol = ''; if (a.customColMm === undefined) a.customColMm = false; });
+        articles.forEach(function(a) { if (!a.notes) a.notes = ''; if (!a.customCol) a.customCol = ''; if (a.customColMission === undefined) a.customColMission = false; if (a.missionDone === undefined) a.missionDone = false; });
         allTabs.push({
           id: t.id, name: t.name,
           group: t.group || '',
@@ -1208,7 +1244,7 @@ function saveAttendance() {
 }
 
 function saveCustomColSettings() {
-  ccLabel = ($('ccNameInput') ? $('ccNameInput').value : ccLabel) || '키워드';
+  ccLabel = ($('ccNameInput') ? $('ccNameInput').value : ccLabel) || '추가 항목';
   try { localStorage.setItem(CC_SETTINGS_KEY, JSON.stringify({ enabled: ccEnabled, label: ccLabel, emoji: ccEmoji })); } catch(e) {}
   try { localStorage.setItem(DATE_EMOJI_KEY, dateEmoji); } catch(e) {}
   applyCustomColUI();
@@ -1220,7 +1256,7 @@ function loadCustomColSettings() {
     if (raw) {
       var s = JSON.parse(raw);
       ccEnabled = s.enabled !== false;
-      ccLabel = s.label || '키워드';
+      ccLabel = s.label || '추가 항목';
       ccEmoji = s.emoji || '📌';
     }
   } catch(e) {}
@@ -1228,21 +1264,28 @@ function loadCustomColSettings() {
 }
 
 function applyCustomColUI() {
+  var ccVisible = isCcVisible();
+
   // Table header
   var th = $('thCustomCol');
   if (th) {
-    th.style.display = ccEnabled ? '' : 'none';
-    th.innerHTML = ccEnabled ? '<span onclick="editCustomColHeader()" style="cursor:pointer" title="클릭하여 컬럼 이름 변경">' + emojiLabel(ccEmoji, esc(ccLabel)) + ' <span style="font-size:9px;opacity:.35">✏️</span></span>' : '';
+    th.style.display = ccVisible ? '' : 'none';
+    th.innerHTML = ccVisible ? '<span onclick="editCustomColHeader()" style="cursor:pointer" title="클릭하여 컬럼 이름 변경">' + emojiLabel(ccEmoji, esc(ccLabel)) + ' <span style="font-size:9px;opacity:.35">✏️</span></span>' : '';
   }
   // Favorites table header
   var favTh = $('favThCustomCol');
   if (favTh) {
-    favTh.style.display = ccEnabled ? '' : 'none';
-    if (ccEnabled) favTh.textContent = emojiLabel(ccEmoji, ccLabel);
+    favTh.style.display = ccVisible ? '' : 'none';
+    if (ccVisible) favTh.textContent = emojiLabel(ccEmoji, ccLabel);
   }
-  // Manual add row
+  // Manual add row - show if enabled or current tab has cc data
   var manRow = $('manCustomColRow');
-  if (manRow) manRow.style.display = ccEnabled ? '' : 'none';
+  if (manRow) {
+    var tabHasCc = false;
+    var tab = getActiveTab();
+    if (tab && tab.data) tabHasCc = tab.data.some(function(d) { return d.customCol && d.customCol.trim(); });
+    manRow.style.display = (ccEnabled || tabHasCc) ? '' : 'none';
+  }
   // Update labels
   var manLbl = $('manCustomColLabel');
   if (manLbl) manLbl.textContent = emojiLabel(ccEmoji, ccLabel);
@@ -1270,9 +1313,6 @@ function applyCustomColUI() {
       return '<div onclick="pickDateEmoji(\'' + e.emoji + '\')" style="padding:8px 14px;border-radius:8px;cursor:pointer;transition:.15s;border:1px solid ' + (sel ? 'var(--gold)' : 'var(--bdr)') + ';background:' + (sel ? 'var(--gold2)' : 'var(--inp)') + ';display:flex;align-items:center;gap:6px"><span style="font-size:18px">' + e.emoji + '</span><span style="font-size:11px;color:' + (sel ? 'var(--gold)' : 'var(--t3)') + '">' + e.label + '</span></div>';
     }).join('');
   }
-  // KG mode button label
-  var kgModeKwBtn = $('kgModeKw');
-  if (kgModeKwBtn) kgModeKwBtn.textContent = ccLabel;
   // Date label input in settings
   var dli = $('dateLabelInput');
   if (dli) {
@@ -1321,7 +1361,7 @@ function editCustomColHeader() {
   var inp = $('ccHeaderInput');
   inp.focus();
   inp.select();
-  inp.onblur = function() { ccLabel = inp.value.trim() || '키워드'; saveCustomColSettings(); };
+  inp.onblur = function() { ccLabel = inp.value.trim() || '추가 항목'; saveCustomColSettings(); };
   inp.onkeydown = function(e) { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = ccLabel; inp.blur(); } };
 }
 
@@ -1393,7 +1433,7 @@ function importBackup() {
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
-        if (backup.ccSettings) { ccEnabled = backup.ccSettings.enabled !== false; ccLabel = backup.ccSettings.label || '키워드'; ccEmoji = backup.ccSettings.emoji || '📌'; saveCustomColSettings(); }
+        if (backup.ccSettings) { ccEnabled = backup.ccSettings.enabled !== false; ccLabel = backup.ccSettings.label || '추가 항목'; ccEmoji = backup.ccSettings.emoji || '📌'; saveCustomColSettings(); }
         if (backup.dateEmoji) { dateEmoji = backup.dateEmoji; try { localStorage.setItem(DATE_EMOJI_KEY, dateEmoji); } catch(e) {} }
         if (backup.theme) setTheme(backup.theme);
         if (backup.customTitle) { localStorage.setItem(CUSTOM_TITLE_KEY, backup.customTitle); }
@@ -2143,6 +2183,7 @@ function processNextSheet() {
     // All sheets processed
     pendingSheets = [];
     saveToStorage();
+    autoAdjustCcEnabled();
     renderTabs();
     switchTab(allTabs[allTabs.length - 1].id);
     setTimeout(function() { $('tabBar').scrollLeft = $('tabBar').scrollWidth; }, 50);
@@ -2244,6 +2285,7 @@ function updatePreview(rows) {
   html += '<th>제목</th>';
   if (mapping.url) html += '<th>URL</th>';
   if (mapping.date) html += '<th>' + dateLbl2 + '</th>';
+  if (mapping.customCol) html += '<th>' + emojiLabel(ccEmoji, esc(ccLabel)) + '</th>';
   html += '</tr></thead><tbody>';
 
   preview.forEach(row => {
@@ -2252,6 +2294,7 @@ function updatePreview(rows) {
     html += '<td>' + esc(String(mapping.title ? (row[mapping.title] || '-') : '-')) + '</td>';
     if (mapping.url) { const u = String(row[mapping.url] || ''); html += '<td>' + esc(u.length > 40 ? u.slice(0,40) + '...' : u) + '</td>'; }
     if (mapping.date) html += '<td>' + esc(String(row[mapping.date] || '-')) + '</td>';
+    if (mapping.customCol) { const cc = String(row[mapping.customCol] || ''); html += '<td>' + esc(cc.length > 30 ? cc.slice(0,30) + '...' : cc) + '</td>'; }
     html += '</tr>';
   });
 
@@ -2388,6 +2431,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     var group = tab ? tab.group || '' : '';
     allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel });
     saveToStorage();
+    autoAdjustCcEnabled();
     renderTabs();
     switchTab(tabId);
     setTimeout(function() { $('tabBar').scrollLeft = $('tabBar').scrollWidth; }, 50);
@@ -2399,6 +2443,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     normalized.forEach(function(item, i) { item.num = startNum + i; });
     tab.data = tab.data.concat(normalized);
     saveToStorage();
+    autoAdjustCcEnabled();
     showDashboard(true);
     renderAll();
     toast('✅ ' + normalized.length + '개 추가! (총 ' + tab.data.length + '개)', 'ok');
@@ -2420,7 +2465,7 @@ function finishApplyMapping(normalized, mapping, mode) {
           if (old.notes && !item.notes) item.notes = old.notes;
           if (old.tags && old.tags.length > 0 && (!item.tags || item.tags.length === 0)) item.tags = old.tags;
           if (old.customCol && !item.customCol) item.customCol = old.customCol;
-          if (old.customColMm) item.customColMm = old.customColMm;
+          if (old.customColMission) { item.customColMission = old.customColMission; item.missionDone = old.missionDone || false; }
         }
       });
     }
@@ -2433,6 +2478,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     }
 
     saveToStorage();
+    autoAdjustCcEnabled();
     showDashboard(true);
     renderAll();
     toast('✅ ' + tab.data.length + '개 아티클 로드!', 'ok');
@@ -2490,7 +2536,8 @@ function normalizeWithMapping(rawRows, mapping) {
         date,
         notes: '',
         customCol: customCol,
-        customColMm: false,
+        customColMission: false,
+        missionDone: false,
         key: (url || title + '|' + date).trim()
       };
     });
@@ -2854,7 +2901,7 @@ function handleSheetsData(rows, tab, rawUrl) {
         if (old.notes && !item.notes) item.notes = old.notes;
         if (old.tags && old.tags.length > 0 && (!item.tags || item.tags.length === 0)) item.tags = old.tags;
         if (old.customCol && !item.customCol) item.customCol = old.customCol;
-        if (old.customColMm) item.customColMm = old.customColMm;
+          if (old.customColMission) { item.customColMission = old.customColMission; item.missionDone = old.missionDone || false; }
       }
     });
   }
@@ -3026,7 +3073,7 @@ function doManualAdd() {
   }
 
   const customCol = $('manCustomCol') ? $('manCustomCol').value.trim() : '';
-  const customColMm = _manCustomColMm || false;
+  const customColMission = window._manMission || false;
 
   const newItem = {
     num: tab.data.length + 1,
@@ -3036,7 +3083,8 @@ function doManualAdd() {
     date: date,
     notes: notes,
     customCol: customCol,
-    customColMm: customColMm,
+    customColMission: customCol ? customColMission : false,
+    missionDone: false,
     key: (url || title + '|' + date).trim()
   };
 
@@ -3049,6 +3097,7 @@ function doManualAdd() {
 
   tab.data.push(newItem);
   saveToStorage();
+  autoAdjustCcEnabled();
   showDashboard(true);
   renderAll();
   toast('✅ 추가됨: ' + title, 'ok');
@@ -3059,7 +3108,7 @@ function doManualAdd() {
   $('manDate').value = '';
   $('manNotes').value = '';
   if ($('manCustomCol')) $('manCustomCol').value = '';
-  _manCustomColMm = false; updateManMindmapBtn();
+  window._manMission = false; updateManMissionBtn();
   // Keep category for quick multi-add
 }
 
@@ -3452,9 +3501,9 @@ function editItem(num) {
   $('editDate').value = item.date;
   $('editNotes').value = item.notes || '';
   $('editCustomCol').value = item.customCol || '';
-  window._editCustomColMm = item.customColMm || false;
-  updateEditMindmapBtn();
-  $('editTags').value = (item.tags || []).map(function(t) { return '#' + t; }).join(' ');
+  window._editMission = item.customColMission || false;
+  updateEditMissionBtn();
+  $('editTags').value = (item.tags || []).join(' ');
   $('editNum').value = num;
 
   // Check for auto-saved draft
@@ -3469,9 +3518,9 @@ function editItem(num) {
         $('editUrl').value = d.url !== undefined ? d.url : item.url;
         $('editDate').value = d.date !== undefined ? d.date : item.date;
         $('editNotes').value = d.notes !== undefined ? d.notes : (item.notes || '');
-        $('editTags').value = d.tags || (item.tags || []).map(function(t) { return '#' + t; }).join(' ');
+        $('editTags').value = d.tags || (item.tags || []).join(' ');
         if (d.customCol !== undefined) $('editCustomCol').value = d.customCol;
-        if (d.customColMm !== undefined) { window._editCustomColMm = d.customColMm; updateEditMindmapBtn(); }
+        if (d.customColMission !== undefined) { window._editMission = d.customColMission; updateEditMissionBtn(); }
       } else {
         localStorage.removeItem(draftKey);
       }
@@ -3481,7 +3530,9 @@ function editItem(num) {
   // Auto-save draft on input
   var draftFields = ['editTitle','editCat','editUrl','editDate','editNotes','editCustomCol','editTags'];
   draftFields.forEach(function(fid) {
-    $(fid).addEventListener('input', function() {
+    var el = $(fid);
+    if (!el) return;
+    el.addEventListener('input', function() {
       var draftData = {
         title: $('editTitle').value,
         category: $('editCat').value,
@@ -3490,7 +3541,7 @@ function editItem(num) {
         notes: $('editNotes').value,
         tags: $('editTags').value,
         customCol: $('editCustomCol').value,
-        customColMm: window._editCustomColMm || false,
+        customColMission: window._editMission || false,
         time: Date.now()
       };
       localStorage.setItem('pt_draft_' + $('editNum').value, JSON.stringify(draftData));
@@ -3681,13 +3732,20 @@ function saveEdit() {
   item.date = newDate;
   item.notes = $('editNotes').value.trim();
   item.customCol = $('editCustomCol').value.trim();
-  item.customColMm = window._editCustomColMm || false;
-  item.tags = $('editTags').value.match(/#[^\s#]+/g);
-  if (item.tags) item.tags = item.tags.map(function(t) { return t.slice(1).trim(); });
-  else item.tags = [];
+  item.customColMission = window._editMission || false;
+  if (!item.customCol) { item.customColMission = false; item.missionDone = false; }
+  if (!item.customColMission) item.missionDone = false;
+  // Parse tags: accept with or without #
+  var tagRaw = $('editTags').value.trim();
+  if (tagRaw) {
+    item.tags = tagRaw.split(/[\s,]+/).map(function(t) { return t.replace(/^#/, '').trim(); }).filter(Boolean);
+  } else {
+    item.tags = [];
+  }
   item.key = newKey;
 
   saveToStorage();
+  autoAdjustCcEnabled();
   _sortedCache = null; _sortedCacheKey = '';
   renderTable();
   if (catChanged) { renderProgress(); renderCatChart(); }
@@ -3735,6 +3793,7 @@ function doConfirmDelete() {
   tab.data.forEach(function(d, i) { d.num = i + 1; });
   _pendingDeleteIdx = -1;
   saveToStorage();
+  autoAdjustCcEnabled();
   renderProgress();
   renderTable();
   renderCharts();
@@ -3784,41 +3843,80 @@ function renderProgress() {
 
   const total = tab.data.length;
   const readCount = tab.data.filter(r => isRead(r.key)).length;
-  const pct = total ? Math.round(readCount / total * 100) : 0;
 
-  $('ringPct').textContent = pct + '%';
-  $('progText').textContent = readCount + ' / ' + total + ' 읽음';
-  $('progDesc').textContent = total - readCount === 0 ? '🎉 완독!' : (total - readCount) + '개 남음';
+  // Check if any mission exists
+  var missionItems = tab.data.filter(function(r) { return r.customColMission && r.customCol && r.customCol.trim(); });
+  var hasMissions = missionItems.length > 0;
+  var modeSelect = $('progModeSelect');
+  modeSelect.style.display = hasMissions ? '' : 'none';
+  if (!hasMissions) modeSelect.value = 'read';
+
+  var mode = modeSelect.value;
+  var pct, done, mTotal, ringColor, subLabel;
+
+  if (mode === 'mission') {
+    mTotal = missionItems.length;
+    done = missionItems.filter(function(r) { return r.missionDone; }).length;
+    pct = mTotal ? Math.round(done / mTotal * 100) : 0;
+    ringColor = '#3dcc7a';
+    subLabel = '미션';
+    $('ringPct').textContent = pct + '%';
+    $('ringPct').style.color = ringColor;
+    $('ringSub').textContent = subLabel;
+    $('progText').textContent = done + ' / ' + mTotal + ' 미션 완료';
+    $('progDesc').textContent = mTotal - done === 0 ? '🎉 미션 클리어!' : (mTotal - done) + '개 남음';
+  } else {
+    pct = total ? Math.round(readCount / total * 100) : 0;
+    done = readCount;
+    mTotal = total;
+    ringColor = '#e8b830';
+    subLabel = '읽음';
+    $('ringPct').textContent = pct + '%';
+    $('ringPct').style.color = '';
+    $('ringSub').textContent = subLabel;
+    $('progText').textContent = readCount + ' / ' + total + ' 읽음';
+    $('progDesc').textContent = total - readCount === 0 ? '🎉 완독!' : (total - readCount) + '개 남음';
+  }
 
   // Ring chart
   if (chartRing) chartRing.destroy();
   chartRing = new Chart($('ringCanvas').getContext('2d'), {
     type: 'doughnut',
-    data: { datasets: [{ data: [readCount, total - readCount], backgroundColor: ['#e8b830', '#1a1a28'], borderWidth: 0 }] },
+    data: { datasets: [{ data: [done, mTotal - done], backgroundColor: [ringColor, '#1a1a28'], borderWidth: 0 }] },
     options: { responsive: true, maintainAspectRatio: true, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 800 } }
   });
 
-  // Category bars
-  const catMap = {};
-  tab.data.forEach(r => {
-    if (!catMap[r.category]) catMap[r.category] = { total: 0, read: 0 };
-    catMap[r.category].total++;
-    if (isRead(r.key)) catMap[r.category].read++;
-  });
-  const sorted = Object.entries(catMap).sort((a, b) => b[1].total - a[1].total);
-  const topBars = sorted.slice(0, 10);
-  const restBars = sorted.slice(10);
+  if (mode === 'mission') {
+    // Mission mode: show mission list
+    $('catToggle').innerHTML = '🎯 미션 목록 <span id="catArrow" class="cat-arrow">▼ (펼쳐보기)</span>';
+    var mHtml = missionItems.map(function(r) {
+      var dCls = r.missionDone ? ' done' : '';
+      var pColor = r.missionDone ? '#3dcc7a' : '#555';
+      return '<div class="cr" style="cursor:pointer" onclick="toggleMissionDone(' + r.num + ')"><div class="cr-n" title="' + esc(r.customCol) + '"><span class="mission-chk' + dCls + '" style="width:14px;height:14px;font-size:8px;margin-right:4px">' + (r.missionDone ? '✓' : '') + '</span>' + esc(r.customCol) + '</div><div class="cr-b"><div class="cr-f" style="width:' + (r.missionDone ? '100' : '0') + '%;background:' + pColor + '"></div></div><div class="cr-v" style="color:' + pColor + '">' + (r.missionDone ? '완료' : '미완료') + '</div></div>';
+    }).join('');
+    $('catBars').innerHTML = mHtml;
+  } else {
+    // Read mode: category bars
+    $('catToggle').innerHTML = '카테고리별 진행률 <span id="catArrow" class="cat-arrow">▼ (펼쳐보기)</span>';
+    const catMap = {};
+    tab.data.forEach(r => {
+      if (!catMap[r.category]) catMap[r.category] = { total: 0, read: 0 };
+      catMap[r.category].total++;
+      if (isRead(r.key)) catMap[r.category].read++;
+    });
+    const sorted = Object.entries(catMap).sort((a, b) => b[1].total - a[1].total);
 
-  // Build category→color map for this tab (all unique colors)
-  window._catColors = {};
-  sorted.forEach(([cat], i) => { window._catColors[cat] = COLORS[i % COLORS.length]; });
+    // Build category→color map for this tab (all unique colors)
+    window._catColors = {};
+    sorted.forEach(([cat], i) => { window._catColors[cat] = COLORS[i % COLORS.length]; });
 
-  var barsHtml = sorted.map(([cat, v], i) => {
-    const p = v.total ? Math.round(v.read / v.total * 100) : 0;
-    return `<div class="cr"><div class="cr-n" title="${esc(cat)}">${esc(cat)}</div><div class="cr-b"><div class="cr-f" style="width:${p}%;background:${COLORS[i % COLORS.length]}"></div></div><div class="cr-v">${v.read}/${v.total} (${p}%)</div></div>`;
-  }).join('');
+    var barsHtml = sorted.map(([cat, v], i) => {
+      const p = v.total ? Math.round(v.read / v.total * 100) : 0;
+      return `<div class="cr"><div class="cr-n" title="${esc(cat)}">${esc(cat)}</div><div class="cr-b"><div class="cr-f" style="width:${p}%;background:${COLORS[i % COLORS.length]}"></div></div><div class="cr-v">${v.read}/${v.total} (${p}%)</div></div>`;
+    }).join('');
 
-  $('catBars').innerHTML = barsHtml;
+    $('catBars').innerHTML = barsHtml;
+  }
   // Auto-set mobile state (show first 5)
   if (window.innerWidth <= 640) {
     $('catBars').classList.remove('expanded');
@@ -3913,7 +4011,11 @@ function renderTable() {
       } else if (nUrls.length > 1) {
         noteIcon = ` <span class="note-link" onclick="showNoteLinks(${r.num})" title="링크 ${nUrls.length}개">🗒️</span>`;
       }
-      if (nText) noteIcon += ` <span class="note-tip-wrap"><span class="note-tip-icon">💬</span><span class="note-tip-popup">${esc(nText)}</span></span>`;
+      if (nText) noteIcon += ` <span class="note-tip-wrap" onclick="editItem(${r.num})" style="cursor:pointer"><span class="note-tip-icon">💬</span><span class="note-tip-popup">${esc(nText)}</span></span>`;
+    }
+    var tagIcon = '';
+    if (r.tags && r.tags.length > 0) {
+      tagIcon = ' <span class="note-tip-wrap" onclick="editItem(' + r.num + ')" style="cursor:pointer"><span class="note-tip-icon" style="opacity:.6">🏷️</span><span class="note-tip-popup">' + r.tags.map(function(t){return esc(t);}).join(', ') + '</span></span>';
     }
     return `<tr class="${rd ? 'read-row' : ''}">
       <td><div class="chk ${rd ? 'on' : ''}" onclick="toggleRead('${escKey(r.key)}')"></div></td>
@@ -3922,8 +4024,8 @@ function renderTable() {
       <td><span class="td-c" style="${window._catColors && window._catColors[r.category] ? 'background:' + window._catColors[r.category] + '22;color:' + window._catColors[r.category] : ''}" title="${esc(r.category)}">${esc(r.category)}</span></td>
       <td class="td-ti">${titleHtml}</td>
       <td class="td-dt">${formatDate(r.date)}</td>
-      ${ccEnabled ? '<td class="td-cc">' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" onclick="editItem(' + r.num + ')">' + (r.customColMm ? '<span class="cc-mm-icon">🧠</span>' : '') + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '<span class="td-cc-add" onclick="editItem(' + r.num + ')">+ 추가</span>') + '</td>' : ''}
-      <td class="td-act" id="act_${r.num}"><div class="act-wrap">${noteIcon}<div class="act-btn" onclick="editItem(${r.num})">✏️</div><div class="act-btn act-del" onclick="deleteItem(${r.num})">✕</div></div></td>
+      ${isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" onclick="event.stopPropagation();toggleMissionDone(' + r.num + ')">' + (r.missionDone ? '✓' : '') + '</div><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '" onclick="editItem(' + r.num + ')">' + esc(r.customCol) + '</span></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" onclick="editItem(' + r.num + ')">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '<span class="td-cc-add" onclick="editItem(' + r.num + ')">+ 추가</span>') + '</td>' : ''}
+      <td class="td-act" id="act_${r.num}"><div class="act-wrap">${noteIcon}${tagIcon}<div class="act-btn" onclick="editItem(${r.num})">✏️</div><div class="act-btn act-del" onclick="deleteItem(${r.num})">✕</div></div></td>
     </tr>`;
   }).join('');
 
@@ -3979,6 +4081,15 @@ function renderCharts() {
   renderCatChart();
 }
 
+var speedMode = 'monthly';
+function setSpeedMode(mode) {
+  speedMode = mode;
+  document.querySelectorAll('.speed-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+  $(mode === 'monthly' ? 'speedModeMonthly' : 'speedModeWeekly').classList.add('active');
+  $('monthFilter').style.display = mode === 'weekly' ? '' : 'none';
+  renderReadingChart();
+}
+
 function renderReadingChart() {
   const tab = getActiveTab();
   if (!tab) return;
@@ -4008,52 +4119,90 @@ function renderReadingChart() {
   if (!yf.value && !prevYear) yf.value = '';
   const selectedYear = yf.value;
 
-  // Monthly reading chart - based on WHEN user read
-  const monthly = {};
-  tab.data.forEach(r => {
-    const readDate = tab.readMap[r.key];
-    if (readDate && readDate !== 'unknown') {
-      if (selectedYear && !readDate.startsWith(selectedYear)) return;
-      const m = readDate.slice(0, 7);
-      if (!monthly[m]) monthly[m] = 0;
-      monthly[m]++;
-    }
-  });
-
-  // Fill in missing months for selected year
-  if (selectedYear) {
-    for (var mi = 1; mi <= 12; mi++) {
-      var mk = selectedYear + '-' + String(mi).padStart(2, '0');
-      if (!monthly[mk]) monthly[mk] = 0;
-    }
-  } else {
-    const curMonth = todayStr().slice(0, 7);
-    if (!monthly[curMonth]) monthly[curMonth] = 0;
+  // Build month filter dropdown (for weekly mode)
+  var mf = $('monthFilter');
+  if (mf) {
+    var prevMonth = mf.value || '';
+    var mfHtml = '';
+    for (var mi = 1; mi <= 12; mi++) { mfHtml += '<option value="'+mi+'">' + mi + '월</option>'; }
+    mf.innerHTML = mfHtml;
+    if (prevMonth) { mf.value = prevMonth; }
+    else { mf.value = String(new Date().getMonth() + 1); }
+    mf.style.display = speedMode === 'weekly' ? '' : 'none';
   }
 
-  const months = Object.keys(monthly).sort();
-  const monthLabels = months.map(m => {
-    const parts = m.split('-');
-    return (selectedYear ? '' : parts[0].slice(2) + '년 ') + parseInt(parts[1]) + '월';
-  });
-  const monthReads = months.map(m => monthly[m]);
+  var labels, chartData, chartLabel;
+
+  if (speedMode === 'monthly') {
+    // === MONTHLY MODE ===
+    const monthly = {};
+    tab.data.forEach(r => {
+      const readDate = tab.readMap[r.key];
+      if (readDate && readDate !== 'unknown') {
+        if (selectedYear && !readDate.startsWith(selectedYear)) return;
+        const m = readDate.slice(0, 7);
+        if (!monthly[m]) monthly[m] = 0;
+        monthly[m]++;
+      }
+    });
+    if (selectedYear) {
+      for (var mi2 = 1; mi2 <= 12; mi2++) {
+        var mk = selectedYear + '-' + String(mi2).padStart(2, '0');
+        if (!monthly[mk]) monthly[mk] = 0;
+      }
+    } else {
+      const curMonth = todayStr().slice(0, 7);
+      if (!monthly[curMonth]) monthly[curMonth] = 0;
+    }
+    const months = Object.keys(monthly).sort();
+    labels = months.map(m => {
+      const parts = m.split('-');
+      return (selectedYear ? '' : parts[0].slice(2) + '년 ') + parseInt(parts[1]) + '월';
+    });
+    chartData = months.map(m => monthly[m]);
+    chartLabel = '월별 읽음';
+  } else {
+    // === WEEKLY MODE ===
+    var selMonth = mf ? +mf.value : (new Date().getMonth() + 1);
+    var useYear = selectedYear || String(new Date().getFullYear());
+    // Determine weeks in this month
+    var daysInMonth = new Date(+useYear, selMonth, 0).getDate();
+    var numWeeks = daysInMonth > 28 ? 5 : 4;
+    var weekly = [];
+    for (var wi = 0; wi < numWeeks; wi++) weekly[wi] = 0;
+
+    tab.data.forEach(r => {
+      var readDate = tab.readMap[r.key];
+      if (readDate && readDate !== 'unknown') {
+        if (!readDate.startsWith(useYear)) return;
+        var rm = parseInt(readDate.slice(5, 7));
+        if (rm !== selMonth) return;
+        var rd = parseInt(readDate.slice(8, 10));
+        var wk = Math.min(Math.floor((rd - 1) / 7), numWeeks - 1);
+        weekly[wk]++;
+      }
+    });
+    labels = weekly.map(function(_, i) { return (i + 1) + '주차'; });
+    chartData = weekly;
+    chartLabel = selMonth + '월 주별 읽음';
+  }
 
   if (chartMonthly) chartMonthly.destroy();
 
-  const barPct = months.length <= 2 ? 0.3 : months.length <= 4 ? 0.5 : 0.7;
-  const maxBar = months.length <= 2 ? 50 : months.length <= 4 ? 60 : 80;
+  const barPct = labels.length <= 2 ? 0.3 : labels.length <= 5 ? 0.5 : 0.7;
+  const maxBar = labels.length <= 2 ? 50 : labels.length <= 5 ? 60 : 80;
 
   chartMonthly = new Chart($('monthlyChart').getContext('2d'), {
     type: 'bar',
     data: {
-      labels: monthLabels,
+      labels: labels,
       datasets: [
-        { label: '월별 읽음', data: monthReads, backgroundColor: 'rgba(232,184,48,.7)', borderColor: 'rgba(232,184,48,.9)', borderWidth: 1, borderRadius: 4, maxBarThickness: maxBar, barPercentage: barPct, categoryPercentage: barPct }
+        { label: chartLabel, data: chartData, backgroundColor: 'rgba(232,184,48,.7)', borderColor: 'rgba(232,184,48,.9)', borderWidth: 1, borderRadius: 4, maxBarThickness: maxBar, barPercentage: barPct, categoryPercentage: barPct }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      layout: { padding: { left: months.length <= 2 ? 40 : 0, right: months.length <= 2 ? 40 : 0 } },
+      layout: { padding: { left: labels.length <= 2 ? 40 : 0, right: labels.length <= 2 ? 40 : 0 } },
       plugins: {
         legend: { labels: { color: '#ffffff', font: { size: 12 }, padding: 12, boxWidth: 10, boxHeight: 10 } },
         tooltip: {
@@ -4063,7 +4212,7 @@ function renderReadingChart() {
       },
       scales: {
         x: { ticks: { color: '#ffffff', font: { size: 12 }, maxRotation: 45 }, grid: { color: 'rgba(37,37,56,.25)' } },
-        y: { title: { display: true, text: '월별 읽음', color: '#ffffff', font: { size: 12 } }, ticks: { color: '#ffffff', font: { size: 11 }, stepSize: months.length <= 2 ? 1 : undefined }, grid: { color: 'rgba(37,37,56,.25)' }, beginAtZero: true }
+        y: { title: { display: true, text: chartLabel, color: '#ffffff', font: { size: 12 } }, ticks: { color: '#ffffff', font: { size: 11 }, stepSize: labels.length <= 5 ? 1 : undefined }, grid: { color: 'rgba(37,37,56,.25)' }, beginAtZero: true }
       }
     }
   });
@@ -4167,16 +4316,7 @@ function renderKnowledgeGraph() {
   includeTabs.forEach(function(tab) {
     (tab.data || []).forEach(function(d) {
       var itemTags = [];
-      if (kgMode === 'tags' || kgMode === 'both') {
-        if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
-      }
-      if (kgMode === 'keywords' || kgMode === 'both') {
-        if (d.customColMm && d.customCol) {
-          d.customCol.split(/\s+/).filter(Boolean).forEach(function(kw) {
-            if (itemTags.indexOf(kw) < 0) itemTags.push(kw);
-          });
-        }
-      }
+      if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
       if (itemTags.length > 0) {
         articles.push({ id: articles.length, title: d.title, tags: itemTags, tabName: tab.name, tabId: tab.id, num: d.num });
         itemTags.forEach(function(t) { allTagSet[t] = (allTagSet[t] || 0) + 1; });
@@ -4530,8 +4670,7 @@ function kgClickTag(t) {
   var articles = [], allTagSet = {};
   allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){
     var itemTags = [];
-    if (kgMode === 'tags' || kgMode === 'both') { if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags); }
-    if (kgMode === 'keywords' || kgMode === 'both') { if (d.customColMm && d.customCol) d.customCol.split(/\s+/).filter(Boolean).forEach(function(kw){ if(itemTags.indexOf(kw)<0) itemTags.push(kw); }); }
+    if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
     if(itemTags.length>0){articles.push({id:articles.length,title:d.title,tags:itemTags,tabName:tab.name,tabId:tab.id,num:d.num});itemTags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}
   });});
   var allKgTags = Object.keys(allTagSet).sort(function(a,b){return allTagSet[b]-allTagSet[a];});
@@ -4575,8 +4714,7 @@ function kgClickArticle(id) {
   var articles = [], allTagSet = {};
   allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){
     var itemTags = [];
-    if (kgMode === 'tags' || kgMode === 'both') { if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags); }
-    if (kgMode === 'keywords' || kgMode === 'both') { if (d.customColMm && d.customCol) d.customCol.split(/\s+/).filter(Boolean).forEach(function(kw){ if(itemTags.indexOf(kw)<0) itemTags.push(kw); }); }
+    if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
     if(itemTags.length>0){articles.push({id:articles.length,title:d.title,tags:itemTags,tabName:tab.name,tabId:tab.id,num:d.num});itemTags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}
   });});
   var allKgTags = Object.keys(allTagSet).sort(function(a,b){return allTagSet[b]-allTagSet[a];});
@@ -5053,7 +5191,8 @@ function renderFavoritesTable(page) {
           date: item.date,
           notes: item.notes || '',
           customCol: item.customCol || '',
-          customColMm: item.customColMm || false,
+          customColMission: item.customColMission || false,
+          missionDone: item.missionDone || false,
           key: item.key,
           num: item.num
         });
@@ -5112,7 +5251,7 @@ function renderFavoritesTable(page) {
       '<td style="text-align:center;color:var(--t3);font-size:13px">' + (r.num || '') + '</td>' +
       '<td><span class="td-c" title="' + esc(r.category) + '">' + esc(r.category) + '</span></td>' +
       '<td class="td-ti">' + titleHtml + '</td>' +
-      (ccEnabled ? '<td class="td-cc">' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + (r.customColMm ? '<span class="cc-mm-icon">🧠</span>' : '') + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '') + '</td>' : '') +
+      (isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" style="pointer-events:none">' + (r.missionDone ? '✓' : '') + '</div><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '">' + esc(r.customCol) + '</span></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '') + '</td>' : '') +
       '<td>' + noteHtml + '</td>' +
       '<td class="td-dt">' + formatDate(r.date) + '</td>' +
     '</tr>';
@@ -5379,55 +5518,66 @@ function dismissUpdateBanner() {
 }
 
 // ── Custom Column Helpers ──
-function toggleEditMindmap() {
-  window._editCustomColMm = !window._editCustomColMm;
-  updateEditMindmapBtn();
+// Mission functions
+var _manMission = false;
+window._editMission = false;
+
+function toggleMissionDone(num) {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var item = tab.data.find(function(d) { return d.num === num; });
+  if (!item || !item.customColMission) return;
+  item.missionDone = !item.missionDone;
+  saveToStorage();
+  renderTable();
+  renderProgress();
 }
-function updateEditMindmapBtn() {
-  var on = window._editCustomColMm;
-  var btn = $('editCustomColMmBtn');
-  var chk = $('editCustomColMmChk');
-  var hint = $('editCustomColHint');
+
+function toggleEditMission() {
+  window._editMission = !window._editMission;
+  updateEditMissionBtn();
+}
+
+function updateEditMissionBtn() {
+  var on = window._editMission;
+  var btn = $('editMissionToggle');
+  var chk = $('editMissionChk');
   if (!btn) return;
-  btn.style.background = on ? 'rgba(61,204,122,.15)' : 'rgba(255,255,255,.05)';
-  btn.style.borderColor = on ? '#3dcc7a' : '#333';
+  btn.style.background = on ? 'rgba(61,204,122,.15)' : '';
+  btn.style.borderColor = on ? '#3dcc7a' : '#2a2a3a';
   btn.style.color = on ? '#3dcc7a' : '#888';
-  chk.style.borderColor = on ? '#3dcc7a' : '#555';
+  chk.style.borderColor = on ? '#3dcc7a' : 'rgba(61,204,122,.4)';
   chk.style.background = on ? '#3dcc7a' : 'transparent';
   chk.textContent = on ? '✓' : '';
   chk.style.color = '#000';
-  if (hint) hint.textContent = on ? '✅ 마인드맵 활성 — 스페이스로 구분된 키워드가 마인드맵에 표시됩니다' : '마인드맵 체크 시 이 내용이 마인드맵 그래프에 반영됩니다';
+  var hint = $('editMissionHint');
+  if (hint) hint.textContent = on ? '✅ 미션 활성 — 테이블에 체크박스 표시, 미션 진행률에 반영' : '🎯 미션 체크 시 테이블에 체크박스 표시, 미션 진행률에 반영';
 }
-function toggleManMindmap() {
-  _manCustomColMm = !_manCustomColMm;
-  updateManMindmapBtn();
+
+function toggleManMission() {
+  window._manMission = !window._manMission;
+  updateManMissionBtn();
 }
-function updateManMindmapBtn() {
-  var on = _manCustomColMm;
-  var btn = $('manCustomColMmBtn');
-  var chk = $('manCustomColMmChk');
+
+function updateManMissionBtn() {
+  var on = window._manMission;
+  var btn = $('manMissionToggle');
+  var chk = $('manMissionChk');
   if (!btn) return;
-  btn.style.background = on ? 'rgba(61,204,122,.15)' : 'rgba(255,255,255,.05)';
-  btn.style.borderColor = on ? '#3dcc7a' : '#333';
+  btn.style.background = on ? 'rgba(61,204,122,.15)' : '';
+  btn.style.borderColor = on ? '#3dcc7a' : '#2a2a3a';
   btn.style.color = on ? '#3dcc7a' : '#888';
-  chk.style.borderColor = on ? '#3dcc7a' : '#555';
+  chk.style.borderColor = on ? '#3dcc7a' : 'rgba(61,204,122,.4)';
   chk.style.background = on ? '#3dcc7a' : 'transparent';
   chk.textContent = on ? '✓' : '';
   chk.style.color = '#000';
 }
 
 function toggleKgMode(which) {
-  if (which === 'tags') kgShowTags = !kgShowTags;
-  else kgShowKw = !kgShowKw;
-  // At least one must be on
-  if (!kgShowTags && !kgShowKw) {
-    if (which === 'tags') kgShowKw = true;
-    else kgShowTags = true;
-  }
-  // Derive kgMode
-  kgMode = (kgShowTags && kgShowKw) ? 'both' : kgShowTags ? 'tags' : 'keywords';
-  $('kgModeTags').classList.toggle('active', kgShowTags);
-  $('kgModeKw').classList.toggle('active', kgShowKw);
+  // Tags only mode
+  kgShowTags = true;
+  kgMode = 'tags';
+  $('kgModeTags').classList.add('active');
   renderKnowledgeGraph();
 }
 
@@ -5475,7 +5625,7 @@ function editManualCustomColLabel() {
   inp.focus();
   inp.select();
   inp.onblur = function() {
-    ccLabel = inp.value.trim() || '키워드';
+    ccLabel = inp.value.trim() || '추가 항목';
     saveCustomColSettings();
     updateManualLabels();
   };
