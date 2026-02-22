@@ -399,11 +399,13 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .tab-add { padding:6px 8px; font-size:12px; border-style:dashed; border-color:var(--t3); }
 
   /* Mobile menu toggle */
-  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:center !important; gap:10px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:center !important; gap:6px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
   .tabbar-right.open { display:flex !important; }
   .tabbar-right .tab-add, .tabbar-right .settings-tab { margin:0 !important; }
-  .tabbar-right .tab-add { margin-left:3px !important; }
+  .tabbar-right .tab-add { margin-left:6px !important; }
+  .tabbar-right .settings-tab { border-bottom:none !important; margin-bottom:4px !important; }
   .tabbar-right .mobile-label { display:inline; font-size:13px; }
+  .tabbar-right .theme-dot { width:18px; height:18px; }
   .mobile-menu-btn { display:flex !important; }
 
   /* Table - horizontal scroll */
