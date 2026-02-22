@@ -387,12 +387,13 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
   /* Table - horizontal scroll */
   .tw { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  table { min-width:580px; }
+  table { min-width:520px; }
   tbody td { padding:8px 10px; }
   thead th { padding:10px; }
   .td-cc { max-width:100px; }
   .td-cc-inner { max-width:90px; }
-  .td-ti { max-width:180px; }
+  .td-c { max-width:55px; font-size:9px; padding:2px 4px; }
+  .td-ti { min-width:140px; }
   .td-ti a, .td-ti span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; white-space:normal; }
 
   /* Favorites table - mobile optimized */
@@ -650,6 +651,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
             🎯
           </div>
         </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:3px">🎯 체크 시 미션으로 등록 — 테이블에서 완료 체크 가능, 미션 진행률에 반영</div>
       </div>
     </div>
     <div class="map-actions">
@@ -802,7 +804,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:44px">#</th>
-          <th>카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:90px"></th>
+          <th style="width:70px">카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:90px"></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -811,7 +813,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
     <!-- CHARTS -->
     <div class="charts">
-      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px"><h3 style="margin:0">📊 나의 읽기 속도</h3><div style="display:flex;align-items:center;gap:8px"><div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--bdr)"><button class="speed-mode-btn active" id="speedModeMonthly" onclick="setSpeedMode('monthly')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">월별</button><button class="speed-mode-btn" id="speedModeWeekly" onclick="setSpeedMode('weekly')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">주별</button></div><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select><select id="monthFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;display:none"></select></div></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
+      <div class="chrt"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px"><h3 style="margin:0">📊 나의 읽기 속도</h3><div style="display:flex;align-items:center;gap:8px"><div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--bdr)"><button class="speed-mode-btn active" id="speedModeMonthly" onclick="setSpeedMode('monthly')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">월별</button><button class="speed-mode-btn" id="speedModeWeekly" onclick="setSpeedMode('weekly')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">주별</button><button class="speed-mode-btn" id="speedModeDaily" onclick="setSpeedMode('daily')" style="padding:5px 12px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">일별</button></div><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px"></select><select id="monthFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;display:none"></select><select id="weekFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;display:none"></select></div></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
       <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w" style="max-width:500px;margin:0 auto"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
     </div>
   </div>
@@ -1361,7 +1363,13 @@ function editCustomColHeader() {
   var inp = $('ccHeaderInput');
   inp.focus();
   inp.select();
-  inp.onblur = function() { ccLabel = inp.value.trim() || '추가 항목'; saveCustomColSettings(); };
+  inp.onblur = function() {
+    ccLabel = inp.value.trim() || '추가 항목';
+    if ($('ccNameInput')) $('ccNameInput').value = ccLabel;
+    saveCustomColSettings();
+    applyCustomColUI();
+    renderTable();
+  };
   inp.onkeydown = function(e) { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = ccLabel; inp.blur(); } };
 }
 
@@ -4085,8 +4093,10 @@ var speedMode = 'monthly';
 function setSpeedMode(mode) {
   speedMode = mode;
   document.querySelectorAll('.speed-mode-btn').forEach(function(b) { b.classList.remove('active'); });
-  $(mode === 'monthly' ? 'speedModeMonthly' : 'speedModeWeekly').classList.add('active');
-  $('monthFilter').style.display = mode === 'weekly' ? '' : 'none';
+  var btnId = mode === 'monthly' ? 'speedModeMonthly' : mode === 'weekly' ? 'speedModeWeekly' : 'speedModeDaily';
+  $(btnId).classList.add('active');
+  $('monthFilter').style.display = (mode === 'weekly' || mode === 'daily') ? '' : 'none';
+  $('weekFilter').style.display = mode === 'daily' ? '' : 'none';
   renderReadingChart();
 }
 
@@ -4128,7 +4138,28 @@ function renderReadingChart() {
     mf.innerHTML = mfHtml;
     if (prevMonth) { mf.value = prevMonth; }
     else { mf.value = String(new Date().getMonth() + 1); }
-    mf.style.display = speedMode === 'weekly' ? '' : 'none';
+    mf.style.display = (speedMode === 'weekly' || speedMode === 'daily') ? '' : 'none';
+  }
+
+  // Build week filter dropdown (for daily mode)
+  var wf = $('weekFilter');
+  if (wf) {
+    var selMonthForWf = mf ? +mf.value : (new Date().getMonth() + 1);
+    var useYearForWf = selectedYear || String(new Date().getFullYear());
+    var dimForWf = new Date(+useYearForWf, selMonthForWf, 0).getDate();
+    var nwForWf = dimForWf > 28 ? 5 : 4;
+    var prevWeek = wf.value || '';
+    var wfHtml = '';
+    for (var wfi = 1; wfi <= nwForWf; wfi++) { wfHtml += '<option value="'+wfi+'">' + wfi + '주차</option>'; }
+    wf.innerHTML = wfHtml;
+    if (prevWeek && +prevWeek <= nwForWf) { wf.value = prevWeek; }
+    else {
+      // Auto-select current week
+      var todayDay = new Date().getDate();
+      var curWk = Math.min(Math.ceil(todayDay / 7), nwForWf);
+      wf.value = String(curWk);
+    }
+    wf.style.display = speedMode === 'daily' ? '' : 'none';
   }
 
   var labels, chartData, chartLabel;
@@ -4161,7 +4192,7 @@ function renderReadingChart() {
     });
     chartData = months.map(m => monthly[m]);
     chartLabel = '월별 읽음';
-  } else {
+  } else if (speedMode === 'weekly') {
     // === WEEKLY MODE ===
     var selMonth = mf ? +mf.value : (new Date().getMonth() + 1);
     var useYear = selectedYear || String(new Date().getFullYear());
@@ -4185,6 +4216,39 @@ function renderReadingChart() {
     labels = weekly.map(function(_, i) { return (i + 1) + '주차'; });
     chartData = weekly;
     chartLabel = selMonth + '월 주별 읽음';
+  } else {
+    // === DAILY MODE ===
+    var selMonthD = mf ? +mf.value : (new Date().getMonth() + 1);
+    var useYearD = selectedYear || String(new Date().getFullYear());
+    var selWeek = wf ? +wf.value : 1;
+    var daysInMonthD = new Date(+useYearD, selMonthD, 0).getDate();
+    // Week range: (selWeek-1)*7+1 ~ selWeek*7, capped at daysInMonth
+    var dayStart = (selWeek - 1) * 7 + 1;
+    var dayEnd = Math.min(selWeek * 7, daysInMonthD);
+    var dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    var daily = [];
+    var dailyLabels = [];
+    for (var di = dayStart; di <= dayEnd; di++) {
+      daily.push(0);
+      var dt = new Date(+useYearD, selMonthD - 1, di);
+      dailyLabels.push(di + '일(' + dayNames[dt.getDay()] + ')');
+    }
+
+    tab.data.forEach(r => {
+      var readDate = tab.readMap[r.key];
+      if (readDate && readDate !== 'unknown') {
+        if (!readDate.startsWith(useYearD)) return;
+        var rm = parseInt(readDate.slice(5, 7));
+        if (rm !== selMonthD) return;
+        var rd = parseInt(readDate.slice(8, 10));
+        if (rd >= dayStart && rd <= dayEnd) {
+          daily[rd - dayStart]++;
+        }
+      }
+    });
+    labels = dailyLabels;
+    chartData = daily;
+    chartLabel = selMonthD + '월 ' + selWeek + '주차 일별 읽음';
   }
 
   if (chartMonthly) chartMonthly.destroy();
@@ -4204,7 +4268,7 @@ function renderReadingChart() {
       responsive: true, maintainAspectRatio: false,
       layout: { padding: { left: labels.length <= 2 ? 40 : 0, right: labels.length <= 2 ? 40 : 0 } },
       plugins: {
-        legend: { labels: { color: '#ffffff', font: { size: 12 }, padding: 12, boxWidth: 10, boxHeight: 10 } },
+        legend: { position: 'right', align: 'start', labels: { color: '#ffffff', font: { size: 12 }, padding: 12, boxWidth: 10, boxHeight: 10 } },
         tooltip: {
           backgroundColor: '#16161f', titleColor: '#e8b830', bodyColor: '#fff',
           borderColor: '#252538', borderWidth: 1, padding: 10, cornerRadius: 6
@@ -4247,7 +4311,7 @@ function renderCatChart() {
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '52%',
       plugins: {
-        legend: { position: 'right', labels: { color: '#ffffff', font: { size: 12, family: 'system-ui, sans-serif' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
+        legend: { position: 'right', align: 'start', labels: { color: '#ffffff', font: { size: 12, family: 'system-ui, sans-serif' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
         tooltip: { backgroundColor: '#16161f', titleColor: '#e8b830', bodyColor: '#fff', borderColor: '#252538', borderWidth: 1, padding: 10, cornerRadius: 6 }
       }
     }
