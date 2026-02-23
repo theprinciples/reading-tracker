@@ -1,10 +1,19 @@
 {
-  "version": "v1.6.1",
+  "version": "v1.7",
   "changelog": [
-    "모바일 레이아웃 최적화",
-    "카테고리 진행률에 퍼센트(%) 추가",
-    "테이블 페이지 이동 시 위치 개선",
-    "마인드맵 터치 개선",
-    "데이터 덮어쓰기 시 노트/태그 보존"
-  ]
+    "📐 컬럼 재매핑 — 기존 탭의 열 설정을 언제든 변경 가능",
+    "🎯 미션/과제 진행률 — 읽기 진행률 외 미션/과제 진행률 선택 가능",
+    "🏷️ 태그 간편 입력 — # 없이 단어만 입력해도 태그 등록",
+    "✏️ 열 이름 수정 — 날짜, 추가 항목 등 열 이름을 자유롭게 변경",
+    "📊 속도차트 개선 — 월별, 주별, 일별 보기 모두 지원",
+    "🧠 마인드맵 탭 고정 — 마인드맵이 항상 탭 바에 고정",
+    "🔍 모바일 핀치 줌 — 화면 확대 가능",
+    "🐛 기타 마이너 버그 수정",
+    "상세 설명서 24 페이지 참고 바랍니다"
+  ],
+  "images": [
+  "https://theprinciples.github.io/reading-tracker/img/update-1.png",
+  "https://theprinciples.github.io/reading-tracker/img/update-2.png",
+  "https://theprinciples.github.io/reading-tracker/img/update-3.png"
+]
 }
