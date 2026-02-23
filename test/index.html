@@ -560,8 +560,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <!-- Update changelog banner -->
       <div id="updateBanner" style="display:none;background:rgba(232,184,48,.12);border:1px solid var(--gold);border-radius:var(--rs);padding:16px;margin-top:10px;animation:fadeIn .3s ease">
         <div id="updateBannerTitle" style="color:var(--gold);font-size:14px;font-weight:600;margin-bottom:10px"></div>
+        <div id="updateImages" style="display:none;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;margin-bottom:12px;padding-bottom:6px;scrollbar-width:thin"></div>
         <ul id="updateChangelog" style="font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px;padding-left:20px"></ul>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
+        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+          <a id="updateGuideLink" href="https://theprinciples.github.io/reading-tracker/guide.pdf" target="_blank" style="font-size:11px;color:var(--t3);text-decoration:none;padding:6px 10px;font-family:inherit">📖 전체 가이드 보기</a>
           <button onclick="dismissUpdateBanner()" style="font-size:11px;color:var(--t3);cursor:pointer;border:none;background:none;padding:6px 10px;font-family:inherit">나중에</button>
           <button id="updateConfirmBtn" class="btn" style="background:var(--gold);color:#000;border-color:var(--gold);font-weight:600;font-size:12px" onclick="doUpdate()">✅ 업데이트하기</button>
         </div>
@@ -4176,8 +4178,8 @@ function renderProgress() {
   const total = tab.data.length;
   const readCount = tab.data.filter(r => isRead(r.key)).length;
 
-  // Check if any mission exists
-  var missionItems = tab.data.filter(function(r) { return r.customColMission && r.customCol && r.customCol.trim(); });
+  // Check if any mission exists (and cc column is visible)
+  var missionItems = (!tab.hideCcCol) ? tab.data.filter(function(r) { return r.customColMission && r.customCol && r.customCol.trim(); }) : [];
   var hasMissions = missionItems.length > 0;
   var modeSelect = $('progModeSelect');
   modeSelect.style.display = hasMissions ? '' : 'none';
@@ -5793,6 +5795,7 @@ applyCustomTitle();
           window._updateAvailable = true;
           window._updateVersion = data.version;
           window._updateChangelog = data.changelog || [];
+          window._updateImages = data.images || [];
           window._updateHasChangelog = window._updateChangelog.length > 0;
           if (activeTabId === 'tab_home') {
             $('updateBadge').style.display = '';
@@ -5833,33 +5836,17 @@ applyCustomTitle();
   var lastVersion = localStorage.getItem('pt_last_version');
   if (lastVersion && lastVersion !== APP_VERSION) {
     var wasManual = localStorage.getItem('pt_update_manual') === 'true';
-    var lastChangelog = [];
-    try { lastChangelog = JSON.parse(localStorage.getItem('pt_last_changelog') || '[]'); } catch(e) {}
     localStorage.setItem('pt_last_version', APP_VERSION);
     localStorage.removeItem('pt_last_changelog');
+    localStorage.removeItem('pt_last_images');
     localStorage.removeItem('pt_update_manual');
 
     setTimeout(function() {
-      if (wasManual) {
-        // Scenario 1: user clicked "업데이트하기" — simple message, no changelog
-        $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
-        $('updateChangelog').innerHTML = '';
-      } else {
-        // Scenario 2: auto update (new tab, browser restart) — show changelog
-        $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
-        if (lastChangelog.length) {
-          $('updateChangelog').innerHTML = lastChangelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
-        } else {
-          // No changelog available, try fetching from version.json
-          fetch('https://theprinciples.github.io/reading-tracker/test/version.json?_t=' + Date.now())
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              if (data.changelog && data.changelog.length) {
-                $('updateChangelog').innerHTML = data.changelog.map(function(c) { return '<li>' + c + '</li>'; }).join('');
-              }
-            }).catch(function() {});
-        }
-      }
+      $('updateBannerTitle').textContent = '✅ 업데이트 완료! (' + APP_VERSION + ')';
+      $('updateChangelog').innerHTML = '';
+      $('updateImages').style.display = 'none';
+      var guideLink = $('updateGuideLink');
+      if (guideLink) guideLink.style.display = 'none';
       $('updateConfirmBtn').textContent = '확인!';
       $('updateConfirmBtn').onclick = function() { $('updateBanner').style.display = 'none'; };
       var dismissBtn = $('updateBanner').querySelector('button:first-child');
@@ -5891,6 +5878,17 @@ function showUpdateBanner() {
     // Changelog mode: show banner with details
     $('updateBannerTitle').textContent = '🎉 새 업데이트가 있어요! (' + (window._updateVersion || '') + ')';
     $('updateChangelog').innerHTML = (window._updateChangelog || []).map(function(c) { return '<li>' + c + '</li>'; }).join('');
+    // Images carousel
+    var imgs = window._updateImages || [];
+    var imgBox = $('updateImages');
+    if (imgs.length > 0) {
+      imgBox.innerHTML = imgs.map(function(url) {
+        return '<img src="' + url + '" style="display:inline-block;height:180px;border-radius:8px;margin-right:8px;vertical-align:top;cursor:pointer" onclick="window.open(this.src,\'_blank\')">';
+      }).join('');
+      imgBox.style.display = '';
+    } else {
+      imgBox.style.display = 'none';
+    }
     $('updateConfirmBtn').textContent = '✅ 업데이트하기';
     $('updateConfirmBtn').onclick = doUpdate;
     var dismissBtn = $('updateBanner').querySelector('button:first-child');
@@ -6089,6 +6087,7 @@ function editManualDateLabel() {
 function doUpdate() {
   localStorage.setItem('pt_update_manual', 'true');
   localStorage.setItem('pt_last_changelog', JSON.stringify(window._updateChangelog || []));
+  localStorage.setItem('pt_last_images', JSON.stringify(window._updateImages || []));
   location.reload();
 }
 </script>
