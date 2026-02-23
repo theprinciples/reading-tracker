@@ -1029,7 +1029,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.7.0-test';
+const APP_VERSION = 'v1.7.1-test';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1240,6 +1240,7 @@ function saveToStorage() {
       ccLabel: t.ccLabel || '추가 항목',
       ccEmoji: t.ccEmoji || '📌',
       columnMap: t.columnMap || null,
+      missionMode: t.missionMode || false,
       articles: t.data,
       readMap: t.readMap,
       starSet: t.starSet || []
@@ -1255,6 +1256,7 @@ function saveToStorage() {
         ccLabel: t.ccLabel || '추가 항목',
         ccEmoji: t.ccEmoji || '📌',
         columnMap: t.columnMap || null,
+        missionMode: t.missionMode || false,
         readMap: t.readMap,
         starSet: t.starSet || []
       }));
@@ -1291,6 +1293,7 @@ function loadFromStorage() {
           ccLabel: t.ccLabel || '추가 항목',
           ccEmoji: t.ccEmoji || '📌',
           columnMap: t.columnMap || null,
+          missionMode: t.missionMode || false,
           data: articles,
           sheetsUrl: t.sheetsUrl || '',
           readMap: readMap,
@@ -1409,7 +1412,7 @@ function editDateHeader() {
 // JSON BACKUP EXPORT/IMPORT
 function exportBackup() {
   var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
-    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
+    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
   });
   var backup = {
     version: 'pt_backup_v1',
@@ -1445,14 +1448,14 @@ function importBackup() {
         if (!backup.tabs || !Array.isArray(backup.tabs)) { toast('⚠️ 올바른 백업 파일이 아닙니다', 'err'); return; }
         if (!confirm('현재 데이터를 백업 파일로 교체합니다.\n기존 데이터는 사라집니다. 계속하시겠습니까?')) return;
         // Restore
-        allTabs = [{ id: 'tab_favorites', name: '⭐ 즐겨찾기', data: [], readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false }];
+        allTabs = [{ id: 'tab_favorites', name: '⭐ 즐겨찾기', data: [], readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false }];
         backup.tabs.forEach(function(t) {
           var readMap = {};
           if (t.readMap && typeof t.readMap === 'object' && !Array.isArray(t.readMap)) { readMap = t.readMap; }
           else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
           var articles = t.articles || [];
           articles.forEach(function(a) { if (!a.notes) a.notes = ''; });
-          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
+          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
@@ -1847,7 +1850,9 @@ function openModal() {
     readMap: {},
     starSet: [],
     ccLabel: '추가 항목',
-    ccEmoji: '📌'
+    ccEmoji: '📌',
+    hideCcCol: false,
+    missionMode: false
   };
   allTabs.push(newTab);
   saveToStorage();
@@ -2424,10 +2429,11 @@ function applyMapping() {
     tab.ccLabel = customCcLabel;
     tab.ccEmoji = customCcEmoji;
     tab.columnMap = mapping;
+    tab.missionMode = tab.hideCcCol ? false : _mapMission;
 
     if (pendingSource === 'remap') {
       // File/manual tab: update settings + mission flags only, keep data
-      if (_mapMission) {
+      if (_mapMission && !tab.hideCcCol) {
         tab.data.forEach(function(item) {
           if (item.customCol) item.customColMission = true;
         });
@@ -2515,7 +2521,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     var tabName = window._currentSheetName || '새 트래커';
     var tab = getActiveTab();
     var group = tab ? tab.group || '' : '';
-    allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel, hideDateCol: !mapping.date, hideCcCol: !mapping.customCol, ccLabel: customCcLabel, ccEmoji: customCcEmoji, columnMap: mapping });
+    allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel, hideDateCol: !mapping.date, hideCcCol: !mapping.customCol, ccLabel: customCcLabel, ccEmoji: customCcEmoji, columnMap: mapping, missionMode: _mapMission });
     saveToStorage();
     autoAdjustCcEnabled();
     renderTabs();
@@ -2530,6 +2536,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     tab.ccLabel = customCcLabel;
     tab.ccEmoji = customCcEmoji;
     tab.columnMap = mapping;
+    tab.missionMode = _mapMission || tab.missionMode;
     var startNum = tab.data.length > 0 ? Math.max.apply(null, tab.data.map(function(d) { return d.num || 0; })) + 1 : 1;
     normalized.forEach(function(item, i) { item.num = startNum + i; });
     tab.data = tab.data.concat(normalized);
@@ -2546,6 +2553,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     tab.ccLabel = customCcLabel;
     tab.ccEmoji = customCcEmoji;
     tab.columnMap = mapping;
+    tab.missionMode = _mapMission;
 
     // Preserve existing notes and tags by key + title matching
     if (tab.data && tab.data.length > 0) {
@@ -3333,8 +3341,8 @@ function prePopulateRemap(tab, headers) {
     var ccSel = $('mapCustomCol');
     if (ccSel) ccSel.value = '__use__';
   }
-  // Check if tab has any mission items
-  var hasMission = (tab.data || []).some(function(d) { return d.customColMission; });
+  // Check if tab has mission mode or any mission items
+  var hasMission = tab.missionMode || (tab.data || []).some(function(d) { return d.customColMission; });
   if (hasMission) {
     _mapMission = true;
     var mbtn = $('mapMissionToggle');
@@ -4165,6 +4173,12 @@ function renderAll() {
   if (manDateRow) manDateRow.style.display = dateVis ? '' : 'none';
   applyCustomColUI();
 
+  // Force reset progress mode when cc column is hidden
+  if (tab.hideCcCol) {
+    var ms = $('progModeSelect');
+    if (ms) { ms.value = 'read'; ms.style.display = 'none'; }
+  }
+
   populateFilters();
   renderProgress();
   renderTable();
@@ -4180,7 +4194,7 @@ function renderProgress() {
 
   // Check if any mission exists (and cc column is visible)
   var missionItems = (!tab.hideCcCol) ? tab.data.filter(function(r) { return r.customColMission && r.customCol && r.customCol.trim(); }) : [];
-  var hasMissions = missionItems.length > 0;
+  var hasMissions = (!tab.hideCcCol) && (tab.missionMode || missionItems.length > 0);
   var modeSelect = $('progModeSelect');
   modeSelect.style.display = hasMissions ? '' : 'none';
   // Update dropdown text with ccLabel
@@ -4348,7 +4362,7 @@ function renderTable() {
       } else if (nUrls.length > 1) {
         noteIcon = ` <span class="note-link" onclick="showNoteLinks(${r.num})" title="링크 ${nUrls.length}개">🗒️</span>`;
       }
-      if (nText) noteIcon += ` <span class="note-tip-wrap" onclick="openMiniEdit(${r.num},'notes')" style="cursor:pointer"><span class="note-tip-icon">💬</span><span class="note-tip-popup">${esc(nText)}</span></span>`;
+      if (nText) noteIcon += ` <span class="note-tip-wrap" ondblclick="openMiniEdit(${r.num},'notes')" style="cursor:pointer"><span class="note-tip-icon">💬</span><span class="note-tip-popup">${esc(nText)}</span></span>`;
     }
     var tagIcon = '';
     if (r.tags && r.tags.length > 0) {
@@ -4361,7 +4375,7 @@ function renderTable() {
       <td><span class="td-c" style="${window._catColors && window._catColors[r.category] ? 'background:' + window._catColors[r.category] + '22;color:' + window._catColors[r.category] : ''}" title="${esc(r.category)}">${esc(r.category)}</span></td>
       <td class="td-ti">${titleHtml}</td>
       ${isDateVisible() ? '<td class="td-dt">' + formatDate(r.date) + '</td>' : ''}
-      ${isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" onclick="event.stopPropagation();toggleMissionDone(' + r.num + ')">' + (r.missionDone ? '✓' : '') + '</div><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '" onclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</span></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" onclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '<span class="td-cc-add" onclick="openMiniEdit(' + r.num + ',\'mission\')">+ 추가</span>') + '</td>' : ''}
+      ${isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" onclick="event.stopPropagation();toggleMissionDone(' + r.num + ')">' + (r.missionDone ? '✓' : '') + '</div><div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '<span class="td-cc-add" onclick="openMiniEdit(' + r.num + ',\'mission\')">+ 추가</span>') + '</td>' : ''}
       <td class="td-act" id="act_${r.num}"><div class="act-wrap">${noteIcon}${tagIcon}<div class="act-btn" onclick="editItem(${r.num})">✏️</div><div class="act-btn act-del" onclick="deleteItem(${r.num})">✕</div></div></td>
     </tr>`;
   }).join('');
@@ -5421,7 +5435,7 @@ function renderHome() {
             data: [],
             sheetsUrl: '',
             readMap: {},
-            starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false
+            starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false
           };
           allTabs.push(newTab);
           activeTabId = newTab.id;
@@ -5447,7 +5461,7 @@ function renderHome() {
             data: [],
             sheetsUrl: '',
             readMap: {},
-            starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false
+            starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false
           };
           allTabs.push(newTab);
           activeTabId = newTab.id;
@@ -5766,7 +5780,7 @@ loadFromStorage();
 
 // Ensure at least one tab exists
 if (allTabs.length === 0) {
-  allTabs.push({ id: 'tab_default', name: '트래커 1', group: '', data: [], sheetsUrl: '', readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, hideCcCol: false });
+  allTabs.push({ id: 'tab_default', name: '트래커 1', group: '', data: [], sheetsUrl: '', readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false });
   activeTabId = 'tab_default';
 }
 if (!activeTabId || !allTabs.find(t => t.id === activeTabId)) {
