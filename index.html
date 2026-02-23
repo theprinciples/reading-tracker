@@ -1032,7 +1032,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.7.1';
+const APP_VERSION = 'v1.7.2';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -6048,7 +6048,7 @@ function showUpdateBanner() {
     var imgBox = $('updateImages');
     if (imgs.length > 0) {
       imgBox.innerHTML = imgs.map(function(url) {
-        return '<img src="' + url + '" style="display:inline-block;height:180px;border-radius:8px;margin-right:8px;vertical-align:top;cursor:pointer" onclick="window.open(this.src,\'_blank\')">';
+        return '<img src="' + url + '" style="display:inline-block;height:180px;border-radius:8px;margin-right:8px;vertical-align:top;cursor:pointer" onclick="showImageLightbox(this.src)">';
       }).join('');
       imgBox.style.display = '';
     } else {
@@ -6091,6 +6091,22 @@ function toggleMapMission() {
   chk.style.color = '#000';
 }
 window._editMission = false;
+
+function showImageLightbox(src) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.onclick = function() { overlay.remove(); };
+  var img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'max-width:92%;max-height:88vh;border-radius:10px;object-fit:contain';
+  var closeBtn = document.createElement('div');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;z-index:100000';
+  closeBtn.onclick = function() { overlay.remove(); };
+  overlay.appendChild(img);
+  overlay.appendChild(closeBtn);
+  document.body.appendChild(overlay);
+}
 
 window._missionClickTimer = null;
 
