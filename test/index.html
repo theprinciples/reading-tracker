@@ -16,7 +16,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="독서 트래커">
@@ -239,7 +239,9 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .mission-chk.done { background:#3dcc7a; border-color:#3dcc7a; color:#000; }
 .mission-label { color:var(--t2); }
 .mission-label.done { color:#3dcc7a; text-decoration:line-through; opacity:.6; }
-.cc-cell { display:flex; align-items:center; gap:5px; }
+.cc-cell { display:flex; align-items:center; gap:5px; overflow:hidden; }
+.cc-cell .note-tip-wrap { overflow:hidden; min-width:0; flex:1; }
+.cc-cell .td-cc-inner { display:block; max-width:none; }
 .cc-toggle { width:44px; height:24px; border-radius:12px; cursor:pointer; transition:.2s; position:relative; display:inline-block; vertical-align:middle; }
 .cc-toggle-knob { width:20px; height:20px; border-radius:10px; background:#fff; position:absolute; top:2px; transition:.2s; }
 .kg-mode-btn { padding:6px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:.15s; border:1px solid var(--bdr); background:var(--card); color:var(--t3); }
@@ -408,6 +410,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .tabbar-right .theme-dot { width:20px; height:20px; }
   .tabbar-right #themeSelector { gap:10px !important; }
   .mobile-menu-btn { display:flex !important; }
+  .tab-pinned { padding:10px 10px; }
 
   /* Table - horizontal scroll */
   .tw { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -1029,7 +1032,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.7.1-test';
+const APP_VERSION = 'v1.7.0-test';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -5658,7 +5661,7 @@ function renderFavoritesTable(page) {
       '<td style="text-align:center;color:var(--t3);font-size:13px">' + (r.num || '') + '</td>' +
       '<td><span class="td-c" title="' + esc(r.category) + '">' + esc(r.category) + '</span></td>' +
       '<td class="td-ti">' + titleHtml + '</td>' +
-      (isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" style="pointer-events:none">' + (r.missionDone ? '✓' : '') + '</div><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '">' + esc(r.customCol) + '</span></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '') + '</td>' : '') +
+      (isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" style="pointer-events:none">' + (r.missionDone ? '✓' : '') + '</div><div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '') + '</td>' : '') +
       '<td>' + noteHtml + '</td>' +
       '<td class="td-dt">' + formatDate(r.date) + '</td>' +
     '</tr>';
