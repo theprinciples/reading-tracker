@@ -589,8 +589,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
   <!-- FILE UPLOAD PANEL -->
   <div class="pnl" id="panelFile">
-    <h3>📄 CSV / Excel 업로드</h3>
-    <p>파일을 올리면 컬럼을 자동 감지 → 미리보기를 보여드립니다.<br>
+    <h3 id="panelFileTitle">📄 CSV / Excel 업로드</h3>
+    <p id="panelFileDesc">파일을 올리면 컬럼을 자동 감지 → 미리보기를 보여드립니다.<br>
     틀리면 드롭다운에서 직접 바꾸고 적용하세요!</p>
     <div class="drop" id="dropZone">
       <div class="drop-i">📁</div>
@@ -1032,7 +1032,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.7';
+const APP_VERSION = 'v1.7.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1238,6 +1238,7 @@ function saveToStorage() {
   try {
     const data = allTabs.filter(t => t.id !== 'tab_favorites').map(t => ({
       id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
+      fileSource: t.fileSource || false,
       dateLabel: t.dateLabel || '날짜',
       hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false,
       ccLabel: t.ccLabel || '추가 항목',
@@ -1254,6 +1255,7 @@ function saveToStorage() {
     try {
       const lite = allTabs.filter(t => t.id !== 'tab_favorites').map(t => ({
         id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
+        fileSource: t.fileSource || false,
         dateLabel: t.dateLabel || '날짜',
         hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false,
         ccLabel: t.ccLabel || '추가 항목',
@@ -1291,6 +1293,7 @@ function loadFromStorage() {
         allTabs.push({
           id: t.id, name: t.name,
           group: t.group || '',
+          fileSource: t.fileSource || false,
           dateLabel: t.dateLabel || '날짜',
           hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false,
           ccLabel: t.ccLabel || '추가 항목',
@@ -1415,7 +1418,7 @@ function editDateHeader() {
 // JSON BACKUP EXPORT/IMPORT
 function exportBackup() {
   var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
-    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
+    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', fileSource: t.fileSource || false, dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
   });
   var backup = {
     version: 'pt_backup_v1',
@@ -1458,7 +1461,7 @@ function importBackup() {
           else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
           var articles = t.articles || [];
           articles.forEach(function(a) { if (!a.notes) a.notes = ''; });
-          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
+          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, fileSource: t.fileSource || false, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
@@ -2435,14 +2438,36 @@ function applyMapping() {
     tab.missionMode = tab.hideCcCol ? false : _mapMission;
 
     if (pendingSource === 'remap') {
-      // File/manual tab: update settings + mission flags only, keep data
+      // File/manual tab: ALWAYS reset all customCol/mission state first
+      tab.data.forEach(function(item) {
+        item.customCol = '';
+        item.customColMission = false;
+        item.missionDone = false;
+      });
+
+      // Then apply new settings
+      if (!tab.hideCcCol && mapping.customCol && mapping.customCol !== '__use__') {
+        // Column selected → copy data from that field
+        var _fieldMap = { '제목': 'title', '카테고리': 'category', 'URL': 'url' };
+        _fieldMap[tab.dateLabel || '날짜'] = 'date';
+        var _srcProp = _fieldMap[mapping.customCol];
+        if (_srcProp) {
+          tab.data.forEach(function(item) {
+            item.customCol = item[_srcProp] || '';
+          });
+        }
+      }
+      // __use__ or 사용 안 함 → already cleared above
+
+      // Set mission flags
       if (_mapMission && !tab.hideCcCol) {
         tab.data.forEach(function(item) {
-          if (item.customCol) item.customColMission = true;
+          item.customColMission = true;
         });
       }
     } else {
       // Sheets tab: overwrite with new mapping, preserve notes/tags
+      window._isRemapOverwrite = true;
       finishApplyMapping(normalized, mapping, 'overwrite');
       return;
     }
@@ -2450,7 +2475,10 @@ function applyMapping() {
     // Clean up
     $('mappingBox').style.display = 'none';
     $('dropZone').style.display = '';
+    var _ft = $('panelFileTitle'); if (_ft) _ft.style.display = '';
+    var _fd = $('panelFileDesc'); if (_fd) _fd.style.display = '';
     pendingRows = null;
+    _sortedCache = null; _sortedCacheKey = '';
     saveToStorage();
     autoAdjustCcEnabled();
     renderAll();
@@ -2524,7 +2552,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     var tabName = window._currentSheetName || '새 트래커';
     var tab = getActiveTab();
     var group = tab ? tab.group || '' : '';
-    allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: '', readMap: {}, starSet: [], dateLabel: customDateLabel, hideDateCol: !mapping.date, hideCcCol: !mapping.customCol, ccLabel: customCcLabel, ccEmoji: customCcEmoji, columnMap: mapping, missionMode: _mapMission });
+    allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: (pendingSource === 'sheets' ? (pendingRawUrl || '') : ''), fileSource: (pendingSource === 'upload' || pendingSource === 'multisheet' || pendingSource === 'modal'), readMap: {}, starSet: [], dateLabel: customDateLabel, hideDateCol: !mapping.date, hideCcCol: !mapping.customCol, ccLabel: customCcLabel, ccEmoji: customCcEmoji, columnMap: mapping, missionMode: _mapMission });
     saveToStorage();
     autoAdjustCcEnabled();
     renderTabs();
@@ -2540,6 +2568,7 @@ function finishApplyMapping(normalized, mapping, mode) {
     tab.ccEmoji = customCcEmoji;
     tab.columnMap = mapping;
     tab.missionMode = _mapMission || tab.missionMode;
+    if (pendingSource === 'upload' || pendingSource === 'multisheet' || pendingSource === 'modal') tab.fileSource = true;
     var startNum = tab.data.length > 0 ? Math.max.apply(null, tab.data.map(function(d) { return d.num || 0; })) + 1 : 1;
     normalized.forEach(function(item, i) { item.num = startNum + i; });
     tab.data = tab.data.concat(normalized);
@@ -2571,17 +2600,25 @@ function finishApplyMapping(normalized, mapping, mode) {
         if (old) {
           if (old.notes && !item.notes) item.notes = old.notes;
           if (old.tags && old.tags.length > 0 && (!item.tags || item.tags.length === 0)) item.tags = old.tags;
-          if (old.customCol && !item.customCol) item.customCol = old.customCol;
-          if (old.customColMission) { item.customColMission = old.customColMission; item.missionDone = old.missionDone || false; }
+          if (window._isRemapOverwrite) {
+            // Remap: don't restore old customCol/mission — use new mapping values
+          } else {
+            if (old.customCol && !item.customCol) item.customCol = old.customCol;
+            if (old.customColMission) { item.customColMission = old.customColMission; item.missionDone = old.missionDone || false; }
+          }
         }
       });
     }
+    window._isRemapOverwrite = false;
 
     tab.data = normalized;
 
     if (pendingSource === 'sheets' && pendingRawUrl) {
       tab.sheetsUrl = pendingRawUrl;
+      tab.fileSource = false;
       updateSheetsUI(true);
+    } else if (pendingSource === 'upload' || pendingSource === 'multisheet' || pendingSource === 'modal') {
+      tab.fileSource = true;
     }
 
     saveToStorage();
@@ -2594,6 +2631,8 @@ function finishApplyMapping(normalized, mapping, mode) {
   // Clean up
   $('mappingBox').style.display = 'none';
   $('dropZone').style.display = '';
+  var _ft = $('panelFileTitle'); if (_ft) _ft.style.display = '';
+  var _fd = $('panelFileDesc'); if (_fd) _fd.style.display = '';
 
   $('panelFile').classList.remove('open');
   $('btnFile').classList.remove('on');
@@ -2610,6 +2649,8 @@ function finishApplyMapping(normalized, mapping, mode) {
 function cancelMapping() {
   $('mappingBox').style.display = 'none';
   $('dropZone').style.display = '';
+  var ft = $('panelFileTitle'); if (ft) ft.style.display = '';
+  var fd = $('panelFileDesc'); if (fd) fd.style.display = '';
   pendingRows = null;
   window._remapMode = false;
 }
@@ -2644,7 +2685,7 @@ function normalizeWithMapping(rawRows, mapping) {
         date,
         notes: '',
         customCol: customCol,
-        customColMission: (customCol && _mapMission) ? true : false,
+        customColMission: _mapMission ? true : false,
         missionDone: false,
         key: (url || title + '|' + date).trim()
       };
@@ -2911,11 +2952,41 @@ function tryJsonp(sheetId, tab, rawUrl) {
       try {
         if (!response || !response.table) throw new Error('빈 응답');
 
-        const cols = response.table.cols.map(c => c.label || c.id || '');
+        const rawCols = response.table.cols.map(c => c.label || c.id || '');
+        // Filter out columns with no label and no data
+        var colHasData = rawCols.map(function() { return false; });
+        response.table.rows.forEach(function(r) {
+          if (!r.c) return;
+          r.c.forEach(function(cell, i) {
+            if (cell && cell.v != null && String(cell.v).trim() !== '') colHasData[i] = true;
+          });
+        });
+        var keepIdx = [];
+        rawCols.forEach(function(col, i) {
+          var origCol = response.table.cols[i];
+          var hasLabel = origCol.label && origCol.label.trim();
+          if (hasLabel || colHasData[i]) keepIdx.push(i);
+        });
+        // Name unlabeled columns by first non-empty data (max 3 chars)
+        var cols = keepIdx.map(function(i) {
+          var origCol = response.table.cols[i];
+          var hasLabel = origCol.label && origCol.label.trim();
+          if (hasLabel) return rawCols[i];
+          // Find first non-empty value
+          for (var ri = 0; ri < response.table.rows.length; ri++) {
+            var cell = response.table.rows[ri].c && response.table.rows[ri].c[i];
+            if (cell && cell.v != null && String(cell.v).trim()) {
+              var val = String(cell.v).trim();
+              return val.length > 3 ? val.slice(0, 3) + '..' : val;
+            }
+          }
+          return 'col' + (i + 1);
+        });
         const rows = response.table.rows.map(r => {
           const obj = {};
-          r.c.forEach((cell, i) => {
-            obj[cols[i]] = cell ? (cell.v != null ? String(cell.v) : '') : '';
+          keepIdx.forEach(function(origIdx, newIdx) {
+            var cell = r.c ? r.c[origIdx] : null;
+            obj[cols[newIdx]] = cell ? (cell.v != null ? String(cell.v) : '') : '';
           });
           return obj;
         });
@@ -2961,6 +3032,30 @@ function tryFetch(sheetId, tab, rawUrl) {
       });
 
       log('Fetch 성공: ' + result.data.length + '행');
+      // Filter out columns with empty headers and no data; rename if has data
+      var csvHeaders = result.meta && result.meta.fields ? result.meta.fields : Object.keys(result.data[0] || {});
+      var emptyHeaders = csvHeaders.filter(function(h) { return !h || !h.trim(); });
+      if (emptyHeaders.length > 0) {
+        emptyHeaders.forEach(function(h) {
+          var hasAnyData = result.data.some(function(row) { return row[h] && String(row[h]).trim(); });
+          if (!hasAnyData) {
+            result.data.forEach(function(row) { delete row[h]; });
+          } else {
+            // Rename to first data value (max 3 chars)
+            var newName = '';
+            for (var ri = 0; ri < result.data.length; ri++) {
+              if (result.data[ri][h] && String(result.data[ri][h]).trim()) {
+                var val = String(result.data[ri][h]).trim();
+                newName = val.length > 3 ? val.slice(0, 3) + '..' : val;
+                break;
+              }
+            }
+            if (newName && newName !== h) {
+              result.data.forEach(function(row) { row[newName] = row[h]; delete row[h]; });
+            }
+          }
+        });
+      }
       handleSheetsData(result.data, tab, rawUrl);
     });
 }
@@ -3198,7 +3293,7 @@ function doManualAdd() {
     date: date,
     notes: notes,
     customCol: customCol,
-    customColMission: customCol ? customColMission : false,
+    customColMission: customColMission,
     missionDone: false,
     tags: manTags,
     key: (url || title + '|' + date).trim()
@@ -3254,12 +3349,40 @@ function openRemapModal() {
       if (script.parentNode) script.remove();
       delete window[cbName];
       if (!data || !data.table || !data.table.cols) { toast('❌ 시트 데이터를 가져올 수 없습니다', 'err'); return; }
-      var cols = data.table.cols.map(function(c) { return (c.label || '').trim() || ('col' + c.id); });
+      var rawCols = data.table.cols.map(function(c) { return (c.label || '').trim() || ('col' + c.id); });
+      // Filter out columns with no label and no data
+      var colHasData = rawCols.map(function() { return false; });
+      (data.table.rows || []).forEach(function(r) {
+        if (!r.c) return;
+        r.c.forEach(function(cell, i) {
+          if (cell && cell.v != null && String(cell.v).trim() !== '') colHasData[i] = true;
+        });
+      });
+      var keepIdx = [];
+      rawCols.forEach(function(col, i) {
+        var origCol = data.table.cols[i];
+        var hasLabel = origCol.label && origCol.label.trim();
+        if (hasLabel || colHasData[i]) keepIdx.push(i);
+      });
+      var cols = keepIdx.map(function(i) {
+        var origCol = data.table.cols[i];
+        var hasLabel = origCol.label && origCol.label.trim();
+        if (hasLabel) return rawCols[i];
+        var allRows = data.table.rows || [];
+        for (var ri = 0; ri < allRows.length; ri++) {
+          var cell = allRows[ri].c && allRows[ri].c[i];
+          if (cell && cell.v != null && String(cell.v).trim()) {
+            var val = String(cell.v).trim();
+            return val.length > 3 ? val.slice(0, 3) + '..' : val;
+          }
+        }
+        return 'col' + (i + 1);
+      });
       var rows = (data.table.rows || []).map(function(r) {
         var obj = {};
-        cols.forEach(function(c, i) {
-          var cell = r.c && r.c[i];
-          obj[c] = cell ? (cell.f || (cell.v != null ? String(cell.v) : '')) : '';
+        keepIdx.forEach(function(origIdx, newIdx) {
+          var cell = r.c && r.c[origIdx];
+          obj[cols[newIdx]] = cell ? (cell.f || (cell.v != null ? String(cell.v) : '')) : '';
         });
         return obj;
       });
@@ -3268,6 +3391,7 @@ function openRemapModal() {
       showMappingUI(rows, tab.name);
       // Pre-populate with current tab settings
       prePopulateRemap(tab, cols);
+      adjustRemapUI(tab);
     };
     var url = 'https://docs.google.com/spreadsheets/d/' + idMatch[1] + '/gviz/tq?tqx=responseHandler:' + cbName + '&tq=&headers=1';
     var script = document.createElement('script');
@@ -3297,6 +3421,30 @@ function openRemapModal() {
     showMappingUI(rows, tab.name);
     // Pre-populate with current tab settings
     prePopulateRemap(tab, headers);
+    adjustRemapUI(tab);
+  }
+}
+
+function adjustRemapUI(tab) {
+  // Hide CSV/Excel upload description in remap mode
+  var ft = $('panelFileTitle');
+  var fd = $('panelFileDesc');
+  if (ft) ft.style.display = 'none';
+  if (fd) fd.style.display = 'none';
+  $('dropZone').style.display = 'none';
+
+  // Clear all source button highlights first
+  $('btnFile').classList.remove('on');
+  $('btnSheets').classList.remove('on');
+  $('btnManual').classList.remove('on');
+
+  // Highlight correct source button
+  if (tab.sheetsUrl) {
+    $('btnSheets').classList.add('on');
+  } else if (tab.fileSource) {
+    $('btnFile').classList.add('on');
+  } else {
+    $('btnManual').classList.add('on');
   }
 }
 
@@ -3989,7 +4137,6 @@ function saveEdit() {
   item.notes = $('editNotes').value.trim();
   item.customCol = $('editCustomCol').value.trim();
   item.customColMission = window._editMission || false;
-  if (!item.customCol) { item.customColMission = false; item.missionDone = false; }
   if (!item.customColMission) item.missionDone = false;
   // Parse tags: accept with or without #
   var tagRaw = $('editTags').value.trim();
@@ -4087,7 +4234,6 @@ function saveMiniEdit() {
   } else if (_miniEditMode === 'mission') {
     item.customCol = $('miniCc').value.trim();
     item.customColMission = window._miniMission || false;
-    if (!item.customCol) { item.customColMission = false; item.missionDone = false; }
     if (!item.customColMission) item.missionDone = false;
   }
   saveToStorage();
@@ -4159,6 +4305,7 @@ function showDashboard(visible) {
 }
 
 function renderAll() {
+  _sortedCache = null; _sortedCacheKey = '';
   const tab = getActiveTab();
   if (!tab || !tab.data.length) return;
 
@@ -4196,7 +4343,7 @@ function renderProgress() {
   const readCount = tab.data.filter(r => isRead(r.key)).length;
 
   // Check if any mission exists (and cc column is visible)
-  var missionItems = (!tab.hideCcCol) ? tab.data.filter(function(r) { return r.customColMission && r.customCol && r.customCol.trim(); }) : [];
+  var missionItems = (!tab.hideCcCol) ? tab.data.filter(function(r) { return r.customColMission; }) : [];
   var hasMissions = (!tab.hideCcCol) && (tab.missionMode || missionItems.length > 0);
   var modeSelect = $('progModeSelect');
   modeSelect.style.display = hasMissions ? '' : 'none';
@@ -4246,7 +4393,8 @@ function renderProgress() {
     var mHtml = missionItems.map(function(r) {
       var dCls = r.missionDone ? ' done' : '';
       var pColor = r.missionDone ? '#3dcc7a' : '#555';
-      return '<div class="cr" style="cursor:pointer" onclick="toggleMissionDone(' + r.num + ')"><div class="cr-n" title="' + esc(r.customCol) + '"><span class="mission-chk' + dCls + '" style="width:14px;height:14px;font-size:8px;margin-right:4px">' + (r.missionDone ? '✓' : '') + '</span>' + esc(r.customCol) + '</div><div class="cr-b"><div class="cr-f" style="width:' + (r.missionDone ? '100' : '0') + '%;background:' + pColor + '"></div></div><div class="cr-v" style="color:' + pColor + '">' + (r.missionDone ? '완료' : '미완료') + '</div></div>';
+      var mLabel = r.customCol || r.category || '(미입력)';
+      return '<div class="cr" style="cursor:pointer" onclick="toggleMissionDone(' + r.num + ')"><div class="cr-n" title="' + esc(mLabel) + '"><span class="mission-chk' + dCls + '" style="width:14px;height:14px;font-size:8px;margin-right:4px">' + (r.missionDone ? '✓' : '') + '</span>' + esc(mLabel) + '</div><div class="cr-b"><div class="cr-f" style="width:' + (r.missionDone ? '100' : '0') + '%;background:' + pColor + '"></div></div><div class="cr-v" style="color:' + pColor + '">' + (r.missionDone ? '완료' : '미완료') + '</div></div>';
     }).join('');
     $('catBars').innerHTML = mHtml;
   } else {
@@ -4378,7 +4526,7 @@ function renderTable() {
       <td><span class="td-c" style="${window._catColors && window._catColors[r.category] ? 'background:' + window._catColors[r.category] + '22;color:' + window._catColors[r.category] : ''}" title="${esc(r.category)}">${esc(r.category)}</span></td>
       <td class="td-ti">${titleHtml}</td>
       ${isDateVisible() ? '<td class="td-dt">' + formatDate(r.date) + '</td>' : ''}
-      ${isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" onclick="event.stopPropagation();toggleMissionDone(' + r.num + ')">' + (r.missionDone ? '✓' : '') + '</div><div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '<span class="td-cc-add" onclick="openMiniEdit(' + r.num + ',\'mission\')">+ 추가</span>') + '</td>' : ''}
+      ${isCcVisible() ? '<td class="td-cc">' + (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" onclick="event.stopPropagation();missionClick(' + r.num + ')" ondblclick="event.stopPropagation();missionDblClick(' + r.num + ')">' + (r.missionDone ? '✓' : '') + '</div>' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '') + '</div>' : (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '<span class="td-cc-add" onclick="openMiniEdit(' + r.num + ',\'mission\')">+ 추가</span>')) + '</td>' : ''}
       <td class="td-act" id="act_${r.num}"><div class="act-wrap">${noteIcon}${tagIcon}<div class="act-btn" onclick="editItem(${r.num})">✏️</div><div class="act-btn act-del" onclick="deleteItem(${r.num})">✕</div></div></td>
     </tr>`;
   }).join('');
@@ -5661,7 +5809,7 @@ function renderFavoritesTable(page) {
       '<td style="text-align:center;color:var(--t3);font-size:13px">' + (r.num || '') + '</td>' +
       '<td><span class="td-c" title="' + esc(r.category) + '">' + esc(r.category) + '</span></td>' +
       '<td class="td-ti">' + titleHtml + '</td>' +
-      (isCcVisible() ? '<td class="td-cc">' + (r.customCol ? (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" style="pointer-events:none">' + (r.missionDone ? '✓' : '') + '</div><div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div></div>' : '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>') : '') + '</td>' : '') +
+      (isCcVisible() ? '<td class="td-cc">' + (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" style="pointer-events:none">' + (r.missionDone ? '✓' : '') + '</div>' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '') + '</div>' : (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '')) + '</td>' : '') +
       '<td>' + noteHtml + '</td>' +
       '<td class="td-dt">' + formatDate(r.date) + '</td>' +
     '</tr>';
@@ -5943,6 +6091,24 @@ function toggleMapMission() {
   chk.style.color = '#000';
 }
 window._editMission = false;
+
+window._missionClickTimer = null;
+
+function missionClick(num) {
+  if (window._missionClickTimer) clearTimeout(window._missionClickTimer);
+  window._missionClickTimer = setTimeout(function() {
+    window._missionClickTimer = null;
+    toggleMissionDone(num);
+  }, 250);
+}
+
+function missionDblClick(num) {
+  if (window._missionClickTimer) {
+    clearTimeout(window._missionClickTimer);
+    window._missionClickTimer = null;
+  }
+  openMiniEdit(num, 'mission');
+}
 
 function toggleMissionDone(num) {
   var tab = getActiveTab();
