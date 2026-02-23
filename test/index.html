@@ -60,7 +60,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed #555; border-radius:var(--rs); cursor:pointer; margin-left:17px; margin-right:0; font-family:inherit; }
 .tab-add:hover { color:var(--gold); border-color:var(--gold); }
 .settings-tab { background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit; }
-.settings-tab.active { border-bottom-color:transparent; }
+.settings-tab.active { border-bottom-color:transparent !important; }
 .tab-arrow { background:var(--card); border:1px solid var(--bdr); border-radius:6px; color:var(--t3); cursor:pointer; font-size:9px; padding:4px 6px; flex-shrink:0; transition:.15s; font-family:inherit; }
 .tab-arrow:hover { color:var(--gold); border-color:var(--gold); }
 .mobile-menu-btn { display:none; align-items:center; justify-content:center; background:var(--card); border:1px solid var(--bdr); border-radius:6px; color:var(--t2); font-size:18px; padding:6px 10px; cursor:pointer; flex-shrink:0; font-family:inherit; margin-bottom:12px; }
@@ -405,7 +405,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   .tabbar-right.open { display:flex !important; }
   .tabbar-right .tab-add, .tabbar-right .settings-tab { margin:0 !important; }
   .tabbar-right .tab-add { margin-left:6px !important; }
-  .tabbar-right .settings-tab { border-bottom:none !important; margin-top:-6px !important; margin-right:2px !important; }
+  .tabbar-right .settings-tab, .tabbar-right .settings-tab.active { border-bottom:none !important; margin-top:-6px !important; margin-right:2px !important; }
   .tabbar-right .mobile-label { display:inline; font-size:13px; }
   .tabbar-right .theme-dot { width:20px; height:20px; }
   .tabbar-right #themeSelector { gap:10px !important; }
