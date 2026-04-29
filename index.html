@@ -306,6 +306,19 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .cal-day.checked { background:var(--gold); color:#000; font-weight:700; }
 .cal-day.today { border:1px solid var(--gold); }
 .cal-day.empty { background:transparent; cursor:default; }
+.cal-day.selected { outline:2px solid #fff; outline-offset:1px; }
+.day-detail-wrap { flex-shrink:0; width:240px; height:380px; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:14px; box-sizing:border-box; }
+.day-detail-hdr { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--bdr); margin-bottom:10px; flex-shrink:0; }
+.day-detail-title { font-size:13px; font-weight:700; color:var(--t1); }
+.day-detail-list { flex:1; overflow-y:auto; min-height:0; padding-right:4px; }
+.day-detail-tab-group { margin-bottom:14px; }
+.day-detail-tab-group:last-child { margin-bottom:0; }
+.day-detail-tab-name { font-size:11px; color:var(--gold); font-weight:700; margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed var(--bdr); }
+.day-detail-item { font-size:12px; color:var(--t2); padding:6px 8px; border-radius:4px; cursor:pointer; transition:.15s; line-height:1.4; word-break:break-word; }
+.day-detail-item:hover { background:var(--bg2); color:var(--t1); }
+.day-detail-item.missing { color:var(--t3); cursor:default; font-style:italic; }
+.day-detail-item.missing:hover { background:transparent; color:var(--t3); }
+.day-detail-empty { font-size:12px; color:var(--t3); text-align:center; padding:20px 8px; line-height:1.6; }
 .home-guide { padding:24px 40px; width:100%; grid-column:1/-1; }
 
 /* KG */
@@ -461,6 +474,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   /* Home cards */
   .home-cards { gap:16px; }
   .home-card { min-width:100%; padding:14px; }
+
+  /* v1.8: Day detail panel - mobile sizing & touch targets */
+  .day-detail-wrap { width:100%; max-width:340px; height:340px; padding:12px; }
+  .day-detail-list { -webkit-overflow-scrolling:touch; }
+  .day-detail-title { font-size:14px; }
+  .day-detail-tab-name { font-size:12px; margin-bottom:8px; }
+  .day-detail-item { font-size:13px; padding:9px 10px; line-height:1.5; }
+  .day-detail-empty { font-size:13px; padding:24px 8px; }
 
   /* Charts */
 
@@ -934,7 +955,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   <div id="homeView" style="display:none">
     <div id="homeBulbArea" style="display:none;grid-column:1/-1;margin-bottom:8px">
       <div class="bulb-cal-wrap">
-        <div class="bulb-wrap">
+        <div id="bulbWrap" class="bulb-wrap">
           <canvas id="bulbCanvas" width="240" height="320" style="margin-top:20px"></canvas>
           <div id="bulbLabel" style="text-align:center;font-size:12px;color:var(--t3);margin-top:-8px"></div>
           <div style="text-align:center;margin-top:8px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap">
@@ -948,6 +969,13 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
             <button class="btn btn-sm" onclick="resetAttendance()">🔄 리셋</button>
           </div>
         </div>
+        <div id="dayDetailPanel" class="day-detail-wrap" style="display:none">
+          <div class="day-detail-hdr">
+            <span id="dayDetailTitle" class="day-detail-title"></span>
+            <button class="btn btn-sm" onclick="closeDayDetail()">✕</button>
+          </div>
+          <div id="dayDetailList" class="day-detail-list"></div>
+        </div>
         <div class="cal-wrap">
           <div class="cal-hdr">
             <button class="btn btn-sm" onclick="calPrevMonth()">◀</button>
@@ -959,8 +987,8 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         </div>
         <div class="bulb-desc" style="max-width:240px;font-size:13px;color:var(--t3);line-height:1.8;align-self:center">
           <div style="margin-bottom:14px">
-            <strong style="color:var(--t1);font-size:15px">💡 출석 체크</strong><br>
-            읽은 날 캘린더를 클릭하면 전구에 빛이 하나씩 채워져요. 목표일을 달성하면 지식에 불이 켜집니다! 다시 클릭하면 취소돼요.
+            <strong style="color:var(--t1);font-size:15px">💡 자동 출석</strong><br>
+            트래커에서 책을 읽음 표시하면 캘린더에 자동으로 표시되고, 전구도 알아서 채워져요. 날짜를 클릭하면 그날 읽은 글 목록을 볼 수 있어요. <br><span style="color:var(--t2);font-size:12px">🔄 리셋은 새 챌린지를 시작할 때 — 전구만 0%부터 다시, 읽은 기록은 그대로 유지됩니다.</span>
           </div>
           <div style="font-size:12px;line-height:2" id="goalDescList">
             <div class="goal-item" data-goal="30"><span style="color:var(--gold)">🎯 30일</span> 습관 만들기의 시작</div>
@@ -1032,10 +1060,11 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.7.2';
+const APP_VERSION = 'v1.8';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
+const CYCLE_START_KEY = 'pt_cycle_start'; // v1.8: bulb cycle reset point (YYYY-MM-DD)
 const CUSTOM_TITLE_KEY = 'pt_custom_title';
 const THEME_KEY = 'pt_theme';
 const CC_SETTINGS_KEY = 'pt_cc_settings';
@@ -1189,6 +1218,8 @@ function toggleCatChart() {
 // Save throttle: batches rapid saves into one
 var _saveTimer = null, _savePending = false;
 function throttledSave() {
+  // v1.8: 즉시 캐시 무효화 — 저장은 debounced여도 캘린더가 바로 최신 상태 반영
+  if (typeof invalidateReadDateIndex === 'function') invalidateReadDateIndex();
   _savePending = true;
   if (_saveTimer) return;
   _saveTimer = setTimeout(function() {
@@ -1427,6 +1458,7 @@ function exportBackup() {
     theme: localStorage.getItem(THEME_KEY) || 'gold',
     attendance: attendance,
     attendanceGoal: BULB_GOAL_DAYS,
+    cycleStart: (function(){ try { return localStorage.getItem(CYCLE_START_KEY) || ''; } catch(e) { return ''; } })(),
     ccSettings: { enabled: ccEnabled },
     dateEmoji: dateEmoji,
     tabs: data
@@ -1465,11 +1497,13 @@ function importBackup() {
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
+        if (typeof backup.cycleStart === 'string') { try { if (backup.cycleStart) localStorage.setItem(CYCLE_START_KEY, backup.cycleStart); else localStorage.removeItem(CYCLE_START_KEY); } catch(e) {} }
         if (backup.ccSettings) { ccEnabled = backup.ccSettings.enabled === true; saveCustomColSettings(); }
         if (backup.dateEmoji) { dateEmoji = backup.dateEmoji; try { localStorage.setItem(DATE_EMOJI_KEY, dateEmoji); } catch(e) {} }
         if (backup.theme) setTheme(backup.theme);
         if (backup.customTitle) { localStorage.setItem(CUSTOM_TITLE_KEY, backup.customTitle); }
         activeTabId = backup.tabs.length > 0 ? backup.tabs[0].id : 'tab_home';
+        if (typeof invalidateReadDateIndex === 'function') invalidateReadDateIndex();
         saveToStorage();
         toast('✅ 백업이 복원되었습니다!');
         switchTab('tab_home');
@@ -1532,12 +1566,13 @@ function changeGoal(val) {
 }
 
 function resetAttendance() {
-  if (!confirm('출석 기록을 초기화할까요?')) return;
-  attendance = [];
-  saveAttendance();
+  // v1.8: 읽은 기록(readMap)은 절대 건드리지 않음.
+  // 새 챌린지 사이클을 오늘부터 시작 — 전구만 0%로 돌아가고 캘린더는 그대로.
+  if (!confirm('전구를 0%부터 다시 채울까요?\n(읽은 기록과 캘린더 표시는 그대로 유지돼요)')) return;
+  try { localStorage.setItem(CYCLE_START_KEY, todayStr()); } catch(e) {}
   shapeData.nodes = null;
   renderHome();
-  toast('🔄 출석 기록이 초기화되었어요', 'ok');
+  toast('🔄 새 챌린지 사이클을 시작했어요', 'ok');
 }
 
 function toggleAttendance(dateStr) {
@@ -5287,6 +5322,45 @@ function kgClickArticle(id) {
 var calYear, calMonth;
 (function() { var d = new Date(); calYear = d.getFullYear(); calMonth = d.getMonth(); })();
 
+// v1.8: Read date index — { "YYYY-MM-DD": [{ tabId, tabName, item }, ...] }
+var _readDateIndexCache = null;
+function buildReadDateIndex() {
+  var idx = {};
+  if (!Array.isArray(allTabs)) return idx;
+  allTabs.forEach(function(tab) {
+    if (!tab || tab.id === 'tab_favorites') return;
+    if (!tab.readMap) return;
+    var keyToItem = {};
+    (tab.data || []).forEach(function(it) { if (it && it.key != null) keyToItem[it.key] = it; });
+    Object.keys(tab.readMap).forEach(function(key) {
+      var d = tab.readMap[key];
+      if (!d || d === 'unknown') return;
+      if (!idx[d]) idx[d] = [];
+      idx[d].push({ tabId: tab.id, tabName: tab.name, item: keyToItem[key] || { key: key, title: '(삭제됨)', _missing: true } });
+    });
+  });
+  return idx;
+}
+function getReadDateIndex() {
+  if (!_readDateIndexCache) _readDateIndexCache = buildReadDateIndex();
+  return _readDateIndexCache;
+}
+function invalidateReadDateIndex() { _readDateIndexCache = null; }
+
+// v1.8: Bulb cycle — count unique read days since cycle start (or all-time if not set)
+function getCycleStartDate() {
+  try { return localStorage.getItem(CYCLE_START_KEY) || ''; } catch(e) { return ''; }
+}
+function getCycleReadDays() {
+  var start = getCycleStartDate();
+  var idx = getReadDateIndex();
+  var dates = Object.keys(idx);
+  if (!start) return dates.length;
+  var n = 0;
+  for (var i = 0; i < dates.length; i++) if (dates[i] >= start) n++;
+  return n;
+}
+
 function calPrevMonth() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
 function calNextMonth() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
 
@@ -5299,6 +5373,7 @@ function renderCalendar() {
   var firstDay = new Date(calYear, calMonth, 1).getDay();
   var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   var todayStr2 = todayStr();
+  var idx = getReadDateIndex();
 
   // Always render exactly 42 cells (6 rows) for consistent size
   var totalCells = 42;
@@ -5309,16 +5384,98 @@ function renderCalendar() {
       html += '<div class="cal-day empty"></div>';
     } else {
       var ds = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
-      var isChecked = attendance.indexOf(ds) >= 0;
+      var isChecked = !!idx[ds];
       var isToday = ds === todayStr2;
+      var isSelected = ds === _selectedCalDate;
       if (isChecked) checkedCount++;
-      var cls = 'cal-day' + (isChecked ? ' checked' : '') + (isToday ? ' today' : '');
-      html += '<div class="' + cls + '" onclick="toggleAttendance(\'' + ds + '\')">' + dayNum + '</div>';
+      var cls = 'cal-day' + (isChecked ? ' checked' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+      html += '<div class="' + cls + '" onclick="selectCalendarDay(\'' + ds + '\')">' + dayNum + '</div>';
     }
   }
 
   $('calGrid').innerHTML = html;
-  $('calStats').textContent = months[calMonth] + ' 출석: ' + checkedCount + '일 / ' + daysInMonth + '일';
+  $('calStats').textContent = months[calMonth] + ' 읽은 날: ' + checkedCount + '일 / ' + daysInMonth + '일';
+}
+
+// v1.8: Day-detail panel — replaces bulb when a date is selected
+var _selectedCalDate = null;
+
+function selectCalendarDay(ds) {
+  _selectedCalDate = (_selectedCalDate === ds) ? null : ds;
+  renderCalendar();
+  renderDayDetailPanel();
+}
+
+function closeDayDetail() {
+  _selectedCalDate = null;
+  renderCalendar();
+  renderDayDetailPanel();
+}
+
+function _formatKorDate(ds) {
+  // ds = "YYYY-MM-DD"
+  var p = ds.split('-');
+  if (p.length !== 3) return ds;
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  var dayNames = ['일','월','화','수','목','금','토'];
+  return p[0] + '년 ' + (+p[1]) + '월 ' + (+p[2]) + '일 (' + dayNames[d.getDay()] + ')';
+}
+
+function _escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+
+function renderDayDetailPanel() {
+  var bulb = $('bulbWrap');
+  var panel = $('dayDetailPanel');
+  if (!bulb || !panel) return;
+  if (!_selectedCalDate) {
+    bulb.style.display = '';
+    panel.style.display = 'none';
+    return;
+  }
+  bulb.style.display = 'none';
+  panel.style.display = '';
+
+  $('dayDetailTitle').textContent = '📖 ' + _formatKorDate(_selectedCalDate);
+
+  var idx = getReadDateIndex();
+  var entries = idx[_selectedCalDate] || [];
+  if (entries.length === 0) {
+    $('dayDetailList').innerHTML = '<div class="day-detail-empty">이 날 읽은 기록이<br>없습니다.</div>';
+    return;
+  }
+
+  // Group by tab, preserving allTabs order
+  var byTab = {};
+  var tabOrder = [];
+  entries.forEach(function(e) {
+    if (!byTab[e.tabId]) { byTab[e.tabId] = { name: e.tabName, items: [] }; tabOrder.push(e.tabId); }
+    byTab[e.tabId].items.push(e.item);
+  });
+
+  var html = tabOrder.map(function(tid) {
+    var g = byTab[tid];
+    var itemsHtml = g.items.map(function(it) {
+      if (it._missing) {
+        return '<div class="day-detail-item missing" title="원본 항목이 삭제되었습니다">· (삭제됨)</div>';
+      }
+      var title = it.title || it.name || it.url || '(제목 없음)';
+      return '<div class="day-detail-item" onclick="goToTabItem(\'' + tid + '\',\'' + _escapeHtml(String(it.key)).replace(/'/g,'&#39;') + '\')" title="' + _escapeHtml(title) + '">· ' + _escapeHtml(title) + '</div>';
+    }).join('');
+    return '<div class="day-detail-tab-group">' +
+             '<div class="day-detail-tab-name">' + _escapeHtml(g.name) + ' (' + g.items.length + ')</div>' +
+             itemsHtml +
+           '</div>';
+  }).join('');
+
+  $('dayDetailList').innerHTML = html;
+}
+
+function goToTabItem(tabId, itemKey) {
+  if (typeof switchTab === 'function') switchTab(tabId);
 }
 
 // Bulb visualization node generation
@@ -5327,8 +5484,9 @@ var SHAPE_COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030',
 
 function getShapeProgress() {
   // 하루당 채워지는 노드 수 = 총 노드 / 목표일
+  // v1.8: attendance.length 대신 사이클 시작 이후 실제 읽은 고유 일수 사용
   var nodesPerDay = BULB_NODE_COUNT / BULB_GOAL_DAYS;
-  return Math.min(Math.round(attendance.length * nodesPerDay), BULB_NODE_COUNT);
+  return Math.min(Math.round(getCycleReadDays() * nodesPerDay), BULB_NODE_COUNT);
 }
 
 function addPathNodes(nodes, pts, type, spacing) {
@@ -5526,7 +5684,7 @@ function drawShape() {
     ctx2.strokeStyle='rgba(232,184,48,'+ringA+')'; ctx2.lineWidth=2; ctx2.stroke();
   }
 
-  var dayCount = Math.min(attendance.length, BULB_GOAL_DAYS);
+  var dayCount = Math.min(getCycleReadDays(), BULB_GOAL_DAYS);
   var dayPct = BULB_GOAL_DAYS > 0 ? Math.round(dayCount / BULB_GOAL_DAYS * 100) : 0;
   if (dayPct > 100) dayPct = 100;
 
