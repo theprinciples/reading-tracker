@@ -3109,6 +3109,23 @@ function isAssignmentVisible() {
   return hasAssignmentEnabled(tab);
 }
 
+// v2.1 후속: 동기화 시 시트의 과제 텍스트가 로컬과 다른 항목 수를 검출
+function detectAssignmentChanges(tab, freshRows, asgHeader) {
+  if (!hasAssignmentEnabled(tab) || !asgHeader || !Array.isArray(freshRows)) return 0;
+  var asgByTitle = {};
+  freshRows.forEach(function(row) {
+    var titleField = (tab.columnMap && tab.columnMap.title) ? row[tab.columnMap.title] : (row.title || row['제목'] || row['Title']);
+    var titleKey = String(titleField || '').toLowerCase().trim();
+    if (titleKey) asgByTitle[titleKey] = String(row[asgHeader] == null ? '' : row[asgHeader]).trim();
+  });
+  var changedCount = 0;
+  (tab.data || []).forEach(function(item) {
+    var k = String(item.title || '').toLowerCase().trim();
+    if (k in asgByTitle && asgByTitle[k] !== (item.assignment || '')) changedCount++;
+  });
+  return changedCount;
+}
+
 // v1.9 Part 2: _mapAssignment 플래그 + rows에서 과제 데이터를 탭에 채워넣기.
 // 이미 hasAssignment=true이고 사용자가 체크 해제했으면 비활성화.
 function populateAssignmentFromRows(tab, rows) {
@@ -3957,6 +3974,17 @@ function showSyncModal(allItems, sheetTotal, localTotal) {
   }
 
   if (newCount === 0 && dupeCount === 0) {
+    // v2.1 후속: 과제만 이미 활성된 탭에서 시트의 과제 텍스트만 변경된 경우도 갱신 가능하게
+    var asgChangedCount = (asgAlreadyOn && asgHeaderFound)
+      ? detectAssignmentChanges(tabForSync, window._syncFreshRows, asgHeaderFound)
+      : 0;
+    if (asgChangedCount > 0) {
+      $('syncStatus').innerHTML = '📋 과제 텍스트가 변경된 항목 <strong>' + asgChangedCount + '개</strong> 발견';
+      $('syncList').innerHTML = asgNoticeHtml; // "함께 갱신됩니다" 안내
+      $('syncApplyBtn').style.display = '';
+      $('syncApplyBtn').textContent = '✅ 과제 데이터 갱신';
+      return;
+    }
     $('syncStatus').textContent = '✅ 이미 최신 상태입니다! (Sheets: ' + sheetTotal + '개, 로컬: ' + localTotal + '개)';
     // 과제 옵트인은 항목 변경 없어도 가능해야 함 — 노티스 보이고, 적용 버튼 노출
     if (asgHeaderFound && !asgAlreadyOn) {
@@ -4038,6 +4066,7 @@ function applySyncItems() {
 
   // v1.9 Part 2: 활성된 과제 컬럼이면 기존 항목들의 assignment 텍스트도 갱신 (제목 매칭)
   // assignmentDone 상태는 그대로 유지.
+  var asgUpdatedCount = 0;
   if (hasAssignmentEnabled(tab) && asgHeader && Array.isArray(window._syncFreshRows)) {
     var asgByTitle = {};
     window._syncFreshRows.forEach(function(row) {
@@ -4049,7 +4078,9 @@ function applySyncItems() {
     tab.data.forEach(function(item) {
       var k = String(item.title || '').toLowerCase().trim();
       if (k in asgByTitle) {
-        item.assignment = asgByTitle[k];
+        var newVal = asgByTitle[k];
+        if (newVal !== (item.assignment || '')) asgUpdatedCount++;
+        item.assignment = newVal;
         if (!item.assignment) item.assignmentDone = false;
       } else {
         if (typeof item.assignment !== 'string') item.assignment = '';
@@ -4061,6 +4092,7 @@ function applySyncItems() {
   var msg = '';
   if (added > 0) msg = '✅ ' + added + '개 추가됨';
   if (optInAsg) msg = msg ? msg + ' · 📋 과제 컬럼 추가됨' : '📋 과제 컬럼 추가됨';
+  if (!added && !optInAsg && asgUpdatedCount > 0) msg = '📋 과제 텍스트 ' + asgUpdatedCount + '개 갱신됨';
   if (added > 0 || optInAsg || hasAssignmentEnabled(tab)) {
     saveToStorage();
     showDashboard(true);
