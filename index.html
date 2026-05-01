@@ -230,6 +230,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .note-tip-popup::after { display:none; }
 .td-dt { font-family:'SF Mono','Consolas','Menlo',monospace; font-size:11px; color:var(--t3); white-space:nowrap; }
 .td-cc { max-width:160px; }
+.td-asg { max-width:160px; }
+@keyframes rowPulse { 0%,100%{ background:transparent; } 50%{ background:rgba(232,184,48,.28); } }
+tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
+.mission-chk.asg-chk { border-color:rgba(153,102,255,.5); }
+.mission-chk.asg-chk:hover { border-color:#9966ff; background:rgba(153,102,255,.1); }
+.mission-chk.asg-chk.done { background:#9966ff; border-color:#9966ff; color:#fff; }
 .td-cc-inner { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--t2); cursor:pointer; padding:2px 4px; border-radius:4px; transition:.15s; max-width:160px; }
 .td-cc-inner:hover { background:rgba(255,255,255,.06); }
 .td-cc-add { font-size:11px; color:var(--t3); cursor:pointer; opacity:.4; }
@@ -264,7 +270,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .star { cursor:pointer; font-size:16px; opacity:.25; transition:.15s; user-select:none; }
 .star:hover { opacity:.6; }
 .star.on { opacity:1; color:#f5c542; }
-.fav-src { font-size:13px; color:var(--t3); padding:4px 10px; background:var(--bg2); border-radius:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
+.fav-src { font-size:10px; font-weight:500; color:var(--t3); padding:2px 8px; background:var(--bg2); border-radius:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
 
 /* Favorites table - full width layout */
 #favView .tw { overflow-x:auto; overflow-y:visible; -webkit-overflow-scrolling:touch; }
@@ -325,6 +331,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .kg-pill { padding:6px 13px; border-radius:10px; font-size:13px; cursor:pointer; transition:.15s; border:1px solid transparent; white-space:nowrap; flex-shrink:0; }
 .kg-pill:hover { opacity:.8; }
 .kg-pill.active { border-color:#fff; }
+.kg-info-link { cursor:pointer; transition:.15s; padding:1px 3px; border-radius:3px; }
+.kg-info-link:hover { background:rgba(232,184,48,.18); color:var(--gold); }
+.kg-info-title { cursor:pointer; transition:.15s; padding:1px 3px; border-radius:3px; display:inline-block; }
+.kg-info-title:hover { background:rgba(232,184,48,.18); text-decoration:underline; }
+.kg-info-btn { display:inline-block; cursor:pointer; padding:1px 6px; margin-left:4px; border-radius:4px; font-size:10px; background:var(--bg2); color:var(--t2); border:1px solid var(--bdr); transition:.15s; user-select:none; }
+.kg-info-btn:hover { background:rgba(232,184,48,.18); color:var(--gold); border-color:var(--gold); }
 .kg-article { background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:8px 12px; margin-bottom:5px; font-size:13px; cursor:pointer; transition:.15s; }
 .kg-article:hover { border-color:var(--gold); }
 .kg-article.hl { border-color:var(--gold); background:var(--card2); }
@@ -379,6 +391,15 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 .modal-bg { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.6); z-index:900; display:none; align-items:center; justify-content:center; }
 .modal-bg.open { display:flex; }
 .modal { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:24px; width:400px; max-width:90vw; max-height:85vh; overflow-y:auto; }
+#tabReorderBtn { display:none !important; }
+.tab-reorder-row { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:6px; background:var(--bg2); }
+.tab-reorder-row.active { background:rgba(232,184,48,.12); border:1px solid rgba(232,184,48,.3); padding:5px 7px; }
+.tab-reorder-btn { background:var(--card); border:1px solid var(--bdr); color:var(--t2); border-radius:5px; width:30px; height:30px; cursor:pointer; font-size:14px; transition:.15s; flex-shrink:0; font-family:inherit; }
+.tab-reorder-btn:hover:not(:disabled) { border-color:var(--gold); color:var(--gold); background:var(--card2); }
+.tab-reorder-btn:disabled { opacity:.3; cursor:not-allowed; }
+.tab-reorder-name { flex:1; padding:6px 8px; cursor:pointer; border-radius:5px; transition:.15s; font-size:13px; color:var(--t1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tab-reorder-name:hover { background:rgba(232,184,48,.12); color:var(--gold); }
+.tab-reorder-group { color:var(--t3); font-size:11px; margin-right:6px; }
 .modal h3 { font-size:15px; font-weight:700; margin-bottom:16px; }
 .modal label { font-size:12px; color:var(--t2); display:block; margin-bottom:4px; }
 .modal input[type=text] { width:100%; padding:10px 14px; border-radius:var(--rs); border:1px solid var(--bdr); background:var(--inp); color:var(--t1); font-size:13px; font-family:inherit; outline:none; margin-bottom:12px; }
@@ -431,6 +452,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   tbody td { padding:8px 10px; }
   thead th { padding:10px; }
   .td-cc { max-width:100px; }
+  .td-asg { max-width:100px; }
   .td-cc-inner { max-width:90px; }
   .td-c { max-width:50px; font-size:9px; padding:2px 4px; }
   .td-ti { min-width:220px; }
@@ -441,6 +463,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   #favView th:nth-child(2), #favView td:nth-child(2) { width:12%; }
   #favView th:nth-child(4), #favView td:nth-child(4) { width:12%; }
   #favView .td-cc { max-width:80px; }
+  #favView .td-asg { max-width:80px; }
   #favView .td-cc-inner { max-width:70px; }
   #favView th:nth-child(8), #favView td:nth-child(8) { width:85px; }
   #favView .fav-src { font-size:9px; }
@@ -490,6 +513,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 
   /* Modals */
   .modal { width:95vw; padding:16px; }
+
+  /* v2.0: Tab reorder — 모바일에서만 노출 + 큰 터치 타겟 */
+  #tabReorderBtn { display:flex !important; }
+  .tab-reorder-btn { width:36px; height:36px; font-size:16px; }
+  .tab-reorder-name { font-size:14px; padding:8px; }
+  .tab-reorder-row { padding:8px; }
 
   /* Mindmap - canvas full width, scroll right for panel */
   #kgLayout { flex-wrap:nowrap !important; overflow-x:auto !important; -webkit-overflow-scrolling:touch; gap:12px !important; }
@@ -549,6 +578,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <div class="tab-bar" id="tabBar" style="flex:1"></div>
     <div id="tabBarRight" class="tabbar-right" style="display:flex;align-items:flex-end;gap:2px;padding-bottom:12px;flex-shrink:0">
       <button class="tab-add" id="tabAddBtn" onclick="openModal()" style="flex-shrink:0;margin-bottom:0">＋<span class="mobile-label"> 탭 추가</span></button>
+      <button class="tab-add" id="tabReorderBtn" onclick="openTabReorderModal()" style="flex-shrink:0;margin-bottom:0;margin-left:6px" title="탭 정리">🔀<span class="mobile-label"> 탭 정리</span></button>
       <button class="tab settings-tab" id="tabSettingsBtn" onclick="switchTab('tab_settings')" style="flex-shrink:0;opacity:0.75;font-size:18px;margin-bottom:-8px;padding-left:0;padding-right:1px;margin-left:12px" title="설정 / 도움말">⚙️<span class="mobile-label"> 설정</span></button>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:center;flex-shrink:0;margin-left:4px">
         <div id="themeSelector" style="display:flex;gap:6px;flex-shrink:0">
@@ -657,6 +687,14 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           <div style="font-size:10px;color:var(--t3);margin-top:4px">🎯 체크 시 이 컬럼의 항목들이 미션/과제로 등록되어 체크박스 + 진행률 추적 가능</div>
         </div>
       </div>
+      <div id="assignmentNotice" style="display:none;margin-top:12px;padding:12px 14px;border-radius:var(--rs);background:rgba(153,102,255,.08);border:1px solid rgba(153,102,255,.3)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);font-weight:600;margin-bottom:4px">📋 <span id="assignmentNoticeTitle">"과제" 컬럼이 발견됐어요</span></div>
+        <div style="font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:8px">추가 항목과 별도로 과제 전용 컬럼을 만들 수 있어요. 텍스트 있는 셀만 체크박스로 표시됩니다.</div>
+        <div onclick="toggleMapAssignment()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:12px;color:var(--t2);transition:.15s;user-select:none" id="mapAssignmentToggle">
+          <span id="mapAssignmentChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
+          <span id="mapAssignmentLabel">과제 컬럼 추가하기</span>
+        </div>
+      </div>
       <div id="previewBox" class="map-preview"></div>
       <div class="map-actions">
         <button class="btn" onclick="cancelMapping()">취소</button>
@@ -719,6 +757,17 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         </div>
         <div style="font-size:10px;color:var(--t3);margin-top:3px">🎯 체크 시 미션/과제로 등록 — 테이블에서 완료 체크 가능, 미션/과제 진행률에 반영</div>
       </div>
+      <div class="map-row" style="grid-column:1/-1;display:none" id="manAssignmentRow">
+        <label id="manAssignmentLabel" style="margin:0;margin-bottom:4px">🎯 과제 (선택)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="manAssignment" class="man-inp" placeholder="과제 내용 (예: Chapter 5 요약 정리)" style="flex:1">
+          <div id="manAsgDoneToggle" onclick="toggleManAsgDone()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap">
+            <span id="manAsgDoneChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
+            ✓
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:3px">🎯 텍스트 있을 때만 완료 체크 가능 · 과제 진행률에 반영</div>
+      </div>
       <div class="map-row" style="grid-column:1/-1">
         <label>🏷️ 태그 / Tags</label>
         <input type="text" id="manTags" class="man-inp" placeholder="태그를 입력하세요 (예: AI 경제 투자)">
@@ -778,6 +827,19 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
         </div>
       </div>
       <div id="editMissionHint" style="font-size:10px;color:var(--t3);margin-top:3px;margin-bottom:8px">🎯 미션/과제 체크 시 테이블에 체크박스 표시, 미션/과제 진행률에 반영</div>
+
+      <div id="editAssignmentSection" style="display:none">
+        <label id="editAssignmentLabel" style="margin-top:8px">🎯 과제</label>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <textarea id="editAssignment" placeholder="과제 내용 (예: Chapter 5 요약 정리)" rows="2" style="flex:1;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
+          <div id="editAssignmentDoneToggle" onclick="toggleEditAssignmentDone()" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap;margin-top:2px">
+            <span id="editAssignmentDoneChk" style="width:16px;height:16px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:10px;transition:.15s"></span>
+            ✓ 완료
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:3px;margin-bottom:8px">🎯 과제 텍스트가 있을 때만 체크박스로 완료 표시 가능</div>
+      </div>
+
       <label>🗒️ 노트 / Notes</label>
       <textarea id="editNotes" placeholder="https://notion.so/... 메모 텍스트" rows="4" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
       <label>🏷️ 태그 / Tags</label>
@@ -794,6 +856,18 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
   </div>
 
   <!-- MINI EDIT MODAL -->
+  <!-- TAB REORDER MODAL (v2.0) -->
+  <div class="modal-bg" id="tabReorderModalBg" onclick="if(event.target===this)closeTabReorderModal()">
+    <div class="modal" style="width:420px;max-width:92vw">
+      <h3 style="margin-bottom:4px">🔀 탭 정리</h3>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:14px">↑↓로 순서 바꾸기 · 탭명을 누르면 이동</div>
+      <div id="tabReorderList" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+      <div class="modal-btns" style="margin-top:14px">
+        <button class="btn" onclick="closeTabReorderModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-bg" id="miniEditBg" onclick="if(event.target===this)closeMiniEdit()">
     <div class="modal" style="width:380px">
       <h3 id="miniEditTitle">편집</h3>
@@ -833,6 +907,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
           <select class="fsel" id="progModeSelect" onchange="renderProgress()" style="font-size:11px;padding:4px 8px;display:none">
             <option value="read">📖 읽음 진행률</option>
             <option value="mission">🎯 미션/과제 진행률</option>
+            <option value="assignment" id="progModeAssignmentOpt" style="display:none">📋 과제 진행률</option>
           </select>
         </div>
         <div class="ring-c"><canvas id="ringCanvas"></canvas>
@@ -870,9 +945,12 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
     <div class="tc">
       <div class="tc-l">
         <input class="sinp" id="searchInput" placeholder="🔍 검색..." oninput="debouncedRenderTable()">
-        <select class="fsel" id="catFilter" onchange="renderTable()"><option value="">전체</option></select>
+        <select class="fsel" id="catFilter" onchange="renderTable()"><option value="">📁 카테고리 전체</option></select>
         <select class="fsel" id="readFilter" onchange="renderTable()">
-          <option value="">전체</option><option value="unread">안읽음</option><option value="read">읽음</option>
+          <option value="">📖 읽음 전체</option><option value="unread">안읽음</option><option value="read">읽음</option>
+        </select>
+        <select class="fsel" id="assignmentFilter" onchange="renderTable()" style="display:none">
+          <option value="">🎯 과제 전체</option><option value="pending">남은 과제</option><option value="done">끝난 과제</option>
         </select>
       </div>
       <div class="tc-r">
@@ -888,7 +966,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:44px">#</th>
-          <th style="width:70px">카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:90px"></th>
+          <th style="width:70px">카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:160px;display:none" id="thAssignment"></th><th style="width:90px"></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -912,7 +990,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
       <table>
         <thead><tr>
           <th style="width:30px">⭐</th>
-          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th id="favThCustomCol" style="width:100px;display:none;vertical-align:middle"></th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
+          <th>출처</th><th style="width:36px">#</th><th>카테고리</th><th>제목</th><th id="favThAssignment" style="width:100px;display:none;vertical-align:middle"></th><th>노트</th><th style="width:100px">날짜</th><th style="width:30px"></th>
         </tr></thead>
         <tbody id="favBody"></tbody>
       </table>
@@ -1060,7 +1138,7 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v2.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1276,6 +1354,10 @@ function saveToStorage() {
       ccEmoji: t.ccEmoji || '📌',
       columnMap: t.columnMap || null,
       missionMode: t.missionMode || false,
+      hasAssignment: t.hasAssignment || false,
+      assignmentLabel: t.assignmentLabel || '과제',
+      assignmentSourceCol: t.assignmentSourceCol || '',
+      assignmentEmoji: t.assignmentEmoji || '🎯',
       articles: t.data,
       readMap: t.readMap,
       starSet: t.starSet || []
@@ -1320,7 +1402,15 @@ function loadFromStorage() {
         }
         var articles = t.articles || [];
         // Ensure notes & customCol fields exist on all items (backward compat)
-        articles.forEach(function(a) { if (!a.notes) a.notes = ''; if (!a.customCol) a.customCol = ''; if (a.customColMission === undefined) a.customColMission = false; if (a.missionDone === undefined) a.missionDone = false; });
+        // v1.9 Part 2: assignment 필드도 backward compat 보장
+        articles.forEach(function(a) {
+          if (!a.notes) a.notes = '';
+          if (!a.customCol) a.customCol = '';
+          if (a.customColMission === undefined) a.customColMission = false;
+          if (a.missionDone === undefined) a.missionDone = false;
+          if (a.assignment === undefined) a.assignment = '';
+          if (a.assignmentDone === undefined) a.assignmentDone = false;
+        });
         allTabs.push({
           id: t.id, name: t.name,
           group: t.group || '',
@@ -1331,6 +1421,10 @@ function loadFromStorage() {
           ccEmoji: t.ccEmoji || '📌',
           columnMap: t.columnMap || null,
           missionMode: t.missionMode || false,
+          hasAssignment: t.hasAssignment || false,
+          assignmentLabel: t.assignmentLabel || '과제',
+          assignmentSourceCol: t.assignmentSourceCol || '',
+          assignmentEmoji: t.assignmentEmoji || '🎯',
           data: articles,
           sheetsUrl: t.sheetsUrl || '',
           readMap: readMap,
@@ -1382,11 +1476,26 @@ function applyCustomColUI() {
     th.style.display = ccVisible ? '' : 'none';
     th.innerHTML = ccVisible ? '<span onclick="editCustomColHeader()" style="cursor:pointer" title="클릭하여 컬럼 이름 변경">' + emojiLabel(tCcEmoji, esc(tCcLabel)) + ' <span style="font-size:9px;opacity:.35">✏️</span></span>' : '';
   }
-  // Favorites table header
-  var favTh = $('favThCustomCol');
-  if (favTh) {
-    favTh.style.display = ccVisible ? '' : 'none';
-    if (ccVisible) favTh.textContent = tCcLabel;
+  // v1.9 후속: 즐겨찾기에서는 추가 항목(customCol) 컬럼 제거됨 — 별도 처리 없음
+  // v1.9 Part 2: Assignment header (메인/즐겨찾기 둘 다)
+  var asgVisible = isAssignmentVisible();
+  var asgLabel = getTabAssignmentLabel(tab);
+  var asgEmoji = getTabAssignmentEmoji(tab);
+  var asgTh = $('thAssignment');
+  if (asgTh) {
+    asgTh.style.display = asgVisible ? '' : 'none';
+    asgTh.innerHTML = asgVisible ? emojiLabel(asgEmoji, esc(asgLabel)) : '';
+  }
+  var favAsgTh = $('favThAssignment');
+  if (favAsgTh) {
+    favAsgTh.style.display = asgVisible ? '' : 'none';
+    if (asgVisible) favAsgTh.textContent = asgLabel;
+  }
+  // v1.9 후속: 과제 전용 필터 드롭다운 표시 토글
+  var asgFilterEl = $('assignmentFilter');
+  if (asgFilterEl) {
+    asgFilterEl.style.display = asgVisible ? '' : 'none';
+    if (!asgVisible && asgFilterEl.value) asgFilterEl.value = ''; // 비활성 탭에선 값 리셋
   }
   // Manual add labels
   updateManualLabels();
@@ -1449,7 +1558,7 @@ function editDateHeader() {
 // JSON BACKUP EXPORT/IMPORT
 function exportBackup() {
   var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
-    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', fileSource: t.fileSource || false, dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
+    return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', fileSource: t.fileSource || false, dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, hasAssignment: t.hasAssignment || false, assignmentLabel: t.assignmentLabel || '과제', assignmentSourceCol: t.assignmentSourceCol || '', assignmentEmoji: t.assignmentEmoji || '🎯', articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
   });
   var backup = {
     version: 'pt_backup_v1',
@@ -1492,8 +1601,13 @@ function importBackup() {
           if (t.readMap && typeof t.readMap === 'object' && !Array.isArray(t.readMap)) { readMap = t.readMap; }
           else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
           var articles = t.articles || [];
-          articles.forEach(function(a) { if (!a.notes) a.notes = ''; });
-          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, fileSource: t.fileSource || false, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
+          // v1.9 Part 2: assignment 필드 backward compat
+          articles.forEach(function(a) {
+            if (!a.notes) a.notes = '';
+            if (a.assignment === undefined) a.assignment = '';
+            if (a.assignmentDone === undefined) a.assignmentDone = false;
+          });
+          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, hasAssignment: t.hasAssignment || false, assignmentLabel: t.assignmentLabel || '과제', assignmentSourceCol: t.assignmentSourceCol || '', assignmentEmoji: t.assignmentEmoji || '🎯', fileSource: t.fileSource || false, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
         });
         if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
         if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
@@ -2311,6 +2425,31 @@ function showMappingUI(rows, sheetName) {
   if (mchk) { mchk.style.borderColor = 'rgba(61,204,122,.4)'; mchk.style.background = 'transparent'; mchk.textContent = ''; }
   renderCcEmojiPicker('mapCcEmojiPicker', '📌', function(e) { window._mapCcEmoji = e; });
 
+  // v1.9 Part 2: "과제" 컬럼 노티스 표시/숨김
+  var asgNotice = $('assignmentNotice');
+  var asgHeader = detectAssignmentHeader(headers);
+  var alreadyOn = hasAssignmentEnabled(tab);
+  if (asgNotice) {
+    if (asgHeader || alreadyOn) {
+      asgNotice.style.display = '';
+      _mapAssignment = alreadyOn; // 이미 활성이면 체크된 상태로 시작
+      var titleEl = $('assignmentNoticeTitle');
+      var labelEl = $('assignmentNoticeLabel');
+      if (alreadyOn) {
+        if (titleEl) titleEl.textContent = '"과제" 컬럼이 활성 상태입니다';
+        if (labelEl) labelEl.textContent = '과제 컬럼 유지 (체크 해제하면 비활성화)';
+      } else {
+        if (titleEl) titleEl.textContent = '"과제" 컬럼이 발견됐어요';
+        var lblEl2 = $('mapAssignmentLabel');
+        if (lblEl2) lblEl2.textContent = '과제 컬럼 추가하기';
+      }
+      updateMapAssignmentUI();
+    } else {
+      asgNotice.style.display = 'none';
+      _mapAssignment = false;
+    }
+  }
+
   // Setup dateLabel autocomplete from existing tabs
   var existingLabels = {};
   allTabs.forEach(function(t) { if (t.id !== 'tab_favorites' && t.dateLabel) existingLabels[t.dateLabel] = (existingLabels[t.dateLabel] || 0) + 1; });
@@ -2361,12 +2500,17 @@ function updatePreview(rows) {
 
   var dateLbl2 = ($('mapDateLabelInput') ? $('mapDateLabelInput').value.trim() : '') || '날짜';
   var ccLbl2 = ($('mapCustomColNameInput') ? $('mapCustomColNameInput').value.trim() : '') || ccLabel;
+  // v1.9 Part 2: 과제 컬럼이 토글되어 있으면 미리보기에도 표시
+  var headers = (rows && rows.length) ? Object.keys(rows[0]) : [];
+  var asgSrcCol = (_mapAssignment && headers.length) ? detectAssignmentHeader(headers) : null;
+
   let html = '<h5>미리보기 (처음 5개)</h5><table><thead><tr>';
   if (mapping.category) html += '<th>카테고리</th>';
   html += '<th>제목</th>';
   if (mapping.url) html += '<th>URL</th>';
   if (mapping.date) html += '<th>' + esc(dateLbl2) + '</th>';
   if (mapping.customCol) html += '<th>' + emojiLabel(window._mapCcEmoji || '📌', esc(ccLbl2)) + '</th>';
+  if (asgSrcCol) html += '<th>🎯 과제</th>';
   html += '</tr></thead><tbody>';
 
   preview.forEach(row => {
@@ -2381,6 +2525,10 @@ function updatePreview(rows) {
       } else {
         const cc = String(row[mapping.customCol] || ''); html += '<td>' + esc(cc.length > 30 ? cc.slice(0,30) + '...' : cc) + '</td>';
       }
+    }
+    if (asgSrcCol) {
+      var asgVal = String(row[asgSrcCol] || '').trim();
+      html += '<td style="color:' + (asgVal ? '#9966ff' : 'var(--t3)') + '">' + (asgVal ? esc(asgVal.length > 30 ? asgVal.slice(0,30) + '...' : asgVal) : '<span style="opacity:.4">(빈 셀)</span>') + '</td>';
     }
     html += '</tr>';
   });
@@ -2500,6 +2648,8 @@ function applyMapping() {
           item.customColMission = true;
         });
       }
+      populateAssignmentFromRows(tab, pendingRows); // v1.9 Part 2: 과제 컬럼 추가/제거 토글 반영
+      applyMissionTextRule(tab); // v1.9: "과제" 미션 탭은 빈 셀 미션 해제
     } else {
       // Sheets tab: overwrite with new mapping, preserve notes/tags
       window._isRemapOverwrite = true;
@@ -2588,6 +2738,9 @@ function finishApplyMapping(normalized, mapping, mode) {
     var tab = getActiveTab();
     var group = tab ? tab.group || '' : '';
     allTabs.push({ id: tabId, name: tabName, group: group, data: normalized, sheetsUrl: (pendingSource === 'sheets' ? (pendingRawUrl || '') : ''), fileSource: (pendingSource === 'upload' || pendingSource === 'multisheet' || pendingSource === 'modal'), readMap: {}, starSet: [], dateLabel: customDateLabel, hideDateCol: !mapping.date, hideCcCol: !mapping.customCol, ccLabel: customCcLabel, ccEmoji: customCcEmoji, columnMap: mapping, missionMode: _mapMission });
+    var _newTab = allTabs[allTabs.length - 1];
+    populateAssignmentFromRows(_newTab, pendingRows); // v1.9 Part 2: 과제 컬럼 활성화 시 데이터 채우기
+    applyMissionTextRule(_newTab); // v1.9: "과제" 미션 탭은 빈 셀 미션 해제
     saveToStorage();
     autoAdjustCcEnabled();
     renderTabs();
@@ -2641,12 +2794,16 @@ function finishApplyMapping(normalized, mapping, mode) {
             if (old.customCol && !item.customCol) item.customCol = old.customCol;
             if (old.customColMission) { item.customColMission = old.customColMission; item.missionDone = old.missionDone || false; }
           }
+          // v1.9 Part 2: assignmentDone 보존 (assignment 텍스트는 매핑 단계에서 다시 채움)
+          if (typeof old.assignmentDone === 'boolean') item.assignmentDone = old.assignmentDone;
         }
       });
     }
     window._isRemapOverwrite = false;
 
     tab.data = normalized;
+    populateAssignmentFromRows(tab, pendingRows); // v1.9 Part 2: 과제 컬럼 데이터 갱신/토글 반영
+    applyMissionTextRule(tab); // v1.9: "과제" 미션 탭은 빈 셀 미션 해제 (머지 후)
 
     if (pendingSource === 'sheets' && pendingRawUrl) {
       tab.sheetsUrl = pendingRawUrl;
@@ -2722,6 +2879,8 @@ function normalizeWithMapping(rawRows, mapping) {
         customCol: customCol,
         customColMission: _mapMission ? true : false,
         missionDone: false,
+        assignment: '',         // v1.9 Part 2: 매핑 후 채워짐
+        assignmentDone: false,
         key: (url || title + '|' + date).trim()
       };
     });
@@ -2903,6 +3062,115 @@ function detectColumnMapping(headers) {
   }
 
   return result;
+}
+
+// v1.9: ccLabel이 정확히 "과제"인지 판별
+function isAssignmentColumn(tab) {
+  return !!(tab && (tab.ccLabel || '').trim() === '과제');
+}
+
+// v1.9: 미션 모드 ON + "과제" 컬럼인 탭에서만, 텍스트 없는 항목의 미션 플래그 해제
+// "필사", "마인드맵" 등 다른 ccLabel 탭은 영향 없음 — 빈 셀도 체크박스 유지.
+function applyMissionTextRule(tab) {
+  if (!tab || !Array.isArray(tab.data)) return;
+  if (!tab.missionMode) return;
+  if (!isAssignmentColumn(tab)) return;
+  tab.data.forEach(function(item) {
+    var hasText = !!(item.customCol && String(item.customCol).trim());
+    if (!hasText) {
+      if (item.customColMission) item.customColMission = false;
+      if (item.missionDone) item.missionDone = false;
+    }
+  });
+}
+
+// v1.9 Part 2: "과제" 별도 컬럼 헬퍼들
+var ASSIGNMENT_KEYWORD = '과제';
+
+function detectAssignmentHeader(headers) {
+  if (!Array.isArray(headers)) return null;
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i] || '').replace(/^﻿/, '').trim();
+    if (h === ASSIGNMENT_KEYWORD) return headers[i];
+  }
+  return null;
+}
+
+function hasAssignmentEnabled(tab) {
+  return !!(tab && tab.hasAssignment);
+}
+
+function getTabAssignmentLabel(tab) { return (tab && tab.assignmentLabel) || '과제'; }
+function getTabAssignmentEmoji(tab) { return (tab && tab.assignmentEmoji) || '🎯'; }
+
+function isAssignmentVisible() {
+  if (activeTabId === 'tab_favorites') {
+    return allTabs.some(function(t){ return t.id !== 'tab_favorites' && hasAssignmentEnabled(t); });
+  }
+  var tab = getActiveTab();
+  return hasAssignmentEnabled(tab);
+}
+
+// v1.9 Part 2: _mapAssignment 플래그 + rows에서 과제 데이터를 탭에 채워넣기.
+// 이미 hasAssignment=true이고 사용자가 체크 해제했으면 비활성화.
+function populateAssignmentFromRows(tab, rows) {
+  if (!tab) return;
+  var headers = (rows && rows.length) ? Object.keys(rows[0]) : [];
+  var asgHeader = detectAssignmentHeader(headers);
+
+  if (_mapAssignment && asgHeader) {
+    // 활성화 (또는 유지)
+    tab.hasAssignment = true;
+    tab.assignmentLabel = '과제';
+    tab.assignmentSourceCol = asgHeader;
+    tab.assignmentEmoji = '🎯';
+    // 행 데이터를 그대로 매핑 (인덱스 기반 — normalize 직후 호출 가정)
+    if (Array.isArray(tab.data)) {
+      tab.data.forEach(function(item, i) {
+        var raw = rows[i] ? rows[i][asgHeader] : '';
+        item.assignment = String(raw == null ? '' : raw).trim();
+        if (typeof item.assignmentDone !== 'boolean') item.assignmentDone = false;
+      });
+    }
+  } else if (hasAssignmentEnabled(tab) && !_mapAssignment) {
+    // 사용자가 매핑 UI에서 체크 해제 → 비활성화 (데이터는 보존)
+    tab.hasAssignment = false;
+  }
+}
+
+// v1.9 Part 2: 동기화 머지 후 (overwrite) — 헤더에서 과제 컬럼 다시 찾고 갱신
+function refreshAssignmentOnMerge(tab, rows) {
+  if (!tab) return;
+  if (!hasAssignmentEnabled(tab) && !_mapAssignment) return;
+  populateAssignmentFromRows(tab, rows);
+}
+
+// v1.9 Part 2: 테이블/즐겨찾기 행에서 과제 셀 렌더 (체크박스 + 텍스트, 텍스트 없으면 빈 셀)
+function renderAssignmentCell(r, opts) {
+  opts = opts || {};
+  var readOnly = !!opts.readOnly;
+  var hasText = !!(r.assignment && String(r.assignment).trim());
+  var done = !!r.assignmentDone;
+  if (!hasText) {
+    return '<td class="td-asg"></td>';
+  }
+  var clickAttr = readOnly ? ' style="pointer-events:none"' : ' onclick="event.stopPropagation();toggleAssignmentDone(' + r.num + ')"';
+  var dblAttr = readOnly ? '' : ' ondblclick="openMiniEdit(' + r.num + ',\'assignment\')"';
+  var chk = '<div class="mission-chk asg-chk' + (done ? ' done' : '') + '"' + clickAttr + '>' + (done ? '✓' : '') + '</div>';
+  var label = '<div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (done ? ' done' : '') + '"' + dblAttr + '>' + esc(r.assignment) + '</span><span class="note-tip-popup">' + esc(r.assignment) + '</span></div>';
+  return '<td class="td-asg"><div class="cc-cell">' + chk + label + '</div></td>';
+}
+
+// v1.9 Part 2: 과제 완료 토글 (텍스트 있을 때만)
+function toggleAssignmentDone(num) {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var item = tab.data.find(function(d){ return d.num === num; });
+  if (!item || !item.assignment || !String(item.assignment).trim()) return;
+  item.assignmentDone = !item.assignmentDone;
+  throttledSave();
+  renderTable();
+  if (typeof renderProgress === 'function') renderProgress();
 }
 
 // =============================================
@@ -3312,6 +3580,9 @@ function doManualAdd() {
 
   const customCol = $('manCustomCol') ? $('manCustomCol').value.trim() : '';
   const customColMission = window._manMission || false;
+  // v1.9 Part 2: 수기 추가의 과제 필드
+  const manAssignmentText = (hasAssignmentEnabled(tab) && $('manAssignment')) ? $('manAssignment').value.trim() : '';
+  const manAssignmentDoneVal = (hasAssignmentEnabled(tab) && manAssignmentText) ? !!window._manAsgDone : false;
 
   // Parse tags
   var manTagRaw = $('manTags') ? $('manTags').value.trim() : '';
@@ -3330,6 +3601,8 @@ function doManualAdd() {
     customCol: customCol,
     customColMission: customColMission,
     missionDone: false,
+    assignment: manAssignmentText,
+    assignmentDone: manAssignmentDoneVal,
     tags: manTags,
     key: (url || title + '|' + date).trim()
   };
@@ -3354,8 +3627,10 @@ function doManualAdd() {
   $('manDate').value = '';
   $('manNotes').value = '';
   if ($('manCustomCol')) $('manCustomCol').value = '';
+  if ($('manAssignment')) $('manAssignment').value = '';
   if ($('manTags')) $('manTags').value = '';
   window._manMission = false; updateManMissionBtn();
+  window._manAsgDone = false; updateManAsgDoneBtn();
   // Keep category for quick multi-add
 }
 
@@ -3597,6 +3872,18 @@ function fetchSheetsForSync(sheetId, tab) {
         freshData = normalizeRows(freshRows);
       }
 
+      // v1.9 Part 2: 과제 컬럼 감지 — sync modal에서 옵션으로 제공 또는 기존 활성 시 데이터 갱신
+      var syncAsgHeader = detectAssignmentHeader(cols);
+      window._syncAsgHeader = syncAsgHeader;        // 헤더명 (없으면 null)
+      window._syncFreshRows = freshRows;             // assignment 값 추출용
+      // 새 항목들에 assignment 텍스트 채워넣기 (탭 활성 또는 옵트인 시 사용)
+      if (syncAsgHeader) {
+        freshData.forEach(function(item, i) {
+          item.assignment = String((freshRows[i] && freshRows[i][syncAsgHeader]) || '').trim();
+          if (typeof item.assignmentDone !== 'boolean') item.assignmentDone = false;
+        });
+      }
+
       // Build lookup by title (lowercase)
       var localByTitle = {};
       tab.data.forEach(function(d) {
@@ -3650,10 +3937,38 @@ function showSyncModal(allItems, sheetTotal, localTotal) {
   var dupeCount = allItems.filter(function(x) { return x.status === 'title_dupe'; }).length;
   var identicalCount = allItems.filter(function(x) { return x.status === 'identical'; }).length;
 
+  // v1.9 Part 2: 과제 컬럼 옵트인/안내 노티스 (sync modal 상단)
+  var tabForSync = getActiveTab();
+  var asgHeaderFound = window._syncAsgHeader || null;
+  var asgAlreadyOn = hasAssignmentEnabled(tabForSync);
+  var asgNoticeHtml = '';
+  if (asgHeaderFound && !asgAlreadyOn) {
+    // 옵트인 가능
+    asgNoticeHtml = '<div id="syncAsgNotice" style="margin-bottom:14px;padding:12px 14px;border-radius:var(--rs);background:rgba(153,102,255,.08);border:1px solid rgba(153,102,255,.3)">' +
+      '<div style="font-size:13px;color:var(--t1);font-weight:600;margin-bottom:4px">📋 "과제" 컬럼이 발견됐어요</div>' +
+      '<div style="font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:8px">추가 항목과 별도로 과제 전용 컬럼을 만들 수 있어요. 텍스트 있는 셀만 체크박스로 표시됩니다.</div>' +
+      '<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t1);cursor:pointer;user-select:none">' +
+      '<input type="checkbox" id="syncAddAssignmentChk" style="accent-color:#9966ff"> 과제 컬럼 추가하기' +
+      '</label>' +
+      '</div>';
+  } else if (asgHeaderFound && asgAlreadyOn) {
+    // 이미 활성 — 자동 갱신 안내만
+    asgNoticeHtml = '<div style="margin-bottom:14px;padding:10px 14px;border-radius:var(--rs);background:rgba(153,102,255,.06);border:1px solid rgba(153,102,255,.2);font-size:11px;color:var(--t3);line-height:1.6">' +
+      '📋 "과제" 컬럼 데이터도 함께 갱신됩니다 (체크 상태는 그대로 유지).' +
+      '</div>';
+  }
+
   if (newCount === 0 && dupeCount === 0) {
     $('syncStatus').textContent = '✅ 이미 최신 상태입니다! (Sheets: ' + sheetTotal + '개, 로컬: ' + localTotal + '개)';
-    $('syncList').innerHTML = '';
-    $('syncApplyBtn').style.display = 'none';
+    // 과제 옵트인은 항목 변경 없어도 가능해야 함 — 노티스 보이고, 적용 버튼 노출
+    if (asgHeaderFound && !asgAlreadyOn) {
+      $('syncList').innerHTML = asgNoticeHtml;
+      $('syncApplyBtn').style.display = '';
+      $('syncApplyBtn').textContent = '✅ 과제 컬럼 적용';
+    } else {
+      $('syncList').innerHTML = '';
+      $('syncApplyBtn').style.display = 'none';
+    }
     return;
   }
 
@@ -3663,8 +3978,9 @@ function showSyncModal(allItems, sheetTotal, localTotal) {
   if (identicalCount) summary += ' · ' + identicalCount + '개 동일(숨김)';
   $('syncStatus').innerHTML = summary;
   $('syncApplyBtn').style.display = '';
+  $('syncApplyBtn').textContent = '✅ 적용';
 
-  var html = '<span class="sync-select-all" onclick="toggleSyncAll()">전체 선택/해제</span>';
+  var html = asgNoticeHtml + '<span class="sync-select-all" onclick="toggleSyncAll()">전체 선택/해제</span>';
 
   // Show new items first, then title dupes
   allItems.forEach(function(x, i) {
@@ -3699,6 +4015,17 @@ function applySyncItems() {
   const tab = getActiveTab();
   if (!tab) return;
 
+  // v1.9 Part 2: 과제 컬럼 옵트인 처리
+  var asgHeader = window._syncAsgHeader || null;
+  var asgOptInChk = $('syncAddAssignmentChk');
+  var optInAsg = !!(asgOptInChk && asgOptInChk.checked);
+  if (optInAsg && asgHeader && !hasAssignmentEnabled(tab)) {
+    tab.hasAssignment = true;
+    tab.assignmentLabel = '과제';
+    tab.assignmentSourceCol = asgHeader;
+    tab.assignmentEmoji = '🎯';
+  }
+
   const cbs = document.querySelectorAll('.sync-cb:checked');
   let added = 0;
   cbs.forEach(cb => {
@@ -3711,12 +4038,41 @@ function applySyncItems() {
     }
   });
 
-  if (added > 0) {
+  // v1.9 Part 2: 활성된 과제 컬럼이면 기존 항목들의 assignment 텍스트도 갱신 (제목 매칭)
+  // assignmentDone 상태는 그대로 유지.
+  if (hasAssignmentEnabled(tab) && asgHeader && Array.isArray(window._syncFreshRows)) {
+    var asgByTitle = {};
+    window._syncFreshRows.forEach(function(row) {
+      var titleField = (tab.columnMap && tab.columnMap.title) ? row[tab.columnMap.title] : (row.title || row['제목'] || row['Title']);
+      var titleKey = String(titleField || '').toLowerCase().trim();
+      if (!titleKey) return;
+      asgByTitle[titleKey] = String(row[asgHeader] == null ? '' : row[asgHeader]).trim();
+    });
+    tab.data.forEach(function(item) {
+      var k = String(item.title || '').toLowerCase().trim();
+      if (k in asgByTitle) {
+        item.assignment = asgByTitle[k];
+        if (!item.assignment) item.assignmentDone = false;
+      } else {
+        if (typeof item.assignment !== 'string') item.assignment = '';
+        if (typeof item.assignmentDone !== 'boolean') item.assignmentDone = false;
+      }
+    });
+  }
+
+  var msg = '';
+  if (added > 0) msg = '✅ ' + added + '개 추가됨';
+  if (optInAsg) msg = msg ? msg + ' · 📋 과제 컬럼 추가됨' : '📋 과제 컬럼 추가됨';
+  if (added > 0 || optInAsg || hasAssignmentEnabled(tab)) {
     saveToStorage();
     showDashboard(true);
     renderAll();
-    toast('✅ ' + added + '개 추가됨', 'ok');
+    if (msg) toast(msg, 'ok');
   }
+
+  // Cleanup
+  window._syncAsgHeader = null;
+  window._syncFreshRows = null;
 
   closeSyncModal();
 }
@@ -3724,6 +4080,9 @@ function applySyncItems() {
 function closeSyncModal() {
   $('syncModalBg').classList.remove('open');
   syncAllItems = [];
+  // v1.9 Part 2: 동기화 일회성 상태 정리
+  window._syncAsgHeader = null;
+  window._syncFreshRows = null;
 }
 
 // =============================================
@@ -3942,6 +4301,20 @@ function editItem(num) {
   $('editCustomCol').value = item.customCol || '';
   window._editMission = item.customColMission || false;
   updateEditMissionBtn();
+  // v1.9 Part 2: 과제 섹션 표시/값 채우기
+  var asgSec = $('editAssignmentSection');
+  if (asgSec) {
+    if (hasAssignmentEnabled(tab)) {
+      asgSec.style.display = '';
+      var asgLbl = $('editAssignmentLabel');
+      if (asgLbl) asgLbl.textContent = emojiLabel(getTabAssignmentEmoji(tab), getTabAssignmentLabel(tab));
+      $('editAssignment').value = item.assignment || '';
+      window._editAssignmentDone = !!item.assignmentDone;
+      updateEditAssignmentDoneBtn();
+    } else {
+      asgSec.style.display = 'none';
+    }
+  }
   $('editTags').value = (item.tags || []).join(' ');
   $('editNum').value = num;
 
@@ -4173,6 +4546,12 @@ function saveEdit() {
   item.customCol = $('editCustomCol').value.trim();
   item.customColMission = window._editMission || false;
   if (!item.customColMission) item.missionDone = false;
+  // v1.9 Part 2: 과제 필드 저장 (탭에 활성된 경우만)
+  if (hasAssignmentEnabled(tab)) {
+    item.assignment = ($('editAssignment') ? $('editAssignment').value.trim() : '') || '';
+    item.assignmentDone = window._editAssignmentDone || false;
+    if (!item.assignment) item.assignmentDone = false;
+  }
   // Parse tags: accept with or without #
   var tagRaw = $('editTags').value.trim();
   if (tagRaw) {
@@ -4223,6 +4602,16 @@ function openMiniEdit(num, mode) {
     $('miniCc').value = item.customCol || '';
     window._miniMission = isMission;
     setTimeout(function() { updateMiniMissionBtn(); }, 0);
+  } else if (mode === 'assignment') {
+    // v1.9 Part 2: 과제 편집 모드
+    $('miniEditTitle').textContent = '🎯 ' + getTabAssignmentLabel(tab) + ' 편집';
+    var isDone = !!item.assignmentDone;
+    body.innerHTML = '<textarea id="miniAsg" rows="2" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;margin-bottom:8px;resize:vertical;line-height:1.6" placeholder="과제 내용 (예: Chapter 5 요약 정리)"></textarea>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div id="miniAsgDoneToggle" onclick="toggleMiniAsgDone()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none"><span id="miniAsgDoneChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span> ✓ 완료</div></div>' +
+      '<div style="font-size:10px;color:var(--t3)">🎯 텍스트 있을 때만 완료 체크 가능</div>';
+    $('miniAsg').value = item.assignment || '';
+    window._miniAsgDone = isDone;
+    setTimeout(function() { updateMiniAsgDoneBtn(); }, 0);
   }
   $('miniEditBg').classList.add('open');
   var firstInput = body.querySelector('input,textarea');
@@ -4248,6 +4637,26 @@ function updateMiniMissionBtn() {
   chk.style.color = '#000';
 }
 
+// v1.9 Part 2: 미니 편집의 과제 완료 토글
+function toggleMiniAsgDone() {
+  window._miniAsgDone = !window._miniAsgDone;
+  updateMiniAsgDoneBtn();
+}
+
+function updateMiniAsgDoneBtn() {
+  var on = window._miniAsgDone;
+  var btn = $('miniAsgDoneToggle');
+  var chk = $('miniAsgDoneChk');
+  if (!btn) return;
+  btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
+  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
+  btn.style.color = on ? '#9966ff' : '#888';
+  chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
+  chk.style.background = on ? '#9966ff' : 'transparent';
+  chk.textContent = on ? '✓' : '';
+  chk.style.color = '#fff';
+}
+
 function closeMiniEdit() {
   $('miniEditBg').classList.remove('open');
   _miniEditMode = '';
@@ -4270,6 +4679,11 @@ function saveMiniEdit() {
     item.customCol = $('miniCc').value.trim();
     item.customColMission = window._miniMission || false;
     if (!item.customColMission) item.missionDone = false;
+  } else if (_miniEditMode === 'assignment') {
+    // v1.9 Part 2: 과제 편집 저장
+    item.assignment = ($('miniAsg') ? $('miniAsg').value.trim() : '') || '';
+    item.assignmentDone = window._miniAsgDone || false;
+    if (!item.assignment) item.assignmentDone = false;
   }
   saveToStorage();
   closeMiniEdit();
@@ -4380,12 +4794,24 @@ function renderProgress() {
   // Check if any mission exists (and cc column is visible)
   var missionItems = (!tab.hideCcCol) ? tab.data.filter(function(r) { return r.customColMission; }) : [];
   var hasMissions = (!tab.hideCcCol) && (tab.missionMode || missionItems.length > 0);
+  // v1.9 Part 2: 과제 진행률 옵션 표시 조건
+  var hasAsg = hasAssignmentEnabled(tab);
   var modeSelect = $('progModeSelect');
-  modeSelect.style.display = hasMissions ? '' : 'none';
+  modeSelect.style.display = (hasMissions || hasAsg) ? '' : 'none';
   // Update dropdown text with ccLabel
   var missionOpt = modeSelect.querySelector('option[value="mission"]');
-  if (missionOpt) missionOpt.textContent = getTabCcEmoji(tab) + ' ' + getTabCcLabel(tab) + ' 진행률';
-  if (!hasMissions) modeSelect.value = 'read';
+  if (missionOpt) {
+    missionOpt.textContent = getTabCcEmoji(tab) + ' ' + getTabCcLabel(tab) + ' 진행률';
+    missionOpt.style.display = hasMissions ? '' : 'none';
+  }
+  var asgOpt = $('progModeAssignmentOpt');
+  if (asgOpt) {
+    asgOpt.textContent = getTabAssignmentEmoji(tab) + ' ' + getTabAssignmentLabel(tab) + ' 진행률';
+    asgOpt.style.display = hasAsg ? '' : 'none';
+  }
+  // 모드 자동 리셋: 현재 선택된 모드가 가용하지 않으면 read로
+  if (modeSelect.value === 'mission' && !hasMissions) modeSelect.value = 'read';
+  if (modeSelect.value === 'assignment' && !hasAsg) modeSelect.value = 'read';
 
   var mode = modeSelect.value;
   var pct, done, mTotal, ringColor, subLabel;
@@ -4401,6 +4827,19 @@ function renderProgress() {
     $('ringSub').textContent = subLabel;
     $('progText').textContent = done + ' / ' + mTotal + ' 미션/과제 완료';
     $('progDesc').textContent = mTotal - done === 0 ? '🎉 미션/과제 클리어!' : (mTotal - done) + '개 남음';
+  } else if (mode === 'assignment') {
+    // v1.9 Part 2: 과제 진행률 — 텍스트 있는 행만 카운트
+    var asgItems = (tab.data || []).filter(function(r) { return r.assignment && String(r.assignment).trim(); });
+    mTotal = asgItems.length;
+    done = asgItems.filter(function(r) { return r.assignmentDone; }).length;
+    pct = mTotal ? Math.round(done / mTotal * 100) : 0;
+    ringColor = '#9966ff';
+    subLabel = getTabAssignmentLabel(tab);
+    $('ringPct').textContent = pct + '%';
+    $('ringPct').style.color = ringColor;
+    $('ringSub').textContent = subLabel;
+    $('progText').textContent = done + ' / ' + mTotal + ' ' + getTabAssignmentLabel(tab) + ' 완료';
+    $('progDesc').textContent = mTotal === 0 ? '아직 등록된 과제가 없어요' : (mTotal - done === 0 ? '🎉 ' + getTabAssignmentLabel(tab) + ' 클리어!' : (mTotal - done) + '개 남음');
   } else {
     pct = total ? Math.round(readCount / total * 100) : 0;
     done = readCount;
@@ -4498,7 +4937,14 @@ function getFilteredData() {
     if (catVal && r.category !== catVal) return false;
     if (readVal === 'read' && !isRead(r.key)) return false;
     if (readVal === 'unread' && isRead(r.key)) return false;
-    if (search && !r.title.toLowerCase().includes(search) && !r.category.toLowerCase().includes(search) && !(r.customCol && r.customCol.toLowerCase().includes(search)) && !(r.tags && r.tags.some(function(t){ return t.toLowerCase().includes(search); }))) return false;
+    // v1.9 후속: 과제 전용 필터 드롭다운
+    var asgFilterVal = $('assignmentFilter') ? $('assignmentFilter').value : '';
+    if (asgFilterVal) {
+      var hasAsgText = !!(r.assignment && String(r.assignment).trim());
+      if (asgFilterVal === 'pending' && !(hasAsgText && !r.assignmentDone)) return false;
+      if (asgFilterVal === 'done' && !(hasAsgText && r.assignmentDone)) return false;
+    }
+    if (search && !r.title.toLowerCase().includes(search) && !r.category.toLowerCase().includes(search) && !(r.customCol && r.customCol.toLowerCase().includes(search)) && !(r.assignment && String(r.assignment).toLowerCase().includes(search)) && !(r.tags && r.tags.some(function(t){ return t.toLowerCase().includes(search); }))) return false;
     return true;
   });
 
@@ -4529,6 +4975,16 @@ function renderTable() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if (currentPage > totalPages) currentPage = totalPages;
 
+  // v1.9 후속: 즐겨찾기에서 출처 클릭으로 이동 시, 해당 항목이 포함된 페이지로 점프
+  if (window._pendingScrollKey) {
+    var _pk = window._pendingScrollKey;
+    var _idx = -1;
+    for (var _i = 0; _i < filtered.length; _i++) {
+      if (filtered[_i].key === _pk) { _idx = _i; break; }
+    }
+    if (_idx >= 0) currentPage = Math.floor(_idx / PAGE_SIZE) + 1;
+  }
+
   const start = (currentPage - 1) * PAGE_SIZE;
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
@@ -4554,7 +5010,7 @@ function renderTable() {
     if (r.tags && r.tags.length > 0) {
       tagIcon = ' <span class="note-tip-wrap" onclick="openMiniEdit(' + r.num + ',\'tags\')" style="cursor:pointer"><span class="note-tip-icon">🏷️</span><span class="note-tip-popup">' + r.tags.map(function(t){return esc(t);}).join(', ') + '</span></span>';
     }
-    return `<tr class="${rd ? 'read-row' : ''}">
+    return `<tr class="${rd ? 'read-row' : ''}" data-key="${esc(r.key)}">
       <td><div class="chk ${rd ? 'on' : ''}" onclick="toggleRead('${escKey(r.key)}')"></div></td>
       <td><div class="star ${isStarred(r.key) ? 'on' : ''}" onclick="toggleStar('${escKey(r.key)}')">${isStarred(r.key) ? '★' : '☆'}</div></td>
       <td class="td-n">${r.num}</td>
@@ -4562,6 +5018,7 @@ function renderTable() {
       <td class="td-ti">${titleHtml}</td>
       ${isDateVisible() ? '<td class="td-dt">' + formatDate(r.date) + '</td>' : ''}
       ${isCcVisible() ? '<td class="td-cc">' + (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" onclick="event.stopPropagation();missionClick(' + r.num + ')" ondblclick="event.stopPropagation();missionDblClick(' + r.num + ')">' + (r.missionDone ? '✓' : '') + '</div>' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '') + '</div>' : (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner" ondblclick="openMiniEdit(' + r.num + ',\'mission\')">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '<span class="td-cc-add" onclick="openMiniEdit(' + r.num + ',\'mission\')">+ 추가</span>')) + '</td>' : ''}
+      ${isAssignmentVisible() ? renderAssignmentCell(r) : ''}
       <td class="td-act" id="act_${r.num}"><div class="act-wrap">${noteIcon}${tagIcon}<div class="act-btn" onclick="editItem(${r.num})">✏️</div><div class="act-btn act-del" onclick="deleteItem(${r.num})">✕</div></div></td>
     </tr>`;
   }).join('');
@@ -4585,6 +5042,23 @@ function renderTable() {
   [15,30,50].forEach(function(n) { html += '<option value="'+n+'"'+(PAGE_SIZE===n?' selected':'')+'>'+n+'개씩</option>'; });
   html += '</select>';
   pg.innerHTML = html;
+
+  // v1.9 후속: 즐겨찾기에서 점프해온 항목 스크롤 + 하이라이트
+  if (window._pendingScrollKey) {
+    var targetKey = window._pendingScrollKey;
+    window._pendingScrollKey = null;
+    setTimeout(function() {
+      var rows = document.querySelectorAll('#tableBody tr');
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].getAttribute('data-key') === targetKey) {
+          rows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          rows[i].classList.add('row-pulse');
+          setTimeout(function(el){ return function(){ el.classList.remove('row-pulse'); }; }(rows[i]), 2200);
+          break;
+        }
+      }
+    }, 80);
+  }
 }
 
 function goPage(p) {
@@ -4594,6 +5068,24 @@ function goPage(p) {
     var pg = $('pagination');
     if (pg) pg.scrollIntoView({ behavior: 'instant', block: 'nearest' });
   }, 0);
+}
+
+// v1.9 후속: 즐겨찾기 출처 클릭 → 해당 탭으로 이동 + 항목 위치로 스크롤
+function goToFavoriteSource(tabId, itemKey) {
+  if (!tabId || !itemKey) return;
+  // 필터 리셋 — 항목이 가려지지 않도록
+  var s = $('searchInput'); if (s) s.value = '';
+  var cf = $('catFilter'); if (cf) cf.value = '';
+  var rf = $('readFilter'); if (rf) rf.value = '';
+  var af = $('assignmentFilter'); if (af) af.value = '';
+  // 스크롤 대상 키 설정 (renderTable에서 처리)
+  window._pendingScrollKey = itemKey;
+  if (tabId !== activeTabId) {
+    switchTab(tabId);  // 자동으로 renderAll → renderTable 호출됨
+  } else {
+    currentPage = 1; // 페이지 보정 후 renderTable이 다시 계산
+    renderTable();
+  }
 }
 function changePageSize(n) { PAGE_SIZE = n; currentPage = 1; favCurrentPage = 1; renderTable(); }
 function getPageRange(cur, total) {
@@ -4610,7 +5102,7 @@ function populateFilters() {
   const tab = getActiveTab();
   if (!tab) return;
   const cats = [...new Set(tab.data.map(r => r.category))].sort();
-  $('catFilter').innerHTML = '<option value="">전체</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  $('catFilter').innerHTML = '<option value="">📁 카테고리 전체</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
 function renderCharts() {
@@ -4911,7 +5403,7 @@ function renderKnowledgeGraph() {
       var itemTags = [];
       if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
       if (itemTags.length > 0) {
-        articles.push({ id: articles.length, title: d.title, tags: itemTags, tabName: tab.name, tabId: tab.id, num: d.num });
+        articles.push({ id: articles.length, title: d.title, tags: itemTags, tabName: tab.name, tabId: tab.id, num: d.num, url: d.url || '' });
         itemTags.forEach(function(t) { allTagSet[t] = (allTagSet[t] || 0) + 1; });
       }
     });
@@ -5199,7 +5691,9 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
     var tagsH = a.tags.map(function(t){return '<span style="background:'+tagColorMap[t]+'22;color:'+tagColorMap[t]+'">'+esc('#'+t)+'</span>';}).join('');
     listHtml += '<div class="kg-article'+hlc+'" onclick="kgClickArticle('+a.id+')">';
     var shortTab = a.tabName.length > 12 ? a.tabName.slice(0,12) + '...' : a.tabName;
-    listHtml += '<div style="font-size:11px;color:var(--t3);margin-bottom:3px"><span style="cursor:pointer;color:var(--gold);text-decoration:underline" onclick="event.stopPropagation();goToArticle(\''+a.tabId+'\','+a.num+')">'+esc(shortTab)+' #'+a.num+'</span></div>';
+    var aHasUrl = a.url && (a.url.indexOf('http') === 0 || a.url.indexOf('//') === 0);
+    var aSafeUrl = aHasUrl ? a.url.replace(/'/g, "\\'") : '';
+    listHtml += '<div style="font-size:11px;color:var(--t3);margin-bottom:3px"><span style="cursor:pointer;color:var(--gold);text-decoration:underline" title="' + (aHasUrl ? '새 창에서 URL 열기' : '해당 탭으로 이동') + '" onclick="event.stopPropagation();kgOpenArticle(\''+a.tabId+'\','+a.num+',\''+aSafeUrl+'\')">'+esc(shortTab)+' #'+a.num+'</span></div>';
     listHtml += '<div class="kg-a-title">'+esc(a.title)+'</div>';
     listHtml += '<div class="kg-a-tags">'+tagsH+'</div>';
     listHtml += '</div>';
@@ -5220,11 +5714,17 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
   if (kgSelectedTag) {
     var rel = articles.filter(function(a){return a.tags.indexOf(kgSelectedTag)>=0;});
     info = '<strong style="color:'+tagColorMap[kgSelectedTag]+'">#'+esc(kgSelectedTag)+'</strong> — '+rel.length+'개 아티클<br><br>';
-    rel.forEach(function(a){info+='• '+esc(a.title)+'<br>';});
+    rel.forEach(function(a){
+      var hasUrl = a.url && (a.url.indexOf('http') === 0 || a.url.indexOf('//') === 0);
+      var safeUrl = hasUrl ? a.url.replace(/'/g, "\\'") : '';
+      info += '• <span class="kg-info-link" onclick="kgOpenArticle(\''+a.tabId+'\','+a.num+',\''+safeUrl+'\')" title="' + (hasUrl ? '새 창에서 URL 열기' : '해당 탭으로 이동') + '">'+esc(a.title)+'</span><br>';
+    });
   } else if (kgSelectedArticle !== null) {
     var art = articles[kgSelectedArticle];
     if (art) {
-      info = '<strong style="color:#e8b830">'+esc(art.title)+'</strong><br>';
+      var artHasUrl = art.url && (art.url.indexOf('http') === 0 || art.url.indexOf('//') === 0);
+      var artSafeUrl = artHasUrl ? art.url.replace(/'/g, "\\'") : '';
+      info = '<strong class="kg-info-title" onclick="kgOpenArticle(\''+art.tabId+'\','+art.num+',\''+artSafeUrl+'\')" title="' + (artHasUrl ? '새 창에서 URL 열기' : '해당 탭으로 이동') + '">'+esc(art.title)+'</strong><br>';
       info += '<span style="font-size:10px;color:var(--t3)">'+esc(art.tabName)+'</span><br><br>';
       info += '태그: '+art.tags.map(function(t){return '<span style="color:'+tagColorMap[t]+'">#'+esc(t)+'</span>';}).join(' ')+'<br><br>';
       var conn = {};
@@ -5232,7 +5732,15 @@ function updateKgUI(articles, allKgTags, tagColorMap) {
       var connKeys = Object.keys(conn);
       if (connKeys.length > 0) {
         info += '🔗 연결된 아티클:<br>';
-        connKeys.forEach(function(cid){var ca=articles[parseInt(cid)];info+='• '+esc(ca.title)+' <span style="color:var(--t3)">('+conn[cid].map(function(t){return '#'+t;}).join(' ')+')</span><br>';});
+        connKeys.forEach(function(cid){
+          var ca = articles[parseInt(cid)];
+          var hasUrl = ca.url && (ca.url.indexOf('http') === 0 || ca.url.indexOf('//') === 0);
+          var safeUrl = hasUrl ? ca.url.replace(/'/g, "\\'") : '';
+          var tagsStr = '<span style="color:var(--t3)">('+conn[cid].map(function(t){return '#'+t;}).join(' ')+')</span>';
+          var tabBtn = '<span class="kg-info-btn" onclick="goToArticle(\''+ca.tabId+'\','+ca.num+')" title="해당 탭으로 이동">📑 탭</span>';
+          var linkBtn = hasUrl ? '<span class="kg-info-btn" onclick="window.open(\''+safeUrl+'\',\'_blank\',\'noopener,noreferrer\')" title="새 창에서 URL 열기">🔗 링크</span>' : '';
+          info += '• ' + esc(ca.title) + ' ' + tagsStr + ' ' + tabBtn + linkBtn + '<br>';
+        });
       } else { info += '연결된 아티클이 없어요'; }
     }
   } else {
@@ -5264,13 +5772,22 @@ function kgClickTag(t) {
   allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){
     var itemTags = [];
     if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
-    if(itemTags.length>0){articles.push({id:articles.length,title:d.title,tags:itemTags,tabName:tab.name,tabId:tab.id,num:d.num});itemTags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}
+    if(itemTags.length>0){articles.push({id:articles.length,title:d.title,tags:itemTags,tabName:tab.name,tabId:tab.id,num:d.num,url:d.url||''});itemTags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}
   });});
   var allKgTags = Object.keys(allTagSet).sort(function(a,b){return allTagSet[b]-allTagSet[a];});
   var tagColorMap = {};
   allKgTags.forEach(function(t2,i){tagColorMap[t2]=COLORS[i%COLORS.length];});
   updateKgUI(articles, allKgTags, tagColorMap);
 }
+// v1.9 후속: 마인드맵 항목 클릭 — URL 있으면 새 창, 없으면 기존 goToArticle
+function kgOpenArticle(tabId, num, url) {
+  if (url && (url.indexOf('http') === 0 || url.indexOf('//') === 0)) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    goToArticle(tabId, num);
+  }
+}
+
 function goToArticle(tabId, num) {
   history.replaceState({ page: 'mindmap' }, '');
   history.pushState({ page: 'article', tabId: tabId, num: num }, '');
@@ -5308,7 +5825,7 @@ function kgClickArticle(id) {
   allTabs.forEach(function(tab){if(tab.id==='tab_favorites')return;(tab.data||[]).forEach(function(d){
     var itemTags = [];
     if (d.tags && d.tags.length > 0) itemTags = itemTags.concat(d.tags);
-    if(itemTags.length>0){articles.push({id:articles.length,title:d.title,tags:itemTags,tabName:tab.name,tabId:tab.id,num:d.num});itemTags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}
+    if(itemTags.length>0){articles.push({id:articles.length,title:d.title,tags:itemTags,tabName:tab.name,tabId:tab.id,num:d.num,url:d.url||''});itemTags.forEach(function(t2){allTagSet[t2]=(allTagSet[t2]||0)+1;});}
   });});
   var allKgTags = Object.keys(allTagSet).sort(function(a,b){return allTagSet[b]-allTagSet[a];});
   var tagColorMap = {};
@@ -5909,6 +6426,8 @@ function renderFavoritesTable(page) {
           customCol: item.customCol || '',
           customColMission: item.customColMission || false,
           missionDone: item.missionDone || false,
+          assignment: item.assignment || '',
+          assignmentDone: item.assignmentDone || false,
           key: item.key,
           num: item.num
         });
@@ -5963,11 +6482,11 @@ function renderFavoritesTable(page) {
     var srcColor = COLORS[r.tabIdx % COLORS.length];
     return '<tr>' +
       '<td><div class="star on" onclick="unstarFromFav(\'' + r.tabId + '\',\'' + escKey(r.key) + '\')">★</div></td>' +
-      '<td><span class="fav-src" style="background:' + srcColor + '22;color:' + srcColor + ';border:1px solid ' + srcColor + '44">' + esc(r.tabName) + '</span></td>' +
+      '<td><span class="fav-src" onclick="goToFavoriteSource(\'' + r.tabId + '\',\'' + escKey(r.key) + '\')" title="' + esc(r.tabName) + ' 탭으로 이동" style="background:' + srcColor + '22;color:' + srcColor + ';border:1px solid ' + srcColor + '44;cursor:pointer">' + esc(r.tabName) + '</span></td>' +
       '<td style="text-align:center;color:var(--t3);font-size:13px">' + (r.num || '') + '</td>' +
       '<td><span class="td-c" title="' + esc(r.category) + '">' + esc(r.category) + '</span></td>' +
       '<td class="td-ti">' + titleHtml + '</td>' +
-      (isCcVisible() ? '<td class="td-cc">' + (r.customColMission ? '<div class="cc-cell"><div class="mission-chk' + (r.missionDone ? ' done' : '') + '" style="pointer-events:none">' + (r.missionDone ? '✓' : '') + '</div>' + (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><span class="td-cc-inner mission-label' + (r.missionDone ? ' done' : '') + '">' + esc(r.customCol) + '</span><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '') + '</div>' : (r.customCol ? '<div class="note-tip-wrap cc-tip-wrap"><div class="td-cc-inner">' + esc(r.customCol) + '</div><span class="note-tip-popup">' + esc(r.customCol) + '</span></div>' : '')) + '</td>' : '') +
+      (isAssignmentVisible() ? renderAssignmentCell(r, { readOnly: true }) : '') +
       '<td>' + noteHtml + '</td>' +
       '<td class="td-dt">' + formatDate(r.date) + '</td>' +
     '</tr>';
@@ -6017,6 +6536,66 @@ function resetAllData() {
 function toggleMobileMenu() {
   var panel = $('tabBarRight');
   panel.classList.toggle('open');
+}
+
+// v2.0: 탭 정리 모달 (모바일에서 드래그 못 쓰니 ↑↓ 버튼으로 재정렬)
+var TAB_REORDER_EXCLUDED = ['tab_favorites', 'tab_kg', 'tab_settings'];
+
+function openTabReorderModal() {
+  var menu = $('tabBarRight');
+  if (menu && menu.classList.contains('open')) menu.classList.remove('open');
+  renderTabReorderList();
+  $('tabReorderModalBg').classList.add('open');
+}
+
+function closeTabReorderModal() {
+  $('tabReorderModalBg').classList.remove('open');
+}
+
+function renderTabReorderList() {
+  var tabs = allTabs.filter(function(t) { return TAB_REORDER_EXCLUDED.indexOf(t.id) < 0; });
+  if (tabs.length === 0) {
+    $('tabReorderList').innerHTML = '<div style="color:var(--t3);font-size:13px;text-align:center;padding:24px">정리할 탭이 없어요</div>';
+    return;
+  }
+  var html = tabs.map(function(t, i) {
+    var isActive = t.id === activeTabId;
+    var upDisabled = i === 0 ? 'disabled' : '';
+    var downDisabled = i === tabs.length - 1 ? 'disabled' : '';
+    var safeId = String(t.id).replace(/'/g, "\\'");
+    return '<div class="tab-reorder-row' + (isActive ? ' active' : '') + '">' +
+      '<button class="tab-reorder-btn" ' + upDisabled + ' onclick="tabReorderMove(\'' + safeId + '\',-1)" title="위로">↑</button>' +
+      '<button class="tab-reorder-btn" ' + downDisabled + ' onclick="tabReorderMove(\'' + safeId + '\',1)" title="아래로">↓</button>' +
+      '<span class="tab-reorder-name" onclick="tabReorderJump(\'' + safeId + '\')" title="이 탭으로 이동">' +
+        (t.group ? '<span class="tab-reorder-group">📁 ' + esc(t.group) + '</span>' : '') +
+        esc(t.name) +
+        (isActive ? ' <span style="color:var(--gold);font-size:10px">(현재)</span>' : '') +
+      '</span>' +
+    '</div>';
+  }).join('');
+  $('tabReorderList').innerHTML = html;
+}
+
+function tabReorderMove(tabId, dir) {
+  var idx = allTabs.findIndex(function(t) { return t.id === tabId; });
+  if (idx < 0) return;
+  // 고정 탭 건너뛰기 — 정리 가능한 인접 탭 찾기
+  var swapIdx = idx + dir;
+  while (swapIdx >= 0 && swapIdx < allTabs.length && TAB_REORDER_EXCLUDED.indexOf(allTabs[swapIdx].id) >= 0) {
+    swapIdx += dir;
+  }
+  if (swapIdx < 0 || swapIdx >= allTabs.length) return;
+  var tmp = allTabs[idx];
+  allTabs[idx] = allTabs[swapIdx];
+  allTabs[swapIdx] = tmp;
+  saveToStorage();
+  renderTabs();
+  renderTabReorderList();
+}
+
+function tabReorderJump(tabId) {
+  closeTabReorderModal();
+  switchTab(tabId);
 }
 document.addEventListener('click', function(e) {
   var panel = $('tabBarRight');
@@ -6250,6 +6829,30 @@ function toggleMapMission() {
 }
 window._editMission = false;
 
+// v1.9 Part 2: 매핑 UI에서 "과제 컬럼 추가" 토글
+var _mapAssignment = false;
+
+function toggleMapAssignment() {
+  _mapAssignment = !_mapAssignment;
+  updateMapAssignmentUI();
+  // v1.9 Part 2: 토글 시 미리보기에 과제 컬럼 즉시 반영
+  if (pendingRows && pendingRows.length) updatePreview(pendingRows);
+}
+
+function updateMapAssignmentUI() {
+  var on = _mapAssignment;
+  var btn = $('mapAssignmentToggle');
+  var chk = $('mapAssignmentChk');
+  if (!btn) return;
+  btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
+  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
+  btn.style.color = on ? '#9966ff' : 'var(--t2)';
+  chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
+  chk.style.background = on ? '#9966ff' : 'transparent';
+  chk.textContent = on ? '✓' : '';
+  chk.style.color = '#fff';
+}
+
 function showImageLightbox(src) {
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
@@ -6316,6 +6919,27 @@ function updateEditMissionBtn() {
   if (hint) hint.textContent = on ? '✅ 미션/과제 활성 — 테이블에 체크박스 표시, 미션/과제 진행률에 반영' : '🎯 미션/과제 체크 시 테이블에 체크박스 표시, 미션/과제 진행률에 반영';
 }
 
+// v1.9 Part 2: 편집 모달의 과제 완료 토글
+window._editAssignmentDone = false;
+function toggleEditAssignmentDone() {
+  window._editAssignmentDone = !window._editAssignmentDone;
+  updateEditAssignmentDoneBtn();
+}
+
+function updateEditAssignmentDoneBtn() {
+  var on = window._editAssignmentDone;
+  var btn = $('editAssignmentDoneToggle');
+  var chk = $('editAssignmentDoneChk');
+  if (!btn) return;
+  btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
+  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
+  btn.style.color = on ? '#9966ff' : '#888';
+  chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
+  chk.style.background = on ? '#9966ff' : 'transparent';
+  chk.textContent = on ? '✓' : '';
+  chk.style.color = '#fff';
+}
+
 function toggleManMission() {
   window._manMission = !window._manMission;
   updateManMissionBtn();
@@ -6336,6 +6960,26 @@ function updateManMissionBtn() {
   // Update placeholder only
   var inp = $('manCustomCol');
   if (inp) inp.placeholder = on ? '미션/과제 내용 (예: Chapter 5 요약 정리)' : '메모, 페이지 수, 미션/과제 등 자유롭게...';
+}
+
+// v1.9 Part 2: 수기 추가의 과제 완료 토글
+window._manAsgDone = false;
+function toggleManAsgDone() {
+  window._manAsgDone = !window._manAsgDone;
+  updateManAsgDoneBtn();
+}
+function updateManAsgDoneBtn() {
+  var on = window._manAsgDone;
+  var btn = $('manAsgDoneToggle');
+  var chk = $('manAsgDoneChk');
+  if (!btn) return;
+  btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
+  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
+  btn.style.color = on ? '#9966ff' : '#888';
+  chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
+  chk.style.background = on ? '#9966ff' : 'transparent';
+  chk.textContent = on ? '✓' : '';
+  chk.style.color = '#fff';
 }
 
 function toggleKgMode(which) {
@@ -6397,6 +7041,13 @@ function updateManualLabels() {
   var ccRow = $('manCustomColRow');
   if (ccRow) {
     ccRow.style.display = (tab && tab.hideCcCol) ? 'none' : '';
+  }
+  // v1.9 Part 2: Show/hide assignment row based on tab.hasAssignment
+  var asgRow = $('manAssignmentRow');
+  if (asgRow) {
+    asgRow.style.display = hasAssignmentEnabled(tab) ? '' : 'none';
+    var asgLbl = $('manAssignmentLabel');
+    if (asgLbl) asgLbl.innerHTML = emojiLabel(getTabAssignmentEmoji(tab), esc(getTabAssignmentLabel(tab))) + ' <span style="font-size:10px;opacity:.6">(선택)</span>';
   }
 }
 
