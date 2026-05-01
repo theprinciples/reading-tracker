@@ -906,8 +906,6 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <select class="fsel" id="progModeSelect" onchange="renderProgress()" style="font-size:11px;padding:4px 8px;display:none">
             <option value="read">📖 읽음 진행률</option>
-            <option value="mission">🎯 미션/과제 진행률</option>
-            <option value="assignment" id="progModeAssignmentOpt" style="display:none">📋 과제 진행률</option>
           </select>
         </div>
         <div class="ring-c"><canvas id="ringCanvas"></canvas>
@@ -4798,16 +4796,29 @@ function renderProgress() {
   var hasAsg = hasAssignmentEnabled(tab);
   var modeSelect = $('progModeSelect');
   modeSelect.style.display = (hasMissions || hasAsg) ? '' : 'none';
-  // Update dropdown text with ccLabel
+  // v2.1 후속: <option style="display:none">은 Safari/Chrome에서 무시되므로 DOM에서 직접 추가/제거
   var missionOpt = modeSelect.querySelector('option[value="mission"]');
-  if (missionOpt) {
+  if (hasMissions) {
+    if (!missionOpt) {
+      missionOpt = document.createElement('option');
+      missionOpt.value = 'mission';
+      modeSelect.appendChild(missionOpt);
+    }
     missionOpt.textContent = getTabCcEmoji(tab) + ' ' + getTabCcLabel(tab) + ' 진행률';
-    missionOpt.style.display = hasMissions ? '' : 'none';
+  } else if (missionOpt) {
+    missionOpt.remove();
   }
-  var asgOpt = $('progModeAssignmentOpt');
-  if (asgOpt) {
+  var asgOpt = modeSelect.querySelector('option[value="assignment"]');
+  if (hasAsg) {
+    if (!asgOpt) {
+      asgOpt = document.createElement('option');
+      asgOpt.value = 'assignment';
+      asgOpt.id = 'progModeAssignmentOpt';
+      modeSelect.appendChild(asgOpt);
+    }
     asgOpt.textContent = getTabAssignmentEmoji(tab) + ' ' + getTabAssignmentLabel(tab) + ' 진행률';
-    asgOpt.style.display = hasAsg ? '' : 'none';
+  } else if (asgOpt) {
+    asgOpt.remove();
   }
   // 모드 자동 리셋: 현재 선택된 모드가 가용하지 않으면 read로
   if (modeSelect.value === 'mission' && !hasMissions) modeSelect.value = 'read';
