@@ -620,6 +620,10 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   <div style="background:rgba(79,140,255,.08);border:1px solid rgba(79,140,255,.28);border-radius:10px;padding:14px 16px;margin-bottom:12px">
     <div id="authStatusText" style="font-size:12px;color:var(--t2);line-height:1.7">로그인 상태를 확인하는 중...</div>
     <div id="authUserMeta" style="display:none;font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6"></div>
+    <div id="deviceNameSummaryRow" style="display:none;margin-top:10px;font-size:11px;color:var(--t3);line-height:1.6">
+      <span id="deviceNameSummaryText"></span>
+      <button class="btn btn-sm" onclick="beginEditDeviceName()" style="margin-left:8px;padding:6px 10px">이름 바꾸기</button>
+    </div>
     <div id="deviceNameRow" style="display:none;margin-top:10px">
       <div style="font-size:10px;color:var(--t3);margin-bottom:6px">이 기기 이름</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1288,8 +1292,10 @@ var firebaseBridge = null;
 var firebaseReady = false;
 var firebasePersistenceReady = null;
 var firebaseCurrentUser = null;
+var firebaseProfileIsSyncAdmin = false;
 var firebaseAuthBusy = false;
 var deviceSyncBusy = false;
+var deviceNameEditMode = false;
 var pendingDeviceConflictResolver = null;
 
 function getDeviceId() {
@@ -1338,6 +1344,10 @@ function setSavedDeviceName(name) {
     else localStorage.removeItem(DEVICE_NAME_KEY);
   } catch(e) {}
   return safe;
+}
+
+function isAdminSyncUser() {
+  return firebaseProfileIsSyncAdmin === true;
 }
 
 function cloneJson(obj) {
@@ -1565,6 +1575,8 @@ function updateAuthUI() {
   var metaEl = $('authUserMeta');
   var loginBtn = $('authLoginBtn');
   var logoutBtn = $('authLogoutBtn');
+  var deviceNameSummaryRow = $('deviceNameSummaryRow');
+  var deviceNameSummaryText = $('deviceNameSummaryText');
   var deviceNameRow = $('deviceNameRow');
   var deviceNameInput = $('deviceNameInput');
   var deviceNameSaveBtn = $('deviceNameSaveBtn');
@@ -1576,6 +1588,7 @@ function updateAuthUI() {
     statusEl.textContent = 'Firebase 연결을 준비하는 중입니다...';
     metaEl.style.display = 'none';
     metaEl.textContent = '';
+    if (deviceNameSummaryRow) deviceNameSummaryRow.style.display = 'none';
     if (deviceNameRow) deviceNameRow.style.display = 'none';
     loginBtn.disabled = true;
     loginBtn.style.display = '';
@@ -1592,6 +1605,7 @@ function updateAuthUI() {
     statusEl.textContent = '아직 로그인하지 않았습니다. 로그인하면 이 계정으로 기기 연동을 사용할 수 있어요.';
     metaEl.style.display = 'none';
     metaEl.textContent = '';
+    if (deviceNameSummaryRow) deviceNameSummaryRow.style.display = 'none';
     if (deviceNameRow) deviceNameRow.style.display = 'none';
     loginBtn.style.display = '';
     logoutBtn.style.display = 'none';
@@ -1610,9 +1624,13 @@ function updateAuthUI() {
     '계정: ' + esc(firebaseCurrentUser.email || firebaseCurrentUser.displayName || '알 수 없음') + '<br>' +
     '기기 이름: ' + esc(savedDeviceName || '아직 없음') + '<br>' +
     '로그인 상태: 이 브라우저에 유지됨';
-  if (deviceNameRow) deviceNameRow.style.display = 'block';
+  if (deviceNameSummaryRow) {
+    deviceNameSummaryRow.style.display = hasDeviceName && !deviceNameEditMode ? 'block' : 'none';
+    if (deviceNameSummaryText) deviceNameSummaryText.textContent = '현재 기기 이름: ' + savedDeviceName;
+  }
+  if (deviceNameRow) deviceNameRow.style.display = (!hasDeviceName || deviceNameEditMode) ? 'block' : 'none';
   if (deviceNameInput) {
-    deviceNameInput.value = savedDeviceName;
+    deviceNameInput.value = deviceNameEditMode ? savedDeviceName : '';
     deviceNameInput.placeholder = getSuggestedDeviceName();
     deviceNameInput.disabled = firebaseAuthBusy;
   }
@@ -1646,6 +1664,24 @@ async function writeFirebaseUserProfile(user) {
   await firebaseBridge.setDoc(profileRef, payload, { merge: true });
 }
 
+async function refreshFirebaseProfileRole(user) {
+  if (!firebaseBridge || !user) {
+    firebaseProfileIsSyncAdmin = false;
+    return null;
+  }
+  try {
+    var profileRef = firebaseBridge.doc(firebaseBridge.db, 'users', user.uid, 'profile', 'main');
+    var snap = await firebaseBridge.getDoc(profileRef);
+    var data = snap.exists() ? (snap.data() || {}) : {};
+    firebaseProfileIsSyncAdmin = data.isSyncAdmin === true;
+    return data;
+  } catch(err) {
+    console.error('Firebase profile role read failed:', err);
+    firebaseProfileIsSyncAdmin = false;
+    return null;
+  }
+}
+
 async function saveDeviceName() {
   var input = $('deviceNameInput');
   if (!input) return;
@@ -1656,6 +1692,7 @@ async function saveDeviceName() {
     return;
   }
   nextName = setSavedDeviceName(nextName);
+  deviceNameEditMode = false;
   input.value = nextName;
   updateAuthUI();
 
@@ -1673,14 +1710,33 @@ async function saveDeviceName() {
   refreshDeviceSyncSummary();
 }
 
+function beginEditDeviceName() {
+  deviceNameEditMode = true;
+  updateAuthUI();
+  setTimeout(function() {
+    var input = $('deviceNameInput');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 40);
+}
+
 function handleFirebaseAuthState(user) {
   firebaseCurrentUser = user || null;
+  if (!user) firebaseProfileIsSyncAdmin = false;
+  if (!user) deviceNameEditMode = false;
   updateAuthUI();
   refreshDeviceSyncSummary();
   if (!user) return;
 
   writeFirebaseUserProfile(user)
     .then(function() {
+      return refreshFirebaseProfileRole(user);
+    })
+    .then(function() {
+      updateAuthUI();
+      refreshDeviceSyncSummary();
       log('Firebase profile updated for ' + (user.uid || 'unknown'));
     })
     .catch(function(err) {
@@ -1689,6 +1745,7 @@ function handleFirebaseAuthState(user) {
     });
 
   if (!hasSavedDeviceName()) {
+    deviceNameEditMode = true;
     setTimeout(function() {
       var input = $('deviceNameInput');
       if (input) input.focus();
@@ -1788,6 +1845,10 @@ function setDeviceSyncBusyState(isBusy, statusText) {
   if (pushBtn) pushBtn.disabled = isBusy || !firebaseCurrentUser || !hasSavedDeviceName();
   if (loadBtn) loadBtn.disabled = isBusy || !firebaseCurrentUser || !hasSavedDeviceName();
   if (statusText && $('deviceSyncStatusText')) $('deviceSyncStatusText').textContent = statusText;
+}
+
+function getDailySyncLimitForCurrentUser() {
+  return isAdminSyncUser() ? Infinity : DAILY_CLOUD_SYNC_LIMIT;
 }
 
 function isEmptyValue(v) {
@@ -2050,8 +2111,9 @@ async function refreshDeviceSyncSummary() {
   var lastEl = $('deviceSyncLastText');
   var statusEl = $('deviceSyncStatusText');
   var meta = readCloudSyncMeta();
+  var dailyLimit = getDailySyncLimitForCurrentUser();
 
-  if (quotaEl) quotaEl.textContent = DAILY_CLOUD_SYNC_LIMIT + ' / ' + DAILY_CLOUD_SYNC_LIMIT;
+  if (quotaEl) quotaEl.textContent = dailyLimit === Infinity ? '무제한' : (DAILY_CLOUD_SYNC_LIMIT + ' / ' + DAILY_CLOUD_SYNC_LIMIT);
   if (lastEl) lastEl.textContent = meta.lastSyncedAtClient ? formatDateTimeLabel(meta.lastSyncedAtClient) : '아직 없음';
 
   if (!firebaseCurrentUser || !firebaseBridge) {
@@ -2068,11 +2130,13 @@ async function refreshDeviceSyncSummary() {
 
   try {
     var uid = firebaseCurrentUser.uid;
+    await refreshFirebaseProfileRole(firebaseCurrentUser);
+    dailyLimit = getDailySyncLimitForCurrentUser();
     var results = await Promise.all([fetchCloudUsage(uid), fetchCloudSnapshotDoc(uid)]);
     var usage = results[0];
     var cloudDoc = results[1];
-    var remaining = Math.max(0, DAILY_CLOUD_SYNC_LIMIT - (usage.syncCount || 0));
-    if (quotaEl) quotaEl.textContent = remaining + ' / ' + DAILY_CLOUD_SYNC_LIMIT;
+    var remaining = dailyLimit === Infinity ? Infinity : Math.max(0, DAILY_CLOUD_SYNC_LIMIT - (usage.syncCount || 0));
+    if (quotaEl) quotaEl.textContent = remaining === Infinity ? '무제한' : (remaining + ' / ' + DAILY_CLOUD_SYNC_LIMIT);
     if (lastEl) {
       if (cloudDoc && cloudDoc.updatedAtClient) {
         lastEl.innerHTML = formatDateTimeLabel(cloudDoc.updatedAtClient) + '<br>' + esc(cloudDoc.updatedByDeviceName || cloudDoc.updatedByDeviceId || '알 수 없는 기기');
@@ -2113,7 +2177,8 @@ async function getConflictPreference(summary, defaultPreference) {
 
 async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
   var usage = await fetchCloudUsage(uid);
-  if ((usage.syncCount || 0) >= DAILY_CLOUD_SYNC_LIMIT) {
+  var dailyLimit = getDailySyncLimitForCurrentUser();
+  if (dailyLimit !== Infinity && (usage.syncCount || 0) >= dailyLimit) {
     throw new Error('오늘의 클라우드 동기화 횟수를 모두 사용했어요.');
   }
 
