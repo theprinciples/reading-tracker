@@ -59,6 +59,17 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .tab-x:hover { opacity:1; color:var(--red); }
 .tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed #555; border-radius:var(--rs); cursor:pointer; margin-left:17px; margin-right:0; font-family:inherit; }
 .tab-add:hover { color:var(--gold); border-color:var(--gold); }
+.tab-util {
+  width:44px;
+  height:40px;
+  padding:0;
+  margin-left:6px !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  line-height:1;
+}
 .settings-tab { background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit; }
 .settings-tab.active { border-bottom-color:var(--gold); }
 .tab-arrow { background:var(--card); border:1px solid var(--bdr); border-radius:6px; color:var(--t3); cursor:pointer; font-size:9px; padding:4px 6px; flex-shrink:0; transition:.15s; font-family:inherit; }
@@ -460,6 +471,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   /* Tab bar - touch friendly */
   .tab { padding:10px 12px; font-size:12px; }
   .tab-add { padding:6px 8px; font-size:12px; border-style:dashed; border-color:var(--t3); }
+  .tab-util { width:44px; height:38px; padding:0; font-size:15px; }
 
   /* Mobile menu toggle */
   .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:center !important; gap:10px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
@@ -675,9 +687,9 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   <div style="display:flex;align-items:flex-end;gap:0;position:relative">
     <div class="tab-bar" id="tabBar" style="flex:1"></div>
     <div id="tabBarRight" class="tabbar-right" style="display:flex;align-items:flex-end;gap:2px;padding-bottom:12px;flex-shrink:0">
-      <button class="tab-add" id="tabAddBtn" onclick="openModal()" style="flex-shrink:0;margin-bottom:0">＋<span class="mobile-label"> 탭 추가</span></button>
+      <button class="tab-add tab-util" id="tabAddBtn" onclick="openModal()" style="flex-shrink:0;margin-bottom:0">＋<span class="mobile-label"> 탭 추가</span></button>
       <button class="tab-add" id="tabReorderBtn" onclick="openTabReorderModal()" style="flex-shrink:0;margin-bottom:0;margin-left:6px" title="탭 정리">🔀<span class="mobile-label"> 탭 정리</span></button>
-      <button class="tab-add" id="deviceSyncBtn" onclick="openDeviceSyncModal()" style="flex-shrink:0;margin-bottom:0;margin-left:6px" title="기기 연동">☁️<span class="mobile-label"> 기기 연동</span></button>
+      <button class="tab-add tab-util" id="deviceSyncBtn" onclick="openDeviceSyncModal()" style="flex-shrink:0;margin-bottom:0" title="기기 연동">☁️<span class="mobile-label"> 기기 연동</span></button>
       <button class="tab settings-tab" id="tabSettingsBtn" onclick="switchTab('tab_settings')" style="flex-shrink:0;opacity:0.75;font-size:18px;margin-bottom:-8px;padding-left:0;padding-right:1px;margin-left:12px" title="설정 / 도움말">⚙️<span class="mobile-label"> 설정</span></button>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:center;flex-shrink:0;margin-left:4px">
         <div id="themeSelector" style="display:flex;gap:6px;flex-shrink:0">
@@ -1245,7 +1257,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v2.1';
+const APP_VERSION = 'v3.0';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1266,6 +1278,7 @@ var CC_EMOJIS = [
 
 var firebaseBridge = null;
 var firebaseReady = false;
+var firebasePersistenceReady = null;
 var firebaseCurrentUser = null;
 var firebaseAuthBusy = false;
 var deviceSyncBusy = false;
@@ -1591,6 +1604,11 @@ function handleFirebaseAuthState(user) {
 window.initFirebaseBridge = function(bridge) {
   firebaseBridge = bridge;
   firebaseReady = true;
+  firebasePersistenceReady = firebaseBridge.setPersistence(firebaseBridge.auth, firebaseBridge.browserLocalPersistence)
+    .catch(function(err) {
+      console.error('Firebase persistence setup failed:', err);
+      return null;
+    });
   firebaseBridge.onAuthStateChanged(firebaseBridge.auth, handleFirebaseAuthState);
   updateAuthUI();
 };
@@ -1607,13 +1625,17 @@ async function signInWithGoogle() {
   firebaseAuthBusy = true;
   updateAuthUI();
   try {
-    await firebaseBridge.setPersistence(firebaseBridge.auth, firebaseBridge.browserLocalPersistence);
     var provider = new firebaseBridge.GoogleAuthProvider();
     await firebaseBridge.signInWithPopup(firebaseBridge.auth, provider);
     toast('✅ Google 로그인 성공', 'ok');
   } catch(err) {
     console.error('Google sign-in failed:', err);
-    toast('❌ 로그인 실패: ' + (err && err.message ? err.message : '알 수 없는 오류'), 'err');
+    var msg = '알 수 없는 오류';
+    if (err && err.code === 'auth/popup-blocked') msg = '브라우저가 로그인 창을 막았어요. 팝업 허용 후 다시 시도해 주세요.';
+    else if (err && err.code === 'auth/popup-closed-by-user') msg = '로그인 창이 닫혀서 취소되었어요.';
+    else if (err && err.code === 'auth/cancelled-popup-request') msg = '로그인 창 준비 중이에요. 잠시 후 다시 시도해 주세요.';
+    else if (err && err.message) msg = err.message;
+    toast('❌ 로그인 실패: ' + msg, 'err');
   } finally {
     firebaseAuthBusy = false;
     updateAuthUI();
