@@ -474,14 +474,29 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   .tab-util { width:44px; height:38px; padding:0; font-size:15px; }
 
   /* Mobile menu toggle */
-  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:center !important; gap:10px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; min-width:220px; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:14px; flex-direction:column !important; align-items:stretch !important; gap:12px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
   .tabbar-right.open { display:flex !important; }
-  .tabbar-right .tab-add, .tabbar-right .settings-tab { margin:0 !important; }
-  .tabbar-right .tab-add { margin-left:6px !important; }
-  .tabbar-right .settings-tab { border-bottom:none !important; margin-top:-10px !important; margin-right:2px !important; }
-  .tabbar-right .mobile-label { display:inline; font-size:13px; }
-  .tabbar-right .theme-dot { width:20px; height:20px; }
-  .tabbar-right #themeSelector { gap:10px !important; }
+  .tabbar-right .tab-add,
+  .tabbar-right .settings-tab {
+    width:100%;
+    min-height:46px;
+    margin:0 !important;
+    padding:10px 14px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:10px;
+    font-size:18px !important;
+    white-space:nowrap;
+  }
+  .tabbar-right .tab-add { margin-left:0 !important; }
+  .tabbar-right .tab-util { width:100%; height:auto; }
+  .tabbar-right .settings-tab { border:1px dashed transparent; border-bottom:none !important; opacity:1 !important; }
+  .tabbar-right .mobile-label { display:inline-block; font-size:18px; line-height:1; white-space:nowrap; }
+  .tabbar-right #themeSelector { display:flex; justify-content:center; gap:12px !important; margin-top:4px; }
+  .tabbar-right .theme-dot { width:28px; height:28px; }
+  .tabbar-right > div:last-child { align-items:center !important; margin-left:0 !important; }
+  .tabbar-right .tab-arrow { font-size:14px; padding:8px 12px; border-radius:10px; }
   .mobile-menu-btn { display:flex !important; }
   .tab-pinned { padding:8px 6px; }
 
@@ -1617,7 +1632,7 @@ function updateAuthUI() {
   var savedDeviceName = getSavedDeviceName();
   var hasDeviceName = !!savedDeviceName;
   statusEl.textContent = hasDeviceName
-    ? 'Google 계정이 연결되었습니다. 필요할 때만 수동으로 클라우드 동기화를 사용할 수 있어요.'
+    ? 'Google 계정이 연결되었습니다. 이제 필요할 때만 저장하거나 불러오면 돼요.'
     : 'Google 계정이 연결되었습니다. 먼저 이 기기 이름을 정해 주세요.';
   metaEl.style.display = 'block';
   metaEl.innerHTML =
@@ -1941,6 +1956,20 @@ function resolvePreferredValue(localValue, cloudValue, preference, summary, labe
   return cloneJson(preference === 'cloud' ? cloudValue : localValue);
 }
 
+function resolveSilentPreferredValue(localValue, cloudValue, preference, summary) {
+  if (deepEqualSimple(localValue, cloudValue)) return cloneJson(localValue);
+  if (isEmptyValue(localValue) && !isEmptyValue(cloudValue)) {
+    if (summary) summary.autoAcceptedCount++;
+    return cloneJson(cloudValue);
+  }
+  if (!isEmptyValue(localValue) && isEmptyValue(cloudValue)) {
+    if (summary) summary.autoAcceptedCount++;
+    return cloneJson(localValue);
+  }
+  if (summary) summary.autoAcceptedCount++;
+  return cloneJson(preference === 'cloud' ? cloudValue : localValue);
+}
+
 function mergeReadMap(localMap, cloudMap, summary) {
   var result = {};
   var localKeys = Object.keys(localMap || {});
@@ -2021,7 +2050,8 @@ function mergeTab(localTab, cloudTab, preference, summary) {
   merged.hideCcCol = resolvePreferredValue(!!localTab.hideCcCol, !!cloudTab.hideCcCol, preference, summary, '[' + tabName + '] 추가 항목 표시');
   merged.ccLabel = resolvePreferredValue(localTab.ccLabel || '추가 항목', cloudTab.ccLabel || '추가 항목', preference, summary, '[' + tabName + '] 추가 항목 이름');
   merged.ccEmoji = resolvePreferredValue(localTab.ccEmoji || '📌', cloudTab.ccEmoji || '📌', preference, summary, '[' + tabName + '] 추가 항목 이모지');
-  merged.columnMap = resolvePreferredValue(localTab.columnMap || null, cloudTab.columnMap || null, preference, summary, '[' + tabName + '] 컬럼 매핑');
+  // Column mapping is import metadata; prefer the chosen side without prompting.
+  merged.columnMap = resolveSilentPreferredValue(localTab.columnMap || null, cloudTab.columnMap || null, preference, summary);
   merged.missionMode = resolvePreferredValue(!!localTab.missionMode, !!cloudTab.missionMode, preference, summary, '[' + tabName + '] 미션 모드');
   merged.hasAssignment = resolvePreferredValue(!!localTab.hasAssignment, !!cloudTab.hasAssignment, preference, summary, '[' + tabName + '] 과제 컬럼');
   merged.assignmentLabel = resolvePreferredValue(localTab.assignmentLabel || '과제', cloudTab.assignmentLabel || '과제', preference, summary, '[' + tabName + '] 과제 이름');
@@ -2048,7 +2078,8 @@ function mergeSnapshots(localSnapshot, cloudSnapshot, preference) {
   var merged = cloneJson(preference === 'cloud' ? cloud : local);
   merged.version = 'pt_backup_v1';
   merged.exportDate = new Date().toISOString();
-  merged.activeId = resolvePreferredValue(local.activeId || '', cloud.activeId || '', preference, summary, '활성 탭');
+  // Active tab is local UI state and should not create a sync conflict.
+  merged.activeId = resolveSilentPreferredValue(local.activeId || '', cloud.activeId || '', 'local', summary);
   merged.customTitle = resolvePreferredValue(local.customTitle || '', cloud.customTitle || '', preference, summary, '트래커 이름');
   merged.theme = resolvePreferredValue(local.theme || 'gold', cloud.theme || 'gold', preference, summary, '테마');
   merged.attendance = uniqueSortedDates((local.attendance || []).concat(cloud.attendance || []));
@@ -2113,7 +2144,7 @@ async function refreshDeviceSyncSummary() {
   var meta = readCloudSyncMeta();
   var dailyLimit = getDailySyncLimitForCurrentUser();
 
-  if (quotaEl) quotaEl.textContent = dailyLimit === Infinity ? '무제한' : (DAILY_CLOUD_SYNC_LIMIT + ' / ' + DAILY_CLOUD_SYNC_LIMIT);
+  if (quotaEl) quotaEl.textContent = firebaseCurrentUser ? '확인 중...' : (dailyLimit === Infinity ? '무제한' : (DAILY_CLOUD_SYNC_LIMIT + ' / ' + DAILY_CLOUD_SYNC_LIMIT));
   if (lastEl) lastEl.textContent = meta.lastSyncedAtClient ? formatDateTimeLabel(meta.lastSyncedAtClient) : '아직 없음';
 
   if (!firebaseCurrentUser || !firebaseBridge) {
@@ -2150,6 +2181,9 @@ async function refreshDeviceSyncSummary() {
       lastCloudUpdatedAtClient: cloudDoc ? (cloudDoc.updatedAtClient || 0) : 0,
       lastCloudVersion: cloudDoc ? (cloudDoc.snapshotVersion || '') : ''
     });
+    if (statusEl && !deviceSyncBusy && hasSavedDeviceName()) {
+      statusEl.textContent = '클라우드 동기화 준비가 되었어요.';
+    }
     setDeviceSyncBusyState(false);
   } catch(err) {
     console.error('refreshDeviceSyncSummary failed:', err);
