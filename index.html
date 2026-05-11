@@ -59,6 +59,17 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .tab-x:hover { opacity:1; color:var(--red); }
 .tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed #555; border-radius:var(--rs); cursor:pointer; margin-left:17px; margin-right:0; font-family:inherit; }
 .tab-add:hover { color:var(--gold); border-color:var(--gold); }
+.tab-util {
+  width:44px;
+  height:40px;
+  padding:0;
+  margin-left:6px !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  line-height:1;
+}
 .settings-tab { background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit; }
 .settings-tab.active { border-bottom-color:var(--gold); }
 .tab-arrow { background:var(--card); border:1px solid var(--bdr); border-radius:6px; color:var(--t3); cursor:pointer; font-size:9px; padding:4px 6px; flex-shrink:0; transition:.15s; font-family:inherit; }
@@ -89,6 +100,33 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .btn-sm { padding:7px 14px; font-size:13px; }
 .btn-r { color:var(--red); }
 .btn-r:hover { border-color:var(--red); background:var(--red2); }
+.btn-google {
+  background:#ffffff;
+  color:#1f1f1f;
+  border:1px solid #747775;
+  font-weight:600;
+  gap:10px;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.btn-google:hover {
+  background:#f8f9fa;
+  border-color:#5f6368;
+}
+.btn-google:disabled {
+  opacity:.7;
+  cursor:default;
+}
+.btn-google-g {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  flex-shrink:0;
+}
+.btn-google-text {
+  letter-spacing:-0.1px;
+}
 
 /* PANELS */
 .pnl { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:20px; margin-bottom:20px; display:none; }
@@ -433,16 +471,32 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   /* Tab bar - touch friendly */
   .tab { padding:10px 12px; font-size:12px; }
   .tab-add { padding:6px 8px; font-size:12px; border-style:dashed; border-color:var(--t3); }
+  .tab-util { width:44px; height:38px; padding:0; font-size:15px; }
 
   /* Mobile menu toggle */
-  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:center !important; gap:10px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  .tabbar-right { display:none !important; position:absolute; right:8px; top:100%; min-width:186px; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px; flex-direction:column !important; align-items:stretch !important; gap:10px !important; z-index:100; box-shadow:0 4px 16px rgba(0,0,0,.4); }
   .tabbar-right.open { display:flex !important; }
-  .tabbar-right .tab-add, .tabbar-right .settings-tab { margin:0 !important; }
-  .tabbar-right .tab-add { margin-left:6px !important; }
-  .tabbar-right .settings-tab { border-bottom:none !important; margin-top:-10px !important; margin-right:2px !important; }
-  .tabbar-right .mobile-label { display:inline; font-size:13px; }
-  .tabbar-right .theme-dot { width:20px; height:20px; }
-  .tabbar-right #themeSelector { gap:10px !important; }
+  .tabbar-right .tab-add,
+  .tabbar-right .settings-tab {
+    width:100%;
+    min-height:40px;
+    margin:0 !important;
+    padding:8px 12px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:8px;
+    font-size:15px !important;
+    white-space:nowrap;
+  }
+  .tabbar-right .tab-add { margin-left:0 !important; }
+  .tabbar-right .tab-util { width:100%; height:auto; }
+  .tabbar-right .settings-tab { border:1px dashed transparent; border-bottom:none !important; opacity:1 !important; }
+  .tabbar-right .mobile-label { display:inline-block; font-size:15px; line-height:1; white-space:nowrap; }
+  .tabbar-right #themeSelector { display:flex; justify-content:center; gap:10px !important; margin-top:2px; }
+  .tabbar-right .theme-dot { width:24px; height:24px; }
+  .tabbar-right > div:last-child { align-items:center !important; margin-left:0 !important; }
+  .tabbar-right .tab-arrow { font-size:11px; padding:6px 10px; border-radius:8px; }
   .mobile-menu-btn { display:flex !important; }
   .tab-pinned { padding:8px 6px; }
 
@@ -571,14 +625,97 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 </div>
 </div>
 
+<!-- DEVICE SYNC MODAL -->
+<div class="modal-bg" id="deviceSyncModalBg" onclick="if(event.target===this)closeDeviceSyncModal()">
+<div class="modal" style="max-width:560px">
+  <h3>☁️ 기기 연동</h3>
+  <p style="font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:12px">
+    필요할 때만 로그인해서 기기 간 상태를 맞출 수 있어요.
+  </p>
+  <div style="background:rgba(79,140,255,.08);border:1px solid rgba(79,140,255,.28);border-radius:10px;padding:14px 16px;margin-bottom:12px">
+    <div id="authStatusText" style="font-size:12px;color:var(--t2);line-height:1.7">로그인 상태를 확인하는 중...</div>
+    <div id="authUserMeta" style="display:none;font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6"></div>
+    <div id="deviceNameSummaryRow" style="display:none;margin-top:10px;font-size:11px;color:var(--t3);line-height:1.6">
+      <span id="deviceNameSummaryText"></span>
+      <button class="btn btn-sm" onclick="beginEditDeviceName()" style="margin-left:8px;padding:6px 10px">이름 바꾸기</button>
+    </div>
+    <div id="deviceNameRow" style="display:none;margin-top:10px">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px">이 기기 이름</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="deviceNameInput" type="text" maxlength="40" placeholder="예: 내 아이폰, 집 맥북" onkeydown="if(event.key==='Enter'){event.preventDefault();saveDeviceName();}" style="flex:1;min-width:200px;padding:10px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit">
+        <button class="btn btn-sm" id="deviceNameSaveBtn" onclick="saveDeviceName()" style="padding:10px 14px">저장</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-google" id="authLoginBtn" onclick="signInWithGoogle()" style="font-size:13px;padding:12px 18px">
+        <span class="btn-google-g" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" role="img" focusable="false">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.12-.84 2.07-1.8 2.71v2.25h2.91c1.7-1.57 2.69-3.88 2.69-6.6z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.2l-2.91-2.25c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.58-5.05-3.71H.96v2.32A9 9 0 009 18z"/>
+            <path fill="#FBBC05" d="M3.95 10.7A5.41 5.41 0 013.67 9c0-.59.1-1.16.28-1.7V4.98H.96A9 9 0 000 9c0 1.45.35 2.82.96 4.02l2.99-2.32z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.33l2.58-2.58C13.46.89 11.42 0 9 0A9 9 0 00.96 4.98L3.95 7.3C4.66 5.16 6.65 3.58 9 3.58z"/>
+          </svg>
+        </span>
+        <span class="btn-google-text">Google로 로그인</span>
+      </button>
+      <button class="btn btn-sm" id="authLogoutBtn" onclick="signOutFirebaseUser()" style="display:none;font-size:12px;padding:11px 16px">↩️ 로그아웃</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:12px">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px">오늘 남은 횟수</div>
+      <div id="deviceSyncQuotaText" style="font-size:18px;font-weight:700;color:var(--gold)">5 / 5</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:12px">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:6px">마지막 동기화</div>
+      <div id="deviceSyncLastText" style="font-size:12px;color:var(--t2);line-height:1.6">아직 없음</div>
+    </div>
+  </div>
+  <div id="deviceSyncStatusBox" style="background:rgba(232,184,48,.08);border:1px solid rgba(232,184,48,.28);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:12px">
+    <div id="deviceSyncStatusText">로그인 후 수동으로 동기화할 수 있어요. 메모, URL, 읽기 진행도, 탭 설정 등 현재 트래커 상태 전체가 클라우드에 저장됩니다.</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <button class="btn" id="deviceSyncPushBtn" onclick="syncToCloud()" style="font-size:13px;padding:14px 16px;justify-content:center" disabled>☁️ 클라우드에 저장</button>
+    <button class="btn" id="deviceSyncLoadBtn" onclick="loadFromCloud()" style="font-size:13px;padding:14px 16px;justify-content:center" disabled>📥 클라우드에서 불러오기</button>
+  </div>
+  <div style="font-size:10px;color:var(--t3);line-height:1.6;margin-bottom:12px">
+    자동 동기화는 하지 않아요.
+  </div>
+  <div class="modal-btns">
+    <button class="btn" onclick="closeDeviceSyncModal()">닫기</button>
+  </div>
+</div>
+</div>
+
+<!-- DEVICE SYNC CONFLICT MODAL -->
+<div class="modal-bg" id="deviceConflictModalBg" onclick="if(event.target===this)closeDeviceConflictModal()">
+<div class="modal" style="max-width:560px">
+  <h3>⚖️ 병합 방향 선택</h3>
+  <p id="deviceConflictSummary" style="font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px">
+    이 기기 데이터와 클라우드 데이터가 모두 변경되어 어떤 값을 우선할지 정해야 합니다.
+  </p>
+  <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:14px">
+    출석, 읽음 기록, 즐겨찾기, 한쪽에만 있는 탭/항목은 자동으로 합쳐집니다. 메모, URL, 탭 이름처럼 겹칠 수 있는 값만 우선 방향을 물어봅니다.
+  </div>
+  <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap">
+    <button class="btn" onclick="closeDeviceConflictModal()">취소</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="resolveDeviceConflictChoice('cloud')">☁️ 클라우드 우선</button>
+      <button class="btn btn-g" onclick="resolveDeviceConflictChoice('local')">💻 이 기기 우선</button>
+    </div>
+  </div>
+</div>
+</div>
+
 <div class="app">
 
   <!-- TAB BAR -->
   <div style="display:flex;align-items:flex-end;gap:0;position:relative">
     <div class="tab-bar" id="tabBar" style="flex:1"></div>
     <div id="tabBarRight" class="tabbar-right" style="display:flex;align-items:flex-end;gap:2px;padding-bottom:12px;flex-shrink:0">
-      <button class="tab-add" id="tabAddBtn" onclick="openModal()" style="flex-shrink:0;margin-bottom:0">＋<span class="mobile-label"> 탭 추가</span></button>
+      <button class="tab-add tab-util" id="tabAddBtn" onclick="openModal()" style="flex-shrink:0;margin-bottom:0">＋<span class="mobile-label"> 탭 추가</span></button>
       <button class="tab-add" id="tabReorderBtn" onclick="openTabReorderModal()" style="flex-shrink:0;margin-bottom:0;margin-left:6px" title="탭 정리">🔀<span class="mobile-label"> 탭 정리</span></button>
+      <button class="tab-add tab-util" id="deviceSyncBtn" onclick="openDeviceSyncModal()" style="flex-shrink:0;margin-bottom:0" title="기기 연동">☁️<span class="mobile-label"> 기기 연동</span></button>
       <button class="tab settings-tab" id="tabSettingsBtn" onclick="switchTab('tab_settings')" style="flex-shrink:0;opacity:0.75;font-size:18px;margin-bottom:-8px;padding-left:0;padding-right:1px;margin-left:12px" title="설정 / 도움말">⚙️<span class="mobile-label"> 설정</span></button>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:center;flex-shrink:0;margin-left:4px">
         <div id="themeSelector" style="display:flex;gap:6px;flex-shrink:0">
@@ -1011,6 +1148,16 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
       <div class="home-guide-section"><strong style="color:var(--gold)">5. 🧠 마인드맵</strong><br>- 아티클 편집(✏️)에서 태그 입력 (예시: AI 코인 구글 버티브)<br>- 태그 기반 연결 관계 시각화<br>- 드롭다운으로 전체 / 그룹별 / 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">6. ⭐ 즐겨찾기</strong><br>- 아티클 옆 ☆ 클릭으로 즐겨찾기 추가<br>- 즐겨찾기 탭에서 모든 탭의 별표 항목을 통합 조회<br>- 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">7. 📊 대시보드/탭</strong><br>- 노트 편집(✏️)에서 노트 입력 — URL 입력 시 🗒️ 클릭으로 링크 열기, 텍스트 입력 시 💬에 팝업 표시<br>- 각 탭에서 진행률, 월별 추이, 카테고리 분포 확인 가능<br>- 검색 & 필터 — 제목, 카테고리, URL 통합 검색. 카테고리별 / 읽음 상태별 필터, 정렬 지원</div>
+      <div class="home-guide-section" style="margin-top:24px;border-color:#4f8cff;opacity:0.95">
+        <strong style="color:#8fb6ff">☁️ 기기 연동 준비</strong><br>
+        <span style="font-size:12px;color:var(--t3);line-height:1.7;display:block;margin-top:8px">
+          상단의 <strong style="color:#8fb6ff">☁️ 기기 연동</strong> 버튼에서 사용할 수 있어요.
+        </span><br>
+        <div style="background:rgba(79,140,255,.08);border:1px solid rgba(79,140,255,.28);border-radius:10px;padding:14px 16px">
+          <div style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:10px">로그인, 저장, 불러오기를 한 번에 관리할 수 있어요.</div>
+          <button class="btn btn-sm" onclick="openDeviceSyncModal()" style="font-size:11px">☁️ 기기 연동 열기</button>
+        </div>
+      </div>
       <div class="home-guide-section" style="margin-top:24px;border-color:var(--gold);opacity:0.85">
         <strong style="color:var(--gold)">💾 트래커 백업</strong><br>
         <span style="font-size:12px;color:var(--t3)">모든 탭, 읽기 기록, 즐겨찾기, 출석 체크 등을 JSON 파일로 저장합니다.<br>브라우저 데이터를 지우거나 다른 기기로 옮길 때 사용하세요.</span><br><br>
@@ -1136,7 +1283,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v2.1';
+const APP_VERSION = 'v3.0';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1145,10 +1292,114 @@ const CUSTOM_TITLE_KEY = 'pt_custom_title';
 const THEME_KEY = 'pt_theme';
 const CC_SETTINGS_KEY = 'pt_cc_settings';
 const DATE_EMOJI_KEY = 'pt_date_emoji';
+const DEVICE_ID_KEY = 'pt_device_id';
+const DEVICE_NAME_KEY = 'pt_device_name';
+const CLOUD_SYNC_META_KEY = 'pt_cloud_sync_meta_v1';
+const CLOUD_SYNC_WARNING_KEY = 'pt_cloud_sync_warning_ack_v1';
+const DAILY_CLOUD_SYNC_LIMIT = 5;
+const CLOUD_SYNC_SCHEMA_VERSION = 1;
 var CC_EMOJIS = [
   { emoji:'📌', label:'핀' }, { emoji:'🎯', label:'과녁' }, { emoji:'💡', label:'전구' },
   { emoji:'📎', label:'클립' }, { emoji:'🔍', label:'돋보기' }
 ];
+
+var firebaseBridge = null;
+var firebaseReady = false;
+var firebasePersistenceReady = null;
+var firebaseCurrentUser = null;
+var firebaseProfileIsSyncAdmin = false;
+var firebaseAuthBusy = false;
+var deviceSyncBusy = false;
+var deviceNameEditMode = false;
+var pendingDeviceConflictResolver = null;
+
+function getDeviceId() {
+  try {
+    var existing = localStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    var created = 'device_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    localStorage.setItem(DEVICE_ID_KEY, created);
+    return created;
+  } catch(e) {
+    return 'device_ephemeral';
+  }
+}
+
+function getSuggestedDeviceName() {
+  var ua = navigator.userAgent || '';
+  if (/iPhone/i.test(ua)) return '내 아이폰';
+  if (/iPad/i.test(ua)) return '내 아이패드';
+  if (/Android/i.test(ua)) return '내 안드로이드';
+  if (/Macintosh|Mac OS X/i.test(ua)) return '내 맥';
+  if (/Windows/i.test(ua)) return '내 PC';
+  return '내 기기';
+}
+
+function getSavedDeviceName() {
+  try {
+    var raw = localStorage.getItem(DEVICE_NAME_KEY);
+    return raw ? String(raw).trim() : '';
+  } catch(e) {
+    return '';
+  }
+}
+
+function hasSavedDeviceName() {
+  return !!getSavedDeviceName();
+}
+
+function getEffectiveDeviceName() {
+  return getSavedDeviceName() || getSuggestedDeviceName();
+}
+
+function setSavedDeviceName(name) {
+  var safe = String(name || '').trim().slice(0, 40);
+  try {
+    if (safe) localStorage.setItem(DEVICE_NAME_KEY, safe);
+    else localStorage.removeItem(DEVICE_NAME_KEY);
+  } catch(e) {}
+  return safe;
+}
+
+function isAdminSyncUser() {
+  return firebaseProfileIsSyncAdmin === true;
+}
+
+function cloneJson(obj) {
+  if (obj === undefined) return undefined;
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function readCloudSyncMeta() {
+  try {
+    var raw = localStorage.getItem(CLOUD_SYNC_META_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) {
+    return {};
+  }
+}
+
+function writeCloudSyncMeta(meta) {
+  try {
+    localStorage.setItem(CLOUD_SYNC_META_KEY, JSON.stringify(meta || {}));
+  } catch(e) {}
+}
+
+function patchCloudSyncMeta(patch) {
+  var current = readCloudSyncMeta();
+  Object.keys(patch || {}).forEach(function(key) {
+    current[key] = patch[key];
+  });
+  writeCloudSyncMeta(current);
+}
+
+function hasAcceptedCloudSyncWarning() {
+  try { return localStorage.getItem(CLOUD_SYNC_WARNING_KEY) === 'yes'; } catch(e) { return false; }
+}
+
+function markCloudSyncWarningAccepted() {
+  try { localStorage.setItem(CLOUD_SYNC_WARNING_KEY, 'yes'); } catch(e) {}
+}
 
 function renderCcEmojiPicker(containerId, selected, onPick) {
   var el = $(containerId);
@@ -1318,6 +1569,815 @@ function log(msg, isError) {
   // Debug only - console log for developers
   if (isError) console.error('[tracker] ' + msg);
   else console.log('[tracker] ' + msg);
+}
+
+function openDeviceSyncModal() {
+  var bg = $('deviceSyncModalBg');
+  if (!bg) return;
+  bg.classList.add('open');
+  updateAuthUI();
+  refreshDeviceSyncSummary();
+}
+
+function closeDeviceSyncModal() {
+  var bg = $('deviceSyncModalBg');
+  if (!bg) return;
+  bg.classList.remove('open');
+}
+
+function updateAuthUI() {
+  var statusEl = $('authStatusText');
+  var metaEl = $('authUserMeta');
+  var loginBtn = $('authLoginBtn');
+  var logoutBtn = $('authLogoutBtn');
+  var deviceNameSummaryRow = $('deviceNameSummaryRow');
+  var deviceNameSummaryText = $('deviceNameSummaryText');
+  var deviceNameRow = $('deviceNameRow');
+  var deviceNameInput = $('deviceNameInput');
+  var deviceNameSaveBtn = $('deviceNameSaveBtn');
+  var pushBtn = $('deviceSyncPushBtn');
+  var loadBtn = $('deviceSyncLoadBtn');
+  if (!statusEl || !metaEl || !loginBtn || !logoutBtn) return;
+
+  if (!firebaseReady) {
+    statusEl.textContent = 'Firebase 연결을 준비하는 중입니다...';
+    metaEl.style.display = 'none';
+    metaEl.textContent = '';
+    if (deviceNameSummaryRow) deviceNameSummaryRow.style.display = 'none';
+    if (deviceNameRow) deviceNameRow.style.display = 'none';
+    loginBtn.disabled = true;
+    loginBtn.style.display = '';
+    logoutBtn.style.display = 'none';
+    if (pushBtn) pushBtn.disabled = true;
+    if (loadBtn) loadBtn.disabled = true;
+    return;
+  }
+
+  loginBtn.disabled = firebaseAuthBusy;
+  logoutBtn.disabled = firebaseAuthBusy;
+
+  if (!firebaseCurrentUser) {
+    statusEl.textContent = '아직 로그인하지 않았습니다. 로그인하면 이 계정으로 기기 연동을 사용할 수 있어요.';
+    metaEl.style.display = 'none';
+    metaEl.textContent = '';
+    if (deviceNameSummaryRow) deviceNameSummaryRow.style.display = 'none';
+    if (deviceNameRow) deviceNameRow.style.display = 'none';
+    loginBtn.style.display = '';
+    logoutBtn.style.display = 'none';
+    if (pushBtn) pushBtn.disabled = true;
+    if (loadBtn) loadBtn.disabled = true;
+    return;
+  }
+
+  var savedDeviceName = getSavedDeviceName();
+  var hasDeviceName = !!savedDeviceName;
+  statusEl.textContent = hasDeviceName
+    ? 'Google 계정이 연결되었습니다. 이제 필요할 때만 저장하거나 불러오면 돼요.'
+    : 'Google 계정이 연결되었습니다. 먼저 이 기기 이름을 정해 주세요.';
+  metaEl.style.display = 'block';
+  metaEl.innerHTML =
+    '계정: ' + esc(firebaseCurrentUser.email || firebaseCurrentUser.displayName || '알 수 없음') + '<br>' +
+    '기기 이름: ' + esc(savedDeviceName || '아직 없음') + '<br>' +
+    '로그인 상태: 이 브라우저에 유지됨';
+  if (deviceNameSummaryRow) {
+    deviceNameSummaryRow.style.display = hasDeviceName && !deviceNameEditMode ? 'block' : 'none';
+    if (deviceNameSummaryText) deviceNameSummaryText.textContent = '현재 기기 이름: ' + savedDeviceName;
+  }
+  if (deviceNameRow) deviceNameRow.style.display = (!hasDeviceName || deviceNameEditMode) ? 'block' : 'none';
+  if (deviceNameInput) {
+    deviceNameInput.value = deviceNameEditMode ? savedDeviceName : '';
+    deviceNameInput.placeholder = getSuggestedDeviceName();
+    deviceNameInput.disabled = firebaseAuthBusy;
+  }
+  if (deviceNameSaveBtn) deviceNameSaveBtn.disabled = firebaseAuthBusy;
+  loginBtn.style.display = 'none';
+  logoutBtn.style.display = '';
+  if (pushBtn) pushBtn.disabled = deviceSyncBusy || !hasDeviceName;
+  if (loadBtn) loadBtn.disabled = deviceSyncBusy || !hasDeviceName;
+}
+
+async function writeFirebaseUserProfile(user) {
+  if (!firebaseBridge || !user) return;
+  var deviceId = getDeviceId();
+  var deviceName = getEffectiveDeviceName();
+  var profileRef = firebaseBridge.doc(firebaseBridge.db, 'users', user.uid, 'profile', 'main');
+  var payload = {
+    createdAt: firebaseBridge.serverTimestamp(),
+    lastLoginAt: firebaseBridge.serverTimestamp(),
+    lastActiveAt: firebaseBridge.serverTimestamp(),
+    displayName: user.displayName || '',
+    email: user.email || '',
+    photoURL: user.photoURL || '',
+    authProvider: 'google',
+    appVersion: APP_VERSION,
+    devices: {}
+  };
+  payload.devices[deviceId] = {
+    lastSeenAt: firebaseBridge.serverTimestamp(),
+    label: deviceName
+  };
+  await firebaseBridge.setDoc(profileRef, payload, { merge: true });
+}
+
+async function refreshFirebaseProfileRole(user) {
+  if (!firebaseBridge || !user) {
+    firebaseProfileIsSyncAdmin = false;
+    return null;
+  }
+  try {
+    var profileRef = firebaseBridge.doc(firebaseBridge.db, 'users', user.uid, 'profile', 'main');
+    var snap = await firebaseBridge.getDoc(profileRef);
+    var data = snap.exists() ? (snap.data() || {}) : {};
+    firebaseProfileIsSyncAdmin = data.isSyncAdmin === true;
+    return data;
+  } catch(err) {
+    console.error('Firebase profile role read failed:', err);
+    firebaseProfileIsSyncAdmin = false;
+    return null;
+  }
+}
+
+async function saveDeviceName() {
+  var input = $('deviceNameInput');
+  if (!input) return;
+  var nextName = String(input.value || '').trim();
+  if (!nextName) {
+    toast('⚠️ 기기 이름을 입력해 주세요', 'err');
+    input.focus();
+    return;
+  }
+  nextName = setSavedDeviceName(nextName);
+  deviceNameEditMode = false;
+  input.value = nextName;
+  updateAuthUI();
+
+  if (firebaseCurrentUser && firebaseBridge) {
+    try {
+      await writeFirebaseUserProfile(firebaseCurrentUser);
+      toast('✅ 기기 이름을 저장했어요', 'ok');
+    } catch(err) {
+      console.error('Device name save failed:', err);
+      toast('⚠️ 기기 이름은 로컬에 저장했지만 클라우드 반영은 실패했어요', 'err');
+    }
+  } else {
+    toast('✅ 기기 이름을 저장했어요', 'ok');
+  }
+  refreshDeviceSyncSummary();
+}
+
+function beginEditDeviceName() {
+  deviceNameEditMode = true;
+  updateAuthUI();
+  setTimeout(function() {
+    var input = $('deviceNameInput');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 40);
+}
+
+function handleFirebaseAuthState(user) {
+  firebaseCurrentUser = user || null;
+  if (!user) firebaseProfileIsSyncAdmin = false;
+  if (!user) deviceNameEditMode = false;
+  updateAuthUI();
+  refreshDeviceSyncSummary();
+  if (!user) return;
+
+  writeFirebaseUserProfile(user)
+    .then(function() {
+      return refreshFirebaseProfileRole(user);
+    })
+    .then(function() {
+      updateAuthUI();
+      refreshDeviceSyncSummary();
+      log('Firebase profile updated for ' + (user.uid || 'unknown'));
+    })
+    .catch(function(err) {
+      console.error('Firebase profile write failed:', err);
+      toast('⚠️ 로그인은 되었지만 프로필 저장에 실패했어요', 'err');
+    });
+
+  if (!hasSavedDeviceName()) {
+    deviceNameEditMode = true;
+    setTimeout(function() {
+      var input = $('deviceNameInput');
+      if (input) input.focus();
+    }, 80);
+  }
+}
+
+window.initFirebaseBridge = function(bridge) {
+  firebaseBridge = bridge;
+  firebaseReady = true;
+  firebasePersistenceReady = firebaseBridge.setPersistence(firebaseBridge.auth, firebaseBridge.browserLocalPersistence)
+    .catch(function(err) {
+      console.error('Firebase persistence setup failed:', err);
+      return null;
+    });
+  firebaseBridge.onAuthStateChanged(firebaseBridge.auth, handleFirebaseAuthState);
+  updateAuthUI();
+};
+
+async function signInWithGoogle() {
+  if (!firebaseBridge) {
+    toast('⚠️ Firebase 준비 중입니다. 잠시 후 다시 시도해 주세요', 'err');
+    return;
+  }
+  if (location.protocol === 'file:') {
+    toast('⚠️ Google 로그인은 배포된 웹 주소에서 테스트하는 것을 권장해요', 'err');
+  }
+
+  firebaseAuthBusy = true;
+  updateAuthUI();
+  try {
+    var provider = new firebaseBridge.GoogleAuthProvider();
+    await firebaseBridge.signInWithPopup(firebaseBridge.auth, provider);
+    toast('✅ Google 로그인 성공', 'ok');
+  } catch(err) {
+    console.error('Google sign-in failed:', err);
+    var msg = '알 수 없는 오류';
+    if (err && err.code === 'auth/popup-blocked') msg = '브라우저가 로그인 창을 막았어요. 팝업 허용 후 다시 시도해 주세요.';
+    else if (err && err.code === 'auth/popup-closed-by-user') msg = '로그인 창이 닫혀서 취소되었어요.';
+    else if (err && err.code === 'auth/cancelled-popup-request') msg = '로그인 창 준비 중이에요. 잠시 후 다시 시도해 주세요.';
+    else if (err && err.message) msg = err.message;
+    toast('❌ 로그인 실패: ' + msg, 'err');
+  } finally {
+    firebaseAuthBusy = false;
+    updateAuthUI();
+  }
+}
+
+async function signOutFirebaseUser() {
+  if (!firebaseBridge) return;
+  firebaseAuthBusy = true;
+  updateAuthUI();
+  try {
+    await firebaseBridge.signOut(firebaseBridge.auth);
+    toast('👋 로그아웃 되었어요', 'ok');
+  } catch(err) {
+    console.error('Google sign-out failed:', err);
+    toast('❌ 로그아웃 실패: ' + (err && err.message ? err.message : '알 수 없는 오류'), 'err');
+  } finally {
+    firebaseAuthBusy = false;
+    updateAuthUI();
+  }
+}
+
+function closeDeviceConflictModal() {
+  var bg = $('deviceConflictModalBg');
+  if (bg) bg.classList.remove('open');
+  if (pendingDeviceConflictResolver) {
+    pendingDeviceConflictResolver(null);
+    pendingDeviceConflictResolver = null;
+  }
+}
+
+function resolveDeviceConflictChoice(choice) {
+  var bg = $('deviceConflictModalBg');
+  if (bg) bg.classList.remove('open');
+  if (pendingDeviceConflictResolver) {
+    pendingDeviceConflictResolver(choice);
+    pendingDeviceConflictResolver = null;
+  }
+}
+
+function askDeviceConflictPreference(summary) {
+  return new Promise(function(resolve) {
+    pendingDeviceConflictResolver = resolve;
+    var el = $('deviceConflictSummary');
+    if (el) el.innerHTML = summary;
+    var bg = $('deviceConflictModalBg');
+    if (bg) bg.classList.add('open');
+  });
+}
+
+function setDeviceSyncBusyState(isBusy, statusText) {
+  deviceSyncBusy = isBusy;
+  var pushBtn = $('deviceSyncPushBtn');
+  var loadBtn = $('deviceSyncLoadBtn');
+  if (pushBtn) pushBtn.disabled = isBusy || !firebaseCurrentUser || !hasSavedDeviceName();
+  if (loadBtn) loadBtn.disabled = isBusy || !firebaseCurrentUser || !hasSavedDeviceName();
+  if (statusText && $('deviceSyncStatusText')) $('deviceSyncStatusText').textContent = statusText;
+}
+
+function getDailySyncLimitForCurrentUser() {
+  return isAdminSyncUser() ? Infinity : DAILY_CLOUD_SYNC_LIMIT;
+}
+
+function isEmptyValue(v) {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === 'object') return Object.keys(v).length === 0;
+  return false;
+}
+
+function deepEqualSimple(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function normalizeReadDateValue(v) {
+  if (!v) return '';
+  var s = String(v).trim();
+  if (/^\d{8}$/.test(s)) return s.slice(0,4) + '-' + s.slice(4,6) + '-' + s.slice(6,8);
+  if (/^\d{4}[-\/]\d{2}[-\/]\d{2}/.test(s)) return s.slice(0,10).replace(/\//g, '-');
+  return s;
+}
+
+function pickLaterReadDate(a, b) {
+  var aa = normalizeReadDateValue(a);
+  var bb = normalizeReadDateValue(b);
+  if (!aa) return b || a || '';
+  if (!bb) return a || b || '';
+  return aa >= bb ? (a || aa) : (b || bb);
+}
+
+function uniqueSortedDates(arr) {
+  var seen = {};
+  (arr || []).forEach(function(v) {
+    var normalized = normalizeReadDateValue(v);
+    if (normalized) seen[normalized] = true;
+  });
+  return Object.keys(seen).sort();
+}
+
+function getSnapshotComparable(snapshot) {
+  var copy = cloneJson(snapshot || {});
+  delete copy.exportDate;
+  return copy;
+}
+
+function snapshotsEqual(a, b) {
+  return deepEqualSimple(getSnapshotComparable(a), getSnapshotComparable(b));
+}
+
+function hasSnapshotData(snapshot) {
+  if (!snapshot) return false;
+  if (Array.isArray(snapshot.tabs) && snapshot.tabs.length > 0) return true;
+  if (Array.isArray(snapshot.attendance) && snapshot.attendance.length > 0) return true;
+  return false;
+}
+
+function estimateSnapshotBytes(snapshot) {
+  try { return new Blob([JSON.stringify(snapshot)]).size; } catch(e) { return 0; }
+}
+
+function formatDateTimeLabel(ms) {
+  if (!ms) return '아직 없음';
+  try {
+    return new Date(ms).toLocaleString();
+  } catch(e) {
+    return String(ms);
+  }
+}
+
+function summarizeConflictDetails(summary) {
+  if (!summary || !summary.conflictCount) return '';
+  var preview = (summary.conflictLabels || []).slice(0, 5);
+  var text = '겹치는 변경사항 ' + summary.conflictCount + '개가 있어요.';
+  if (preview.length) text += '\n\n예시:\n- ' + preview.join('\n- ');
+  return text.replace(/\n/g, '<br>');
+}
+
+function resolvePreferredValue(localValue, cloudValue, preference, summary, label) {
+  if (deepEqualSimple(localValue, cloudValue)) return cloneJson(localValue);
+  if (isEmptyValue(localValue) && !isEmptyValue(cloudValue)) {
+    summary.autoAcceptedCount++;
+    return cloneJson(cloudValue);
+  }
+  if (!isEmptyValue(localValue) && isEmptyValue(cloudValue)) {
+    summary.autoAcceptedCount++;
+    return cloneJson(localValue);
+  }
+  summary.conflictCount++;
+  if (label) summary.conflictLabels.push(label);
+  return cloneJson(preference === 'cloud' ? cloudValue : localValue);
+}
+
+function resolveSilentPreferredValue(localValue, cloudValue, preference, summary) {
+  if (deepEqualSimple(localValue, cloudValue)) return cloneJson(localValue);
+  if (isEmptyValue(localValue) && !isEmptyValue(cloudValue)) {
+    if (summary) summary.autoAcceptedCount++;
+    return cloneJson(cloudValue);
+  }
+  if (!isEmptyValue(localValue) && isEmptyValue(cloudValue)) {
+    if (summary) summary.autoAcceptedCount++;
+    return cloneJson(localValue);
+  }
+  if (summary) summary.autoAcceptedCount++;
+  return cloneJson(preference === 'cloud' ? cloudValue : localValue);
+}
+
+function mergeReadMap(localMap, cloudMap, summary) {
+  var result = {};
+  var localKeys = Object.keys(localMap || {});
+  var cloudKeys = Object.keys(cloudMap || {});
+  localKeys.concat(cloudKeys).forEach(function(key) {
+    if (result[key] !== undefined) return;
+    result[key] = pickLaterReadDate(localMap ? localMap[key] : '', cloudMap ? cloudMap[key] : '');
+  });
+  summary.autoMergedReadCount += Object.keys(result).length;
+  return result;
+}
+
+function mergeStarSet(localSet, cloudSet, summary) {
+  var seen = {};
+  (localSet || []).concat(cloudSet || []).forEach(function(key) {
+    if (!key) return;
+    seen[key] = true;
+  });
+  var merged = Object.keys(seen);
+  summary.autoMergedStarCount += merged.length;
+  return merged;
+}
+
+function mergeArticle(localItem, cloudItem, preference, summary, contextLabel) {
+  if (!localItem) return cloneJson(cloudItem);
+  if (!cloudItem) return cloneJson(localItem);
+  var merged = cloneJson(preference === 'cloud' ? cloudItem : localItem);
+  merged.title = resolvePreferredValue(localItem.title || '', cloudItem.title || '', preference, summary, contextLabel + ' 제목');
+  merged.category = resolvePreferredValue(localItem.category || '', cloudItem.category || '', preference, summary, contextLabel + ' 카테고리');
+  merged.url = resolvePreferredValue(localItem.url || '', cloudItem.url || '', preference, summary, contextLabel + ' URL');
+  merged.date = resolvePreferredValue(localItem.date || '', cloudItem.date || '', preference, summary, contextLabel + ' 날짜');
+  merged.customCol = resolvePreferredValue(localItem.customCol || '', cloudItem.customCol || '', preference, summary, contextLabel + ' 추가 항목');
+  merged.notes = resolvePreferredValue(localItem.notes || '', cloudItem.notes || '', preference, summary, contextLabel + ' 노트');
+  merged.assignment = resolvePreferredValue(localItem.assignment || '', cloudItem.assignment || '', preference, summary, contextLabel + ' 과제');
+  merged.customColMission = resolvePreferredValue(!!localItem.customColMission, !!cloudItem.customColMission, preference, summary, contextLabel + ' 미션 설정');
+  merged.missionDone = resolvePreferredValue(!!localItem.missionDone, !!cloudItem.missionDone, preference, summary, contextLabel + ' 미션 완료');
+  merged.assignmentDone = resolvePreferredValue(!!localItem.assignmentDone, !!cloudItem.assignmentDone, preference, summary, contextLabel + ' 과제 완료');
+  merged.key = localItem.key || cloudItem.key;
+  return merged;
+}
+
+function mergeArticles(localArticles, cloudArticles, preference, summary, tabName) {
+  var preferred = preference === 'cloud' ? (cloudArticles || []) : (localArticles || []);
+  var secondary = preference === 'cloud' ? (localArticles || []) : (cloudArticles || []);
+  var localByKey = {};
+  var cloudByKey = {};
+  (localArticles || []).forEach(function(item) { localByKey[item.key] = item; });
+  (cloudArticles || []).forEach(function(item) { cloudByKey[item.key] = item; });
+  var order = [];
+  preferred.forEach(function(item) { if (item && item.key && order.indexOf(item.key) === -1) order.push(item.key); });
+  secondary.forEach(function(item) { if (item && item.key && order.indexOf(item.key) === -1) order.push(item.key); });
+
+  var merged = [];
+  order.forEach(function(key, idx) {
+    var localItem = localByKey[key];
+    var cloudItem = cloudByKey[key];
+    if (!localItem || !cloudItem) summary.autoMergedItemCount++;
+    var mergedItem = mergeArticle(localItem, cloudItem, preference, summary, '[' + tabName + '] #' + (idx + 1));
+    mergedItem.num = idx + 1;
+    merged.push(mergedItem);
+  });
+  return merged;
+}
+
+function mergeTab(localTab, cloudTab, preference, summary) {
+  if (!localTab) return cloneJson(cloudTab);
+  if (!cloudTab) return cloneJson(localTab);
+
+  var tabName = localTab.name || cloudTab.name || '탭';
+  var merged = cloneJson(preference === 'cloud' ? cloudTab : localTab);
+  merged.id = localTab.id || cloudTab.id;
+  merged.name = resolvePreferredValue(localTab.name || '', cloudTab.name || '', preference, summary, '[' + tabName + '] 탭 이름');
+  merged.group = resolvePreferredValue(localTab.group || '', cloudTab.group || '', preference, summary, '[' + tabName + '] 그룹');
+  merged.sheetsUrl = resolvePreferredValue(localTab.sheetsUrl || '', cloudTab.sheetsUrl || '', preference, summary, '[' + tabName + '] Sheets URL');
+  merged.fileSource = resolvePreferredValue(!!localTab.fileSource, !!cloudTab.fileSource, preference, summary, '[' + tabName + '] 파일 소스');
+  merged.dateLabel = resolvePreferredValue(localTab.dateLabel || '날짜', cloudTab.dateLabel || '날짜', preference, summary, '[' + tabName + '] 항목 이름');
+  merged.hideDateCol = resolvePreferredValue(!!localTab.hideDateCol, !!cloudTab.hideDateCol, preference, summary, '[' + tabName + '] 날짜 표시');
+  merged.hideCcCol = resolvePreferredValue(!!localTab.hideCcCol, !!cloudTab.hideCcCol, preference, summary, '[' + tabName + '] 추가 항목 표시');
+  merged.ccLabel = resolvePreferredValue(localTab.ccLabel || '추가 항목', cloudTab.ccLabel || '추가 항목', preference, summary, '[' + tabName + '] 추가 항목 이름');
+  merged.ccEmoji = resolvePreferredValue(localTab.ccEmoji || '📌', cloudTab.ccEmoji || '📌', preference, summary, '[' + tabName + '] 추가 항목 이모지');
+  // Column mapping is import metadata; prefer the chosen side without prompting.
+  merged.columnMap = resolveSilentPreferredValue(localTab.columnMap || null, cloudTab.columnMap || null, preference, summary);
+  merged.missionMode = resolvePreferredValue(!!localTab.missionMode, !!cloudTab.missionMode, preference, summary, '[' + tabName + '] 미션 모드');
+  merged.hasAssignment = resolvePreferredValue(!!localTab.hasAssignment, !!cloudTab.hasAssignment, preference, summary, '[' + tabName + '] 과제 컬럼');
+  merged.assignmentLabel = resolvePreferredValue(localTab.assignmentLabel || '과제', cloudTab.assignmentLabel || '과제', preference, summary, '[' + tabName + '] 과제 이름');
+  merged.assignmentSourceCol = resolvePreferredValue(localTab.assignmentSourceCol || '', cloudTab.assignmentSourceCol || '', preference, summary, '[' + tabName + '] 과제 원본 컬럼');
+  merged.assignmentEmoji = resolvePreferredValue(localTab.assignmentEmoji || '🎯', cloudTab.assignmentEmoji || '🎯', preference, summary, '[' + tabName + '] 과제 이모지');
+  merged.articles = mergeArticles(localTab.articles || [], cloudTab.articles || [], preference, summary, tabName);
+  delete merged.data;
+  merged.readMap = mergeReadMap(localTab.readMap || {}, cloudTab.readMap || {}, summary);
+  merged.starSet = mergeStarSet(localTab.starSet || [], cloudTab.starSet || [], summary);
+  return merged;
+}
+
+function mergeSnapshots(localSnapshot, cloudSnapshot, preference) {
+  var local = cloneJson(localSnapshot || buildBackupSnapshot());
+  var cloud = cloneJson(cloudSnapshot || buildBackupSnapshot());
+  var summary = {
+    conflictCount: 0,
+    conflictLabels: [],
+    autoMergedReadCount: 0,
+    autoMergedStarCount: 0,
+    autoMergedItemCount: 0,
+    autoAcceptedCount: 0
+  };
+  var merged = cloneJson(preference === 'cloud' ? cloud : local);
+  merged.version = 'pt_backup_v1';
+  merged.exportDate = new Date().toISOString();
+  // Active tab is local UI state and should not create a sync conflict.
+  merged.activeId = resolveSilentPreferredValue(local.activeId || '', cloud.activeId || '', 'local', summary);
+  merged.customTitle = resolvePreferredValue(local.customTitle || '', cloud.customTitle || '', preference, summary, '트래커 이름');
+  merged.theme = resolvePreferredValue(local.theme || 'gold', cloud.theme || 'gold', preference, summary, '테마');
+  merged.attendance = uniqueSortedDates((local.attendance || []).concat(cloud.attendance || []));
+  merged.attendanceGoal = resolvePreferredValue(local.attendanceGoal || 100, cloud.attendanceGoal || 100, preference, summary, '출석 목표');
+  merged.cycleStart = resolvePreferredValue(local.cycleStart || '', cloud.cycleStart || '', preference, summary, '사이클 시작일');
+  merged.ccSettings = {
+    enabled: resolvePreferredValue(local.ccSettings ? local.ccSettings.enabled === true : false, cloud.ccSettings ? cloud.ccSettings.enabled === true : false, preference, summary, '추가 항목 설정')
+  };
+  merged.dateEmoji = resolvePreferredValue(local.dateEmoji || '', cloud.dateEmoji || '', preference, summary, '날짜 이모지');
+
+  var localTabs = local.tabs || [];
+  var cloudTabs = cloud.tabs || [];
+  var preferredTabs = preference === 'cloud' ? cloudTabs : localTabs;
+  var secondaryTabs = preference === 'cloud' ? localTabs : cloudTabs;
+  var localMap = {};
+  var cloudMap = {};
+  localTabs.forEach(function(tab) { localMap[tab.id] = tab; });
+  cloudTabs.forEach(function(tab) { cloudMap[tab.id] = tab; });
+
+  var order = [];
+  preferredTabs.forEach(function(tab) { if (tab && tab.id && order.indexOf(tab.id) === -1) order.push(tab.id); });
+  secondaryTabs.forEach(function(tab) { if (tab && tab.id && order.indexOf(tab.id) === -1) order.push(tab.id); });
+
+  merged.tabs = order.map(function(tabId) {
+    var localTab = localMap[tabId];
+    var cloudTab = cloudMap[tabId];
+    if (!localTab || !cloudTab) summary.autoMergedItemCount++;
+    return mergeTab(localTab, cloudTab, preference, summary);
+  });
+
+  if (!merged.tabs.some(function(tab) { return tab.id === merged.activeId; })) {
+    merged.activeId = merged.tabs.length ? merged.tabs[0].id : 'tab_home';
+  }
+  return { merged: merged, summary: summary };
+}
+
+function isLocalDataAheadOfCloud(localSnapshot, cloudSnapshot) {
+  if (!hasSnapshotData(localSnapshot)) return false;
+  return !snapshotsEqual(localSnapshot, cloudSnapshot);
+}
+
+async function fetchCloudSnapshotDoc(uid) {
+  var snap = await firebaseBridge.getDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'sync', 'main'));
+  return snap.exists() ? snap.data() : null;
+}
+
+async function fetchCloudUsage(uid) {
+  var snap = await firebaseBridge.getDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'usage', 'daily'));
+  if (!snap.exists()) return { date: todayStr(), syncCount: 0 };
+  var data = snap.data() || {};
+  if (data.date !== todayStr()) return { date: todayStr(), syncCount: 0 };
+  return {
+    date: data.date || todayStr(),
+    syncCount: data.syncCount || 0
+  };
+}
+
+async function refreshDeviceSyncSummary() {
+  var quotaEl = $('deviceSyncQuotaText');
+  var lastEl = $('deviceSyncLastText');
+  var statusEl = $('deviceSyncStatusText');
+  var meta = readCloudSyncMeta();
+  var dailyLimit = getDailySyncLimitForCurrentUser();
+
+  if (quotaEl) quotaEl.textContent = firebaseCurrentUser ? '확인 중...' : (dailyLimit === Infinity ? '무제한' : (DAILY_CLOUD_SYNC_LIMIT + ' / ' + DAILY_CLOUD_SYNC_LIMIT));
+  if (lastEl) lastEl.textContent = meta.lastSyncedAtClient ? formatDateTimeLabel(meta.lastSyncedAtClient) : '아직 없음';
+
+  if (!firebaseCurrentUser || !firebaseBridge) {
+    if (statusEl && !deviceSyncBusy) statusEl.textContent = '로그인 후 수동으로 동기화할 수 있어요. 메모, URL, 읽기 진행도, 탭 설정 등 현재 트래커 상태 전체가 클라우드에 저장됩니다.';
+    setDeviceSyncBusyState(false);
+    return;
+  }
+
+  if (!hasSavedDeviceName()) {
+    if (statusEl && !deviceSyncBusy) statusEl.textContent = '먼저 이 기기 이름을 저장해 주세요.';
+    setDeviceSyncBusyState(false);
+    return;
+  }
+
+  try {
+    var uid = firebaseCurrentUser.uid;
+    await refreshFirebaseProfileRole(firebaseCurrentUser);
+    dailyLimit = getDailySyncLimitForCurrentUser();
+    var results = await Promise.all([fetchCloudUsage(uid), fetchCloudSnapshotDoc(uid)]);
+    var usage = results[0];
+    var cloudDoc = results[1];
+    var remaining = dailyLimit === Infinity ? Infinity : Math.max(0, DAILY_CLOUD_SYNC_LIMIT - (usage.syncCount || 0));
+    if (quotaEl) quotaEl.textContent = remaining === Infinity ? '무제한' : (remaining + ' / ' + DAILY_CLOUD_SYNC_LIMIT);
+    if (lastEl) {
+      if (cloudDoc && cloudDoc.updatedAtClient) {
+        lastEl.innerHTML = formatDateTimeLabel(cloudDoc.updatedAtClient) + '<br>' + esc(cloudDoc.updatedByDeviceName || cloudDoc.updatedByDeviceId || '알 수 없는 기기');
+      } else {
+        lastEl.textContent = '아직 없음';
+      }
+    }
+    patchCloudSyncMeta({
+      cachedQuotaDate: usage.date,
+      cachedQuotaRemaining: remaining,
+      lastCloudUpdatedAtClient: cloudDoc ? (cloudDoc.updatedAtClient || 0) : 0,
+      lastCloudVersion: cloudDoc ? (cloudDoc.snapshotVersion || '') : ''
+    });
+    if (statusEl && !deviceSyncBusy && hasSavedDeviceName()) {
+      statusEl.textContent = '클라우드 동기화 준비가 되었어요.';
+    }
+    setDeviceSyncBusyState(false);
+  } catch(err) {
+    console.error('refreshDeviceSyncSummary failed:', err);
+    if (statusEl && !deviceSyncBusy) statusEl.textContent = '클라우드 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
+    setDeviceSyncBusyState(false);
+  }
+}
+
+async function ensureSyncWarningAccepted() {
+  if (hasAcceptedCloudSyncWarning()) return true;
+  var ok = confirm('Cloud sync는 현재 트래커 전체 상태를 Firebase에 저장합니다.\n메모, URL, 읽기 진행도, 탭 설정 등이 포함될 수 있어요.\n계속하시겠습니까?');
+  if (ok) markCloudSyncWarningAccepted();
+  return ok;
+}
+
+async function getConflictPreference(summary, defaultPreference) {
+  if (!summary.conflictCount) return defaultPreference;
+  var choice = await askDeviceConflictPreference(
+    '자동 병합 가능한 항목은 먼저 합쳤습니다.<br><br>' +
+    summarizeConflictDetails(summary) +
+    '<br><br>어느 쪽 값을 우선해서 최종 스냅샷을 만들까요?'
+  );
+  return choice || null;
+}
+
+async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
+  var usage = await fetchCloudUsage(uid);
+  var dailyLimit = getDailySyncLimitForCurrentUser();
+  if (dailyLimit !== Infinity && (usage.syncCount || 0) >= dailyLimit) {
+    throw new Error('오늘의 클라우드 동기화 횟수를 모두 사용했어요.');
+  }
+
+  var bytes = estimateSnapshotBytes(mergedSnapshot);
+  if (bytes > 900000) {
+    throw new Error('데이터가 너무 커서 클라우드 동기화를 안전하게 진행할 수 없어요.');
+  }
+
+  var snapshotVersion = 'sync_' + Date.now().toString(36);
+  var nowMs = Date.now();
+  await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'sync', 'main'), {
+    schemaVersion: CLOUD_SYNC_SCHEMA_VERSION,
+    snapshotVersion: snapshotVersion,
+    updatedAt: firebaseBridge.serverTimestamp(),
+    updatedAtClient: nowMs,
+    updatedByDeviceId: getDeviceId(),
+    updatedByDeviceName: getEffectiveDeviceName(),
+    updatedByEmail: firebaseCurrentUser ? (firebaseCurrentUser.email || '') : '',
+    snapshotBytes: bytes,
+    data: mergedSnapshot
+  });
+  await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'usage', 'daily'), {
+    date: todayStr(),
+    syncCount: (usage.syncCount || 0) + 1,
+    updatedAt: firebaseBridge.serverTimestamp()
+  }, { merge: true });
+  await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'profile', 'main'), {
+    lastSyncAt: firebaseBridge.serverTimestamp(),
+    lastSyncVersion: snapshotVersion,
+    lastSyncDeviceId: getDeviceId(),
+    lastSyncDeviceName: getEffectiveDeviceName(),
+    lastSyncReason: reasonLabel
+  }, { merge: true });
+
+  patchCloudSyncMeta({
+    lastSyncedAtClient: nowMs,
+    lastSyncedVersion: snapshotVersion,
+    lastSyncedDeviceId: getDeviceId(),
+    lastSyncedDeviceName: getEffectiveDeviceName(),
+    lastCloudUpdatedAtClient: nowMs,
+    lastCloudVersion: snapshotVersion
+  });
+}
+
+async function syncToCloud() {
+  if (!firebaseCurrentUser) {
+    toast('⚠️ 먼저 Google 로그인해 주세요', 'err');
+    openDeviceSyncModal();
+    return;
+  }
+  if (!hasSavedDeviceName()) {
+    toast('⚠️ 먼저 이 기기 이름을 저장해 주세요', 'err');
+    openDeviceSyncModal();
+    var input = $('deviceNameInput');
+    if (input) input.focus();
+    return;
+  }
+  if (!await ensureSyncWarningAccepted()) return;
+
+  setDeviceSyncBusyState(true, '클라우드 데이터를 확인하고 병합 중입니다...');
+  try {
+    var localSnapshot = buildBackupSnapshot();
+    var cloudDoc = await fetchCloudSnapshotDoc(firebaseCurrentUser.uid);
+    var cloudSnapshot = cloudDoc && cloudDoc.data ? cloudDoc.data : null;
+
+    if (!cloudSnapshot) {
+      await writeMergedSnapshotToCloud(firebaseCurrentUser.uid, localSnapshot, 'push');
+      toast('☁️ 첫 클라우드 동기화가 완료되었어요', 'ok');
+    } else if (snapshotsEqual(localSnapshot, cloudSnapshot)) {
+      toast('✅ 이미 클라우드와 같은 상태예요', 'ok');
+      patchCloudSyncMeta({
+        lastSyncedAtClient: cloudDoc.updatedAtClient || Date.now(),
+        lastSyncedVersion: cloudDoc.snapshotVersion || ''
+      });
+    } else {
+      var draft = mergeSnapshots(localSnapshot, cloudSnapshot, 'local');
+      var preference = await getConflictPreference(draft.summary, 'local');
+      if (!preference) {
+        setDeviceSyncBusyState(false, '동기화가 취소되었습니다.');
+        return;
+      }
+      if (preference !== 'local') draft = mergeSnapshots(localSnapshot, cloudSnapshot, preference);
+      await writeMergedSnapshotToCloud(firebaseCurrentUser.uid, draft.merged, 'push-merge');
+      restoreBackupSnapshot(draft.merged, { silent: true });
+      toast('☁️ 병합 후 클라우드에 동기화했어요', 'ok');
+    }
+    setDeviceSyncBusyState(false, '클라우드 동기화 상태가 최신입니다.');
+    await refreshDeviceSyncSummary();
+  } catch(err) {
+    console.error('syncToCloud failed:', err);
+    setDeviceSyncBusyState(false, err.message || '클라우드 동기화에 실패했어요.');
+    toast('❌ 동기화 실패: ' + (err.message || '알 수 없는 오류'), 'err');
+  }
+}
+
+async function loadFromCloud() {
+  if (!firebaseCurrentUser) {
+    toast('⚠️ 먼저 Google 로그인해 주세요', 'err');
+    openDeviceSyncModal();
+    return;
+  }
+  if (!hasSavedDeviceName()) {
+    toast('⚠️ 먼저 이 기기 이름을 저장해 주세요', 'err');
+    openDeviceSyncModal();
+    var input = $('deviceNameInput');
+    if (input) input.focus();
+    return;
+  }
+
+  setDeviceSyncBusyState(true, '클라우드 데이터를 불러오는 중입니다...');
+  try {
+    var cloudDoc = await fetchCloudSnapshotDoc(firebaseCurrentUser.uid);
+    if (!cloudDoc || !cloudDoc.data) {
+      throw new Error('클라우드에 저장된 데이터가 아직 없어요.');
+    }
+
+    var cloudSnapshot = cloudDoc.data;
+    var localSnapshot = buildBackupSnapshot();
+
+    if (!hasSnapshotData(localSnapshot)) {
+      restoreBackupSnapshot(cloudSnapshot, { silent: true });
+      patchCloudSyncMeta({
+        lastSyncedAtClient: cloudDoc.updatedAtClient || Date.now(),
+        lastSyncedVersion: cloudDoc.snapshotVersion || '',
+        lastCloudUpdatedAtClient: cloudDoc.updatedAtClient || 0,
+        lastCloudVersion: cloudDoc.snapshotVersion || ''
+      });
+      toast('📥 클라우드 데이터를 이 기기로 불러왔어요', 'ok');
+      setDeviceSyncBusyState(false, '클라우드 데이터를 이 기기에 적용했습니다.');
+      await refreshDeviceSyncSummary();
+      return;
+    }
+
+    if (snapshotsEqual(localSnapshot, cloudSnapshot)) {
+      toast('✅ 이 기기와 클라우드가 이미 같습니다', 'ok');
+      setDeviceSyncBusyState(false, '이미 최신 상태입니다.');
+      await refreshDeviceSyncSummary();
+      return;
+    }
+
+    if (!await ensureSyncWarningAccepted()) {
+      setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
+      return;
+    }
+
+    var draft = mergeSnapshots(localSnapshot, cloudSnapshot, 'cloud');
+    var preference = await getConflictPreference(draft.summary, 'cloud');
+    if (!preference) {
+      setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
+      return;
+    }
+    if (preference !== 'cloud') draft = mergeSnapshots(localSnapshot, cloudSnapshot, preference);
+
+    if (!snapshotsEqual(draft.merged, cloudSnapshot)) {
+      await writeMergedSnapshotToCloud(firebaseCurrentUser.uid, draft.merged, 'load-merge');
+    }
+    restoreBackupSnapshot(draft.merged, { silent: true });
+    toast('📥 병합 후 이 기기에 적용했어요', 'ok');
+    setDeviceSyncBusyState(false, '클라우드 데이터를 병합해 적용했습니다.');
+    await refreshDeviceSyncSummary();
+  } catch(err) {
+    console.error('loadFromCloud failed:', err);
+    setDeviceSyncBusyState(false, err.message || '클라우드 불러오기에 실패했어요.');
+    toast('❌ 불러오기 실패: ' + (err.message || '알 수 없는 오류'), 'err');
+  }
 }
 
 function clearLog() {}
@@ -1554,13 +2614,14 @@ function editDateHeader() {
 }
 
 // JSON BACKUP EXPORT/IMPORT
-function exportBackup() {
+function buildBackupSnapshot() {
   var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
     return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', fileSource: t.fileSource || false, dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, hasAssignment: t.hasAssignment || false, assignmentLabel: t.assignmentLabel || '과제', assignmentSourceCol: t.assignmentSourceCol || '', assignmentEmoji: t.assignmentEmoji || '🎯', articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
   });
-  var backup = {
+  return {
     version: 'pt_backup_v1',
     exportDate: new Date().toISOString(),
+    activeId: activeTabId,
     customTitle: localStorage.getItem(CUSTOM_TITLE_KEY) || '',
     theme: localStorage.getItem(THEME_KEY) || 'gold',
     attendance: attendance,
@@ -1570,6 +2631,10 @@ function exportBackup() {
     dateEmoji: dateEmoji,
     tabs: data
   };
+}
+
+function exportBackup() {
+  var backup = buildBackupSnapshot();
   var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1577,6 +2642,87 @@ function exportBackup() {
   a.click();
   URL.revokeObjectURL(a.href);
   toast('💾 백업 파일이 다운로드되었습니다');
+}
+
+function restoreBackupSnapshot(backup, options) {
+  options = options || {};
+  if (!backup || !backup.tabs || !Array.isArray(backup.tabs)) {
+    throw new Error('올바른 백업 파일이 아닙니다');
+  }
+
+  allTabs = [{ id: 'tab_favorites', name: '⭐ 즐겨찾기', data: [], readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false }];
+  backup.tabs.forEach(function(t) {
+    var readMap = {};
+    if (t.readMap && typeof t.readMap === 'object' && !Array.isArray(t.readMap)) { readMap = t.readMap; }
+    else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
+    var articles = t.articles || [];
+    articles.forEach(function(a) {
+      if (!a.notes) a.notes = '';
+      if (!a.customCol) a.customCol = '';
+      if (a.customColMission === undefined) a.customColMission = false;
+      if (a.missionDone === undefined) a.missionDone = false;
+      if (a.assignment === undefined) a.assignment = '';
+      if (a.assignmentDone === undefined) a.assignmentDone = false;
+    });
+    allTabs.push({
+      id: t.id,
+      name: t.name,
+      group: t.group || '',
+      dateLabel: t.dateLabel || '날짜',
+      hideDateCol: t.hideDateCol || false,
+      hideCcCol: t.hideCcCol || false,
+      ccLabel: t.ccLabel || '추가 항목',
+      ccEmoji: t.ccEmoji || '📌',
+      columnMap: t.columnMap || null,
+      missionMode: t.missionMode || false,
+      hasAssignment: t.hasAssignment || false,
+      assignmentLabel: t.assignmentLabel || '과제',
+      assignmentSourceCol: t.assignmentSourceCol || '',
+      assignmentEmoji: t.assignmentEmoji || '🎯',
+      fileSource: t.fileSource || false,
+      data: articles,
+      sheetsUrl: t.sheetsUrl || '',
+      readMap: readMap,
+      starSet: t.starSet || []
+    });
+  });
+
+  attendance = Array.isArray(backup.attendance) ? backup.attendance : [];
+  saveAttendance();
+  if (backup.attendanceGoal) {
+    BULB_GOAL_DAYS = backup.attendanceGoal;
+    try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {}
+  }
+  if (typeof backup.cycleStart === 'string') {
+    try {
+      if (backup.cycleStart) localStorage.setItem(CYCLE_START_KEY, backup.cycleStart);
+      else localStorage.removeItem(CYCLE_START_KEY);
+    } catch(e) {}
+  }
+  if (backup.ccSettings) {
+    ccEnabled = backup.ccSettings.enabled === true;
+    saveCustomColSettings();
+  }
+  if (backup.dateEmoji !== undefined) {
+    dateEmoji = backup.dateEmoji || '';
+    try { localStorage.setItem(DATE_EMOJI_KEY, dateEmoji); } catch(e) {}
+  }
+  if (backup.theme) setTheme(backup.theme);
+  try {
+    if (backup.customTitle) localStorage.setItem(CUSTOM_TITLE_KEY, backup.customTitle);
+    else localStorage.removeItem(CUSTOM_TITLE_KEY);
+  } catch(e) {}
+
+  activeTabId = (backup.activeId && backup.tabs.some(function(t) { return t.id === backup.activeId; }))
+    ? backup.activeId
+    : (backup.tabs.length > 0 ? backup.tabs[0].id : 'tab_home');
+
+  if (typeof invalidateReadDateIndex === 'function') invalidateReadDateIndex();
+  saveToStorage();
+  applyCustomTitle();
+  renderTabs();
+  switchTab('tab_home');
+  if (!options.silent) toast('✅ 백업이 복원되었습니다!', 'ok');
 }
 
 function importBackup() {
@@ -1592,34 +2738,7 @@ function importBackup() {
         var backup = JSON.parse(ev.target.result);
         if (!backup.tabs || !Array.isArray(backup.tabs)) { toast('⚠️ 올바른 백업 파일이 아닙니다', 'err'); return; }
         if (!confirm('현재 데이터를 백업 파일로 교체합니다.\n기존 데이터는 사라집니다. 계속하시겠습니까?')) return;
-        // Restore
-        allTabs = [{ id: 'tab_favorites', name: '⭐ 즐겨찾기', data: [], readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false }];
-        backup.tabs.forEach(function(t) {
-          var readMap = {};
-          if (t.readMap && typeof t.readMap === 'object' && !Array.isArray(t.readMap)) { readMap = t.readMap; }
-          else if (t.readKeys && Array.isArray(t.readKeys)) { t.readKeys.forEach(function(k) { readMap[k] = 'unknown'; }); }
-          var articles = t.articles || [];
-          // v1.9 Part 2: assignment 필드 backward compat
-          articles.forEach(function(a) {
-            if (!a.notes) a.notes = '';
-            if (a.assignment === undefined) a.assignment = '';
-            if (a.assignmentDone === undefined) a.assignmentDone = false;
-          });
-          allTabs.push({ id: t.id, name: t.name, group: t.group || '', dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, hasAssignment: t.hasAssignment || false, assignmentLabel: t.assignmentLabel || '과제', assignmentSourceCol: t.assignmentSourceCol || '', assignmentEmoji: t.assignmentEmoji || '🎯', fileSource: t.fileSource || false, data: articles, sheetsUrl: t.sheetsUrl || '', readMap: readMap, starSet: t.starSet || [] });
-        });
-        if (backup.attendance) { attendance = backup.attendance; saveAttendance(); }
-        if (backup.attendanceGoal) { BULB_GOAL_DAYS = backup.attendanceGoal; try { localStorage.setItem(ATTENDANCE_GOAL_KEY, String(BULB_GOAL_DAYS)); } catch(e) {} }
-        if (typeof backup.cycleStart === 'string') { try { if (backup.cycleStart) localStorage.setItem(CYCLE_START_KEY, backup.cycleStart); else localStorage.removeItem(CYCLE_START_KEY); } catch(e) {} }
-        if (backup.ccSettings) { ccEnabled = backup.ccSettings.enabled === true; saveCustomColSettings(); }
-        if (backup.dateEmoji) { dateEmoji = backup.dateEmoji; try { localStorage.setItem(DATE_EMOJI_KEY, dateEmoji); } catch(e) {} }
-        if (backup.theme) setTheme(backup.theme);
-        if (backup.customTitle) { localStorage.setItem(CUSTOM_TITLE_KEY, backup.customTitle); }
-        activeTabId = backup.tabs.length > 0 ? backup.tabs[0].id : 'tab_home';
-        if (typeof invalidateReadDateIndex === 'function') invalidateReadDateIndex();
-        saveToStorage();
-        toast('✅ 백업이 복원되었습니다!');
-        switchTab('tab_home');
-        renderTabs();
+        restoreBackupSnapshot(backup);
       } catch(err) { toast('⚠️ 파일 읽기 실패: ' + err.message, 'err'); }
     };
     reader.readAsText(file);
@@ -1902,9 +3021,13 @@ function switchTab(id) {
   if (!t) return;
 
   $('headerTitle').textContent = '📚 ' + t.name;
-  $('headerSub').innerHTML = t.group
+  var groupHtml = t.group
     ? '<span class="group-badge" onclick="changeGroup()" title="클릭하여 그룹 변경">' + esc(t.group) + '</span>'
     : '<span class="group-badge group-empty" onclick="changeGroup()" title="클릭하여 그룹 설정">+ 그룹 설정</span>';
+  var sheetsHtml = t.sheetsUrl
+    ? '<span class="badge badge-g" title="Google Sheets 연결됨" style="cursor:default"><span class="dot"></span> Sheets 연결됨</span>'
+    : '';
+  $('headerSub').innerHTML = groupHtml + (sheetsHtml ? '&nbsp;&nbsp;' + sheetsHtml : '');
 
   // Update sheets panel
   $('sheetsUrl').value = t.sheetsUrl || '';
@@ -3112,18 +4235,34 @@ function isAssignmentVisible() {
 // v2.1 후속: 동기화 시 시트의 과제 텍스트가 로컬과 다른 항목 수를 검출
 function detectAssignmentChanges(tab, freshRows, asgHeader) {
   if (!hasAssignmentEnabled(tab) || !asgHeader || !Array.isArray(freshRows)) return 0;
-  var asgByTitle = {};
-  freshRows.forEach(function(row) {
-    var titleField = (tab.columnMap && tab.columnMap.title) ? row[tab.columnMap.title] : (row.title || row['제목'] || row['Title']);
-    var titleKey = String(titleField || '').toLowerCase().trim();
-    if (titleKey) asgByTitle[titleKey] = String(row[asgHeader] == null ? '' : row[asgHeader]).trim();
-  });
+  var freshItems = Array.isArray(window._syncFreshData) ? window._syncFreshData : [];
+  var freshLookups = buildSyncLookupMaps(freshItems);
   var changedCount = 0;
   (tab.data || []).forEach(function(item) {
-    var k = String(item.title || '').toLowerCase().trim();
-    if (k in asgByTitle && asgByTitle[k] !== (item.assignment || '')) changedCount++;
+    var key = String(item.key || '').trim();
+    var titleKey = String(item.title || '').toLowerCase().trim();
+    var match = (key && freshLookups.byKey[key] && freshLookups.byKey[key][0]) || (titleKey && freshLookups.byTitle[titleKey] && freshLookups.byTitle[titleKey][0]) || null;
+    if (match && String(match.assignment || '').trim() !== (item.assignment || '')) changedCount++;
   });
   return changedCount;
+}
+
+function buildSyncLookupMaps(items) {
+  var byKey = {};
+  var byTitle = {};
+  (items || []).forEach(function(item) {
+    var key = String((item && item.key) || '').trim();
+    if (key) {
+      if (!byKey[key]) byKey[key] = [];
+      byKey[key].push(item);
+    }
+    var titleKey = String((item && item.title) || '').toLowerCase().trim();
+    if (titleKey) {
+      if (!byTitle[titleKey]) byTitle[titleKey] = [];
+      byTitle[titleKey].push(item);
+    }
+  });
+  return { byKey: byKey, byTitle: byTitle };
 }
 
 // v1.9 Part 2: _mapAssignment 플래그 + rows에서 과제 데이터를 탭에 채워넣기.
@@ -3195,6 +4334,9 @@ function updateSheetsUI(connected) {
   $('sheetsBadge').innerHTML = connected
     ? '<span class="badge badge-g"><span class="dot"></span> 연결됨</span>'
     : '<span class="badge badge-r"><span class="dot"></span> 미연결</span>';
+  $('btnSheets').innerHTML = connected
+    ? '🔗 Google Sheets <span style="font-size:10px;color:var(--green);font-weight:700">연결됨</span>'
+    : '🔗 Google Sheets';
   $('btnSync').style.display = connected ? '' : 'none';
   $('btnDisconnect').style.display = connected ? '' : 'none';
 }
@@ -3899,16 +5041,20 @@ function fetchSheetsForSync(sheetId, tab) {
         });
       }
 
-      // Build lookup by title (lowercase)
-      var localByTitle = {};
-      tab.data.forEach(function(d) {
-        var t = d.title.toLowerCase().trim();
-        if (!localByTitle[t]) localByTitle[t] = [];
-        localByTitle[t].push(d);
-      });
+      window._syncFreshData = freshData;
+
+      var localLookups = buildSyncLookupMaps(tab.data);
+      var localByKey = localLookups.byKey;
+      var localByTitle = localLookups.byTitle;
 
       // Categorize each item
       syncAllItems = freshData.map(function(d) {
+        var key = String(d.key || '').trim();
+        var keyMatches = key ? localByKey[key] : null;
+        if (keyMatches && keyMatches.length > 0) {
+          return { item: d, status: 'identical' }; // same URL/key already exists locally
+        }
+
         var tLower = d.title.toLowerCase().trim();
         var matches = localByTitle[tLower];
 
@@ -3916,9 +5062,9 @@ function fetchSheetsForSync(sheetId, tab) {
           return { item: d, status: 'new' }; // completely new
         }
 
-        // Title exists - check if truly identical (same title + date + category)
+        // Fallback: title exists - check if truly identical
         var identical = matches.some(function(m) {
-          return m.date === d.date && m.category === d.category;
+          return m.date === d.date && m.category === d.category && (m.url || '') === (d.url || '');
         });
 
         if (identical) {
@@ -4000,7 +5146,7 @@ function showSyncModal(allItems, sheetTotal, localTotal) {
 
   var summary = 'Sheets: ' + sheetTotal + '개 / 로컬: ' + localTotal + '개';
   if (newCount) summary += ' → <strong>' + newCount + '개 새 항목</strong>';
-  if (dupeCount) summary += ' · <span style="color:var(--red)">' + dupeCount + '개 제목 중복</span>';
+  if (dupeCount) summary += ' · <span style="color:var(--red)">' + dupeCount + '개 확인 필요</span>';
   if (identicalCount) summary += ' · ' + identicalCount + '개 동일(숨김)';
   $('syncStatus').innerHTML = summary;
   $('syncApplyBtn').style.display = '';
@@ -4022,7 +5168,7 @@ function showSyncModal(allItems, sheetTotal, localTotal) {
       html += '<div class="sync-item sync-new" style="border-color:var(--red);opacity:.8"><label>' +
         '<input type="checkbox" class="sync-cb" data-idx="' + i + '">' +
         '<span><strong>' + esc(x.item.title) + '</strong>' +
-        '<span style="color:var(--red);font-size:10px;font-weight:600"> ⚠️ 같은 제목이 이미 있음 (날짜/카테고리 다름)</span><br>' +
+        '<span style="color:var(--red);font-size:10px;font-weight:600"> ⚠️ 기존 항목과 확인이 필요해요</span><br>' +
         '<span style="font-size:10px;color:var(--t3)">' + esc(x.item.category) + ' · ' + formatDate(x.item.date) + '</span></span>' +
         '</label></div>';
     }
@@ -4067,18 +5213,14 @@ function applySyncItems() {
   // v1.9 Part 2: 활성된 과제 컬럼이면 기존 항목들의 assignment 텍스트도 갱신 (제목 매칭)
   // assignmentDone 상태는 그대로 유지.
   var asgUpdatedCount = 0;
-  if (hasAssignmentEnabled(tab) && asgHeader && Array.isArray(window._syncFreshRows)) {
-    var asgByTitle = {};
-    window._syncFreshRows.forEach(function(row) {
-      var titleField = (tab.columnMap && tab.columnMap.title) ? row[tab.columnMap.title] : (row.title || row['제목'] || row['Title']);
-      var titleKey = String(titleField || '').toLowerCase().trim();
-      if (!titleKey) return;
-      asgByTitle[titleKey] = String(row[asgHeader] == null ? '' : row[asgHeader]).trim();
-    });
+  if (hasAssignmentEnabled(tab) && Array.isArray(window._syncFreshData)) {
+    var freshLookups = buildSyncLookupMaps(window._syncFreshData);
     tab.data.forEach(function(item) {
-      var k = String(item.title || '').toLowerCase().trim();
-      if (k in asgByTitle) {
-        var newVal = asgByTitle[k];
+      var key = String(item.key || '').trim();
+      var titleKey = String(item.title || '').toLowerCase().trim();
+      var match = (key && freshLookups.byKey[key] && freshLookups.byKey[key][0]) || (titleKey && freshLookups.byTitle[titleKey] && freshLookups.byTitle[titleKey][0]) || null;
+      if (match) {
+        var newVal = String(match.assignment || '').trim();
         if (newVal !== (item.assignment || '')) asgUpdatedCount++;
         item.assignment = newVal;
         if (!item.assignment) item.assignmentDone = false;
@@ -4103,6 +5245,7 @@ function applySyncItems() {
   // Cleanup
   window._syncAsgHeader = null;
   window._syncFreshRows = null;
+  window._syncFreshData = null;
 
   closeSyncModal();
 }
@@ -4113,6 +5256,7 @@ function closeSyncModal() {
   // v1.9 Part 2: 동기화 일회성 상태 정리
   window._syncAsgHeader = null;
   window._syncFreshRows = null;
+  window._syncFreshData = null;
 }
 
 // =============================================
@@ -6722,6 +7866,7 @@ loadCustomColSettings();
 renderTabs();
 switchTab('tab_home');
 applyCustomTitle();
+updateAuthUI();
 
 // =============================================
 // AUTO UPDATE CHECK (on tab focus)
@@ -7141,6 +8286,48 @@ function doUpdate() {
   localStorage.setItem('pt_last_images', JSON.stringify(window._updateImages || []));
   location.reload();
 }
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+  import { browserLocalPersistence, getAuth, GoogleAuthProvider, onAuthStateChanged, setPersistence, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+  import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBmJI47PbdL2R9Oks42VGQzn4ATpsLfHT0",
+    authDomain: "reading-tracker-sync.firebaseapp.com",
+    projectId: "reading-tracker-sync",
+    storageBucket: "reading-tracker-sync.firebasestorage.app",
+    messagingSenderId: "712711497345",
+    appId: "1:712711497345:web:769729b156452cd9164f80"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    if (typeof window.initFirebaseBridge === 'function') {
+      window.initFirebaseBridge({
+        auth,
+        browserLocalPersistence,
+        db,
+        doc,
+        getDoc,
+        GoogleAuthProvider,
+        onAuthStateChanged,
+        setPersistence,
+        serverTimestamp,
+        setDoc,
+        signInWithPopup,
+        signOut
+      });
+    }
+  } catch (err) {
+    console.error('Firebase bootstrap failed:', err);
+    if (typeof window.toast === 'function') {
+      window.toast('⚠️ Firebase 연결에 실패했어요. 새로고침 후 다시 시도해 주세요', 'err');
+    }
+  }
 </script>
 </body>
 </html>
