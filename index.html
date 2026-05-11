@@ -1283,7 +1283,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.0';
+const APP_VERSION = 'v3.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -2123,7 +2123,26 @@ function isLocalDataAheadOfCloud(localSnapshot, cloudSnapshot) {
 
 async function fetchCloudSnapshotDoc(uid) {
   var snap = await firebaseBridge.getDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'sync', 'main'));
-  return snap.exists() ? snap.data() : null;
+  if (!snap.exists()) return null;
+  var meta = snap.data();
+
+  // v3.1: Storage 사용 중 → Storage에서 압축된 스냅샷 다운로드 + 해제
+  if (meta && meta.storageVersion === 1 && firebaseBridge.storage && firebaseBridge.getBytes) {
+    try {
+      var ext = meta.compressed ? '.gz' : '';
+      var storagePath = 'sync/' + uid + '/snapshot.json' + ext;
+      var storageRef = firebaseBridge.ref(firebaseBridge.storage, storagePath);
+      var bytes = await firebaseBridge.getBytes(storageRef);
+      var snapshot = await gunzipSnapshot(new Uint8Array(bytes), !!meta.compressed);
+      meta.data = snapshot; // 기존 코드가 .data를 기대하므로 동일 모양으로
+    } catch (e) {
+      console.error('Storage snapshot read failed', e);
+      meta.data = null;
+    }
+  }
+  // 레거시: meta.data가 이미 Firestore 문서에 들어있는 경우 그대로 사용
+
+  return meta;
 }
 
 async function fetchCloudUsage(uid) {
@@ -2209,6 +2228,36 @@ async function getConflictPreference(summary, defaultPreference) {
   return choice || null;
 }
 
+// v3.1: gzip 압축/해제 (CompressionStream 지원 브라우저 + 옛 브라우저 fallback)
+async function gzipSnapshot(obj) {
+  var json = JSON.stringify(obj);
+  if (typeof CompressionStream === 'undefined') {
+    return { bytes: new TextEncoder().encode(json), compressed: false };
+  }
+  try {
+    var stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+    var blob = await new Response(stream).blob();
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), compressed: true };
+  } catch (e) {
+    console.warn('gzip failed, falling back to uncompressed', e);
+    return { bytes: new TextEncoder().encode(json), compressed: false };
+  }
+}
+
+async function gunzipSnapshot(bytes, compressed) {
+  if (!compressed || typeof DecompressionStream === 'undefined') {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  try {
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    var text = await new Response(stream).text();
+    return JSON.parse(text);
+  } catch (e) {
+    // Fallback: try as plain text in case data is actually uncompressed
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+}
+
 async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
   var usage = await fetchCloudUsage(uid);
   var dailyLimit = getDailySyncLimitForCurrentUser();
@@ -2216,13 +2265,29 @@ async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
     throw new Error('오늘의 클라우드 동기화 횟수를 모두 사용했어요.');
   }
 
-  var bytes = estimateSnapshotBytes(mergedSnapshot);
-  if (bytes > 900000) {
-    throw new Error('데이터가 너무 커서 클라우드 동기화를 안전하게 진행할 수 없어요.');
+  // v3.1: gzip 압축 → Firebase Storage 업로드 (Firestore 1MB 한도 회피)
+  var rawBytes = estimateSnapshotBytes(mergedSnapshot);
+  var packed = await gzipSnapshot(mergedSnapshot);
+  // 새 안전 한도: 압축 후 5MB (raw로는 25-50MB)
+  if (packed.bytes.length > 5_000_000) {
+    throw new Error('데이터가 5MB(압축 후)를 초과합니다. 항목이나 노트가 너무 많아요. 일부 정리해주세요.');
   }
 
   var snapshotVersion = 'sync_' + Date.now().toString(36);
   var nowMs = Date.now();
+
+  // 1. Storage에 압축된 스냅샷 업로드
+  if (firebaseBridge.storage && firebaseBridge.uploadBytes) {
+    var ext = packed.compressed ? '.gz' : '';
+    var contentType = packed.compressed ? 'application/gzip' : 'application/json';
+    var storagePath = 'sync/' + uid + '/snapshot.json' + ext;
+    var storageRef = firebaseBridge.ref(firebaseBridge.storage, storagePath);
+    await firebaseBridge.uploadBytes(storageRef, packed.bytes, { contentType: contentType });
+  } else {
+    throw new Error('Firebase Storage가 초기화되지 않았어요. 새로고침해 주세요.');
+  }
+
+  // 2. Firestore에는 메타데이터만 저장 (snapshot/data 필드 없음 — 자동 제거됨)
   await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'sync', 'main'), {
     schemaVersion: CLOUD_SYNC_SCHEMA_VERSION,
     snapshotVersion: snapshotVersion,
@@ -2231,8 +2296,10 @@ async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
     updatedByDeviceId: getDeviceId(),
     updatedByDeviceName: getEffectiveDeviceName(),
     updatedByEmail: firebaseCurrentUser ? (firebaseCurrentUser.email || '') : '',
-    snapshotBytes: bytes,
-    data: mergedSnapshot
+    snapshotBytes: rawBytes,
+    compressedBytes: packed.bytes.length,
+    compressed: packed.compressed,
+    storageVersion: 1
   });
   await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'usage', 'daily'), {
     date: todayStr(),
@@ -8291,6 +8358,7 @@ function doUpdate() {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
   import { browserLocalPersistence, getAuth, GoogleAuthProvider, onAuthStateChanged, setPersistence, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
   import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getBytes, deleteObject } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBmJI47PbdL2R9Oks42VGQzn4ATpsLfHT0",
@@ -8305,6 +8373,7 @@ function doUpdate() {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
     if (typeof window.initFirebaseBridge === 'function') {
       window.initFirebaseBridge({
@@ -8319,7 +8388,12 @@ function doUpdate() {
         serverTimestamp,
         setDoc,
         signInWithPopup,
-        signOut
+        signOut,
+        storage,
+        ref,
+        uploadBytes,
+        getBytes,
+        deleteObject
       });
     }
   } catch (err) {
