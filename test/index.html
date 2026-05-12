@@ -1303,7 +1303,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.1';
+const APP_VERSION = 'v3.2';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -2691,6 +2691,10 @@ async function loadFromCloud() {
     }
 
     var cloudSnapshot = cloudDoc.data;
+    // 다른 기기에 남아있을 수 있는 빈 placeholder "트래커 1" 조용히 제거
+    if (cloudSnapshot && Array.isArray(cloudSnapshot.tabs)) {
+      cloudSnapshot.tabs = cloudSnapshot.tabs.filter(function(t) { return !isEmptyPlaceholderTab(t); });
+    }
     var localSnapshot = buildBackupSnapshot();
 
     if (!hasSnapshotData(localSnapshot)) {
@@ -3053,7 +3057,9 @@ function editDateHeader() {
 
 // JSON BACKUP EXPORT/IMPORT
 function buildBackupSnapshot() {
-  var data = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).map(function(t) {
+  var data = allTabs.filter(function(t) {
+    return t.id !== 'tab_favorites' && !isEmptyPlaceholderTab(t);
+  }).map(function(t) {
     return { id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '', fileSource: t.fileSource || false, dateLabel: t.dateLabel || '날짜', hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false, ccLabel: t.ccLabel || '추가 항목', ccEmoji: t.ccEmoji || '📌', columnMap: t.columnMap || null, missionMode: t.missionMode || false, hasAssignment: t.hasAssignment || false, assignmentLabel: t.assignmentLabel || '과제', assignmentSourceCol: t.assignmentSourceCol || '', assignmentEmoji: t.assignmentEmoji || '🎯', articles: t.data, readMap: t.readMap, starSet: t.starSet || [] };
   });
   return {
@@ -8289,15 +8295,33 @@ document.addEventListener('mouseover', function(e) {
 
 // INITIALIZATION
 // =============================================
+
+// 자동 생성된 빈 "트래커 1" placeholder 판별 (사용자가 안 건드린 기본 상태일 때만 true)
+function isEmptyPlaceholderTab(tab) {
+  if (!tab) return false;
+  if (tab.id !== 'tab_default') return false;
+  if (tab.name !== '트래커 1') return false;
+  if (tab.sheetsUrl) return false;
+  var articles = tab.data || tab.articles || [];
+  if (Array.isArray(articles) && articles.length > 0) return false;
+  if (tab.readMap && Object.keys(tab.readMap).length > 0) return false;
+  if (tab.starSet && tab.starSet.length > 0) return false;
+  return true;
+}
+
 loadFromStorage();
 
-// Ensure at least one tab exists
-if (allTabs.length === 0) {
-  allTabs.push({ id: 'tab_default', name: '트래커 1', group: '', data: [], sheetsUrl: '', readMap: {}, starSet: [], ccLabel: '추가 항목', ccEmoji: '📌', hideCcCol: false, missionMode: false });
-  activeTabId = 'tab_default';
+// 기존 잔여 placeholder 조용히 제거 (있었던 경우만 saveToStorage)
+var __placeholderBefore = allTabs.length;
+allTabs = allTabs.filter(function(t) { return !isEmptyPlaceholderTab(t); });
+if (allTabs.length !== __placeholderBefore) {
+  if (!allTabs.find(function(t) { return t.id === activeTabId; })) activeTabId = 'tab_home';
+  try { saveToStorage(); } catch(e) {}
 }
-if (!activeTabId || !allTabs.find(t => t.id === activeTabId)) {
-  activeTabId = allTabs[0].id;
+
+// 더 이상 자동 placeholder 안 만듦. 비어 있으면 home 탭의 welcome 화면이 처리.
+if (!activeTabId || (activeTabId !== 'tab_home' && activeTabId !== 'tab_favorites' && !allTabs.find(t => t.id === activeTabId))) {
+  activeTabId = allTabs.length > 0 ? allTabs[0].id : 'tab_home';
 }
 
 loadCustomColSettings();
