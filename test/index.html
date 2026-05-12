@@ -718,6 +718,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:10px">
     체크/별표/메모/도서 목록은 모두 보존됩니다. 탭 이름/그룹 같은 단순 설정만 손실 가능해서 선택지를 보여드려요.
   </div>
+  <div id="tabMatchResultBanner" style="background:rgba(61,204,122,.12);border:1px solid rgba(61,204,122,.4);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--t1);line-height:1.6;margin-bottom:10px;display:none"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);font-weight:600;cursor:pointer;padding:6px 12px;border:1px solid var(--bdr);border-radius:6px;background:var(--bg1)">
       <input type="checkbox" id="tabMatchShowAll" onchange="onTabMatchShowAllToggle(this.checked)">
@@ -730,9 +731,20 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
     <div style="font-size:11px;color:var(--t2);margin-bottom:6px">합친 후 탭 이름:</div>
     <div id="tabMatchNameOptions"></div>
   </div>
+  <div id="tabMatchCleanupModeBox" style="margin-top:10px;padding:10px 12px;background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;display:none">
+    <div style="font-size:11px;color:var(--t2);margin-bottom:6px">합치는 방식:</div>
+    <label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;margin-bottom:6px;cursor:pointer;line-height:1.5">
+      <input type="radio" name="tabMatchCleanupMode" value="replace" checked style="margin-top:3px">
+      <span><strong>원본 탭들을 합쳐서 정리</strong> <span style="color:var(--t3)">(체크한 탭들은 사라지고 합친 결과 1개만 남음)</span></span>
+    </label>
+    <label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;cursor:pointer;line-height:1.5">
+      <input type="radio" name="tabMatchCleanupMode" value="newTab" style="margin-top:3px">
+      <span><strong>원본 탭은 그대로 두고 새 탭으로 합치기</strong> <span style="color:var(--t3)">(안전: 결과 확인 후 직접 정리)</span></span>
+    </label>
+  </div>
   <div id="tabMatchError" style="margin-top:8px;padding:8px 10px;background:rgba(240,64,96,.12);border:1px solid rgba(240,64,96,.4);border-radius:6px;font-size:12px;color:#f04060;display:none"></div>
   <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap;margin-top:12px">
-    <button class="btn" id="tabMatchCancelBtn" onclick="closeTabMatchModal()">취소</button>
+    <button class="btn" id="tabMatchCancelBtn" onclick="closeTabMatchModal()">닫기</button>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="tabMatchSkipBtn" onclick="finishTabMatchModal()" style="display:none">건너뛰고 진행</button>
       <button class="btn btn-g" id="tabMatchMergeBtn" onclick="applyTabMatchSelection()" disabled>합치기</button>
@@ -1317,7 +1329,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.3';
+const APP_VERSION = 'v3.4';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -2074,6 +2086,14 @@ function updateTabMatchActionState() {
       picker.style.display = 'none';
     }
   }
+  var modeBox = $('tabMatchCleanupModeBox');
+  if (modeBox) {
+    if (tabMatchState.mode === 'cleanup' && checkedItems.length >= 2) {
+      modeBox.style.display = '';
+    } else {
+      modeBox.style.display = 'none';
+    }
+  }
 }
 
 function renderTabMatchNamePicker(checkedItems) {
@@ -2149,12 +2169,18 @@ function applyTabMatchSelection() {
   var chosenName = getChosenMergeName(checkedItems);
 
   if (tabMatchState.mode === 'cleanup') {
-    // 즉시 allTabs에 적용
-    applyCleanupMergeInPlace(checkedItems, chosenName);
+    // 합치는 방식 (라디오): 'replace' = 원본 제거 + 합침 / 'newTab' = 원본 유지 + 새 탭에 합침
+    var modeRadio = document.querySelector('input[name="tabMatchCleanupMode"]:checked');
+    var cleanupMode = modeRadio ? modeRadio.value : 'replace';
+    applyCleanupMergeInPlace(checkedItems, chosenName, cleanupMode);
     // 체크 해제 + allTagged 재구성
     rebuildTabMatchStateAfterCleanupMerge();
+    // 인라인 알림 + 토스트 둘 다 (모달은 계속 열려있으니까 모달 안에서도 확인 가능하게)
+    showTabMatchResult(cleanupMode === 'newTab'
+      ? '✓ 새 탭 "' + (chosenName || '합친 탭') + '"으로 ' + checkedItems.length + '개 탭의 데이터를 합쳤어요 (원본 탭은 그대로 유지)'
+      : '✓ "' + (chosenName || '합친 탭') + '"으로 ' + checkedItems.length + '개 탭이 합쳐졌어요');
     renderTabMatchTable();
-    toast('🧹 ' + checkedItems.length + '개 탭을 합쳤어요', 'ok');
+    toast(cleanupMode === 'newTab' ? '🆕 새 탭에 합쳤어요' : '🧹 ' + checkedItems.length + '개 탭을 합쳤어요', 'ok');
   } else {
     // pull: 결정 누적, 모달 새로고침 (선택된 항목 제거)
     var canonical = (checkedItems.find(function(i) { return i.source === 'local'; }) || checkedItems[0]);
@@ -2193,16 +2219,17 @@ function updateTabMatchSkipButtonVisibility() {
   }
 }
 
-// cleanup: 선택된 탭들을 합쳐서 allTabs에 반영. 첫 번째 선택 탭이 canonical, 나머지는 제거.
-function applyCleanupMergeInPlace(checkedItems, chosenName) {
+// cleanup: 선택된 탭들을 합쳐서 allTabs에 반영.
+//   mode='replace' (기본): 첫 번째 선택 탭이 canonical, 나머지는 제거
+//   mode='newTab': 합친 결과를 새 탭으로 추가, 원본 N개는 그대로 유지
+function applyCleanupMergeInPlace(checkedItems, chosenName, mode) {
   if (!checkedItems || checkedItems.length < 2) return;
-  // 스냅샷 형식으로 변환 (articles 필드 보장) → mergeTab → 다시 restore-friendly로 두지 말고 직접 allTabs 갱신
+  mode = mode || 'replace';
   var snapshot = buildBackupSnapshot();
   var snapTabsById = {};
   (snapshot.tabs || []).forEach(function(t) { snapTabsById[t.id] = t; });
 
   var emptySummary = function() { return { conflictCount:0, conflictLabels:[], conflicts:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
-  // 첫 항목을 canonical로
   var canonicalSnapTab = snapTabsById[checkedItems[0].tab.id];
   if (!canonicalSnapTab) return;
   var merged = canonicalSnapTab;
@@ -2210,22 +2237,38 @@ function applyCleanupMergeInPlace(checkedItems, chosenName) {
     var other = snapTabsById[checkedItems[i].tab.id];
     if (!other) continue;
     merged = mergeTab(merged, other, 'local', emptySummary());
-    merged.id = canonicalSnapTab.id; // canonical id 유지
+    merged.id = canonicalSnapTab.id;
   }
   if (chosenName) merged.name = chosenName;
 
-  // snapshot.tabs 재구성: canonical을 머지 결과로 교체, 나머지 제거
-  var removeIds = {};
-  for (var j = 1; j < checkedItems.length; j++) removeIds[checkedItems[j].tab.id] = true;
-  snapshot.tabs = (snapshot.tabs || [])
-    .map(function(t) { return t.id === canonicalSnapTab.id ? merged : t; })
-    .filter(function(t) { return !removeIds[t.id]; });
+  if (mode === 'newTab') {
+    // 원본 N개 그대로 두고, 새 탭으로 합친 결과 추가
+    var newId = 'tab_' + Date.now() + '_' + Math.random().toString(36).slice(2,6) + '_merged';
+    merged.id = newId;
+    snapshot.tabs = (snapshot.tabs || []).concat([merged]);
+  } else {
+    // 원본 탭들 제거, canonical 자리에 합친 결과
+    var removeIds = {};
+    for (var j = 1; j < checkedItems.length; j++) removeIds[checkedItems[j].tab.id] = true;
+    snapshot.tabs = (snapshot.tabs || [])
+      .map(function(t) { return t.id === canonicalSnapTab.id ? merged : t; })
+      .filter(function(t) { return !removeIds[t.id]; });
+    if (removeIds[snapshot.activeId]) snapshot.activeId = canonicalSnapTab.id;
+  }
 
-  // activeId가 제거된 탭이면 canonical로
-  if (removeIds[snapshot.activeId]) snapshot.activeId = canonicalSnapTab.id;
-
-  // 적용
   restoreBackupSnapshot(snapshot, { silent: true });
+}
+
+function showTabMatchResult(msg) {
+  var el = $('tabMatchResultBanner');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = '';
+}
+
+function clearTabMatchResult() {
+  var el = $('tabMatchResultBanner');
+  if (el) { el.style.display = 'none'; el.textContent = ''; }
 }
 
 function rebuildTabMatchStateAfterCleanupMerge() {
@@ -2282,6 +2325,11 @@ function openTabMergeModal(opts) {
 
     var showAllEl = $('tabMatchShowAll');
     if (showAllEl) showAllEl.checked = false;
+
+    // 결과 배너 초기화, cleanup 모드 라디오 기본값(replace) 복구
+    clearTabMatchResult();
+    var replaceRadio = document.querySelector('input[name="tabMatchCleanupMode"][value="replace"]');
+    if (replaceRadio) replaceRadio.checked = true;
 
     renderTabMatchTable();
     updateTabMatchSkipButtonVisibility();
