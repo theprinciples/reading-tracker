@@ -708,21 +708,35 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 </div>
 </div>
 
-<!-- TAB MATCH / CLEANUP MODAL -->
+<!-- TAB MERGE TABLE MODAL (pull + cleanup 공용) -->
 <div class="modal-bg" id="tabMatchModalBg" onclick="if(event.target===this)closeTabMatchModal()">
-<div class="modal" style="max-width:640px;max-height:85vh;display:flex;flex-direction:column">
+<div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column">
   <h3 id="tabMatchModalTitle">🔗 같은 탭으로 합칠지 확인</h3>
-  <p id="tabMatchModalDesc" style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:10px">
-    이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠까요?
+  <p id="tabMatchModalDesc" style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:8px">
+    같은 탭으로 보이는 후보예요. 합칠 탭들에 체크하고 합치기를 누르세요.
   </p>
   <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:10px">
-    체크/별표/메모/도서 목록은 어떤 선택을 해도 양쪽 데이터가 모두 보존됩니다. 탭 이름/그룹 같은 단순 설정만 손실될 수 있어서 선택지를 보여드려요.
+    체크/별표/메모/도서 목록은 모두 보존됩니다. 탭 이름/그룹 같은 단순 설정만 손실 가능해서 선택지를 보여드려요.
   </div>
-  <div id="tabMatchAutoInfo" style="font-size:11px;color:var(--t3);margin-bottom:10px;display:none"></div>
-  <div id="tabMatchList" style="flex:1;overflow-y:auto;border:1px solid var(--bdr);border-radius:8px;padding:8px;background:var(--bg2)"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);font-weight:600;cursor:pointer;padding:6px 12px;border:1px solid var(--bdr);border-radius:6px;background:var(--bg1)">
+      <input type="checkbox" id="tabMatchShowAll" onchange="onTabMatchShowAllToggle(this.checked)">
+      모든 탭 보기
+    </label>
+    <div id="tabMatchSelectionInfo" style="font-size:11px;color:var(--t3)">0개 선택됨</div>
+  </div>
+  <div id="tabMatchList" style="flex:1;overflow-y:auto;border:1px solid var(--bdr);border-radius:8px;background:var(--bg2)"></div>
+  <div id="tabMatchNamePicker" style="margin-top:10px;padding:10px 12px;background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;display:none">
+    <div style="font-size:11px;color:var(--t2);margin-bottom:6px">합친 후 탭 이름:</div>
+    <div id="tabMatchNameOptions"></div>
+  </div>
+  <div id="tabMatchError" style="margin-top:8px;padding:8px 10px;background:rgba(240,64,96,.12);border:1px solid rgba(240,64,96,.4);border-radius:6px;font-size:12px;color:#f04060;display:none"></div>
   <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap;margin-top:12px">
-    <button class="btn" onclick="closeTabMatchModal()">취소</button>
-    <button class="btn btn-g" id="tabMatchConfirmBtn" onclick="confirmTabMatchModal()">합치고 진행</button>
+    <button class="btn" id="tabMatchCancelBtn" onclick="closeTabMatchModal()">취소</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="tabMatchSkipBtn" onclick="finishTabMatchModal()" style="display:none">건너뛰고 진행</button>
+      <button class="btn btn-g" id="tabMatchMergeBtn" onclick="applyTabMatchSelection()" disabled>합치기</button>
+    </div>
   </div>
 </div>
 </div>
@@ -1303,7 +1317,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.2';
+const APP_VERSION = 'v3.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1873,12 +1887,13 @@ function askDeviceConflictPreference(summary) {
   });
 }
 
-// ── 탭 매칭 / 정리 모달 ──
-// 두 가지 모드 모두 같은 모달을 재사용:
-//   mode='pull': pull 시 local↔cloud 페어 확인. confirm 시 askPairs에 대한 결정만 반환
-//   mode='cleanup': 로컬 내 중복 페어 확인. confirm 시 페어별 합치기 여부 + 이름 반환
+// ── 탭 매칭 / 정리 모달 (테이블 + 체크박스 + 다중 선택) ──
+// 두 가지 모드 공유:
+//   mode='pull': taggedTabs는 local + cloud (ID 매칭 안 된 것만). resolve 시 merges 결정 반환.
+//                실제 합치기는 caller가 cloudSnapshot 변형 후 mergeSnapshots 호출.
+//   mode='cleanup': taggedTabs는 local만. 사용자 합치기 누르면 즉시 allTabs에 반영, 모달은 새 후보로 갱신.
+var tabMatchState = null;
 var pendingTabMatchResolver = null;
-var pendingTabMatchState = null;
 
 function escapeHtmlForAttr(s) {
   return String(s == null ? '' : s)
@@ -1889,96 +1904,337 @@ function escapeHtmlForAttr(s) {
     .replace(/>/g, '&gt;');
 }
 
-function renderTabMatchCard(pair, idx, mode) {
-  // pair: { aLabel, aTab, bLabel, bTab, level }
-  var aName = pair.aTab.name || '(이름 없음)';
-  var bName = pair.bTab.name || '(이름 없음)';
-  var aGroup = pair.aTab.group || '-';
-  var bGroup = pair.bTab.group || '-';
-  var aUrl = pair.aTab.sheetsUrl || '';
-  var bUrl = pair.bTab.sheetsUrl || '';
-  var sameName = tabNameKey(pair.aTab) === tabNameKey(pair.bTab) && !!tabNameKey(pair.aTab);
-
-  var aUrlHtml = aUrl ? '<div style="font-size:10px;color:var(--t3);word-break:break-all;margin-top:2px">🔗 ' + escapeHtmlForAttr(aUrl) + '</div>' : '';
-  var bUrlHtml = bUrl ? '<div style="font-size:10px;color:var(--t3);word-break:break-all;margin-top:2px">🔗 ' + escapeHtmlForAttr(bUrl) + '</div>' : '';
-
-  var nameOptionsHtml = '';
-  if (!sameName) {
-    nameOptionsHtml = ''
-      + '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--bdr)">'
-      +   '<div style="font-size:11px;color:var(--t2);margin-bottom:6px">합칠 때 탭 이름:</div>'
-      +   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer">'
-      +     '<input type="radio" name="tabMatchName_' + idx + '" value="a" checked> "' + escapeHtmlForAttr(aName) + '" 사용 (' + escapeHtmlForAttr(pair.aLabel) + ')'
-      +   '</label>'
-      +   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer">'
-      +     '<input type="radio" name="tabMatchName_' + idx + '" value="b"> "' + escapeHtmlForAttr(bName) + '" 사용 (' + escapeHtmlForAttr(pair.bLabel) + ')'
-      +   '</label>'
-      +   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
-      +     '<input type="radio" name="tabMatchName_' + idx + '" value="custom"> 직접 입력:'
-      +     '<input type="text" id="tabMatchNameCustom_' + idx + '" placeholder="새 탭 이름" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none">'
-      +   '</label>'
-      + '</div>';
-  }
-
-  return ''
-    + '<div class="tab-match-card" data-idx="' + idx + '" style="background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
-    +   '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
-    +     '<div style="background:var(--bg2);border-radius:6px;padding:8px 10px">'
-    +       '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + escapeHtmlForAttr(pair.aLabel) + '</div>'
-    +       '<div style="font-weight:600;font-size:13px;color:var(--t1)">"' + escapeHtmlForAttr(aName) + '"</div>'
-    +       '<div style="font-size:10px;color:var(--t3);margin-top:2px">그룹: ' + escapeHtmlForAttr(aGroup) + '</div>'
-    +       aUrlHtml
-    +     '</div>'
-    +     '<div style="background:var(--bg2);border-radius:6px;padding:8px 10px">'
-    +       '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + escapeHtmlForAttr(pair.bLabel) + '</div>'
-    +       '<div style="font-weight:600;font-size:13px;color:var(--t1)">"' + escapeHtmlForAttr(bName) + '"</div>'
-    +       '<div style="font-size:10px;color:var(--t3);margin-top:2px">그룹: ' + escapeHtmlForAttr(bGroup) + '</div>'
-    +       bUrlHtml
-    +     '</div>'
-    +   '</div>'
-    +   '<div style="display:flex;flex-direction:column;gap:4px">'
-    +     '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
-    +       '<input type="radio" name="tabMatchChoice_' + idx + '" value="merge" checked> 같은 탭으로 합치기'
-    +     '</label>'
-    +     '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
-    +       '<input type="radio" name="tabMatchChoice_' + idx + '" value="separate"> 별개 탭으로 유지'
-    +     '</label>'
-    +   '</div>'
-    +   nameOptionsHtml
-    + '</div>';
+function tabRowKey(item, idx) {
+  // item: { tab, source }. 같은 id가 양쪽에 있어도 source로 분리하도록 키 만듦.
+  return (item.source || '') + '__' + (item.tab.id || '') + '__' + idx;
 }
 
-function openTabMatchModal(opts) {
-  // opts: { mode:'pull'|'cleanup', autoCount, askPairs:[{aLabel,aTab,bLabel,bTab,level}], title, desc, confirmText }
+function getTabArticleCount(tab) {
+  if (!tab) return 0;
+  var arr = tab.data || tab.articles || [];
+  return Array.isArray(arr) ? arr.length : 0;
+}
+
+function renderTabMatchTable() {
+  if (!tabMatchState) return;
+  var listEl = $('tabMatchList');
+  if (!listEl) return;
+
+  var showAll = tabMatchState.showAll;
+  var visibleItems;
+  if (showAll) {
+    visibleItems = tabMatchState.allTagged.slice();
+  } else {
+    // 후보 그룹 멤버만
+    var groups = detectTabCandidateGroups(tabMatchState.allTagged);
+    var inGroup = {};
+    groups.forEach(function(g) {
+      g.members.forEach(function(m) {
+        inGroup[tabMatchState.itemKeyMap.get(m)] = true;
+      });
+    });
+    visibleItems = tabMatchState.allTagged.filter(function(m) { return inGroup[tabMatchState.itemKeyMap.get(m)]; });
+  }
+  tabMatchState.visibleItems = visibleItems;
+
+  if (visibleItems.length === 0) {
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;font-size:12px;color:var(--t3)">' +
+      (showAll ? '표시할 탭이 없어요' : '중복으로 보이는 후보가 없어요') +
+      '</div>';
+    updateTabMatchActionState();
+    return;
+  }
+
+  var showSourceCol = tabMatchState.mode === 'pull';
+  var rowsHtml = '';
+  visibleItems.forEach(function(item, idx) {
+    var rowKey = tabMatchState.itemKeyMap.get(item);
+    var checked = !!tabMatchState.checked[rowKey];
+    var name = item.tab.name || '(이름 없음)';
+    var url = item.tab.sheetsUrl || '';
+    var urlDisplay = url ? escapeHtmlForAttr(url) : '<span style="color:var(--t3)">-</span>';
+    var sourceCell = '';
+    if (showSourceCol) {
+      sourceCell = '<td style="padding:8px 10px;font-size:11px;color:var(--t2);white-space:nowrap">' +
+        (item.source === 'cloud' ? '☁️ 클라우드' : '💻 이 기기') +
+        '</td>';
+    }
+    var articleCount = getTabArticleCount(item.tab);
+    rowsHtml += '<tr data-row-key="' + escapeHtmlForAttr(rowKey) + '">' +
+      '<td style="padding:8px 10px;width:36px;text-align:center"><input type="checkbox" class="tab-match-cb" data-key="' + escapeHtmlForAttr(rowKey) + '" ' + (checked ? 'checked' : '') + '></td>' +
+      '<td style="padding:8px 10px;font-size:13px;color:var(--t1)">' + escapeHtmlForAttr(name) + '</td>' +
+      '<td style="padding:8px 10px;font-size:11px;color:var(--t3);max-width:280px;word-break:break-all">' + urlDisplay + '</td>' +
+      '<td style="padding:8px 10px;font-size:11px;color:var(--t3);white-space:nowrap;text-align:right">' + articleCount + '</td>' +
+      sourceCell +
+      '</tr>';
+  });
+
+  var headerSourceCell = showSourceCol ? '<th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--t2);font-weight:600;background:var(--bg1);position:sticky;top:0">출처</th>' : '';
+  listEl.innerHTML = ''
+    + '<table style="width:100%;border-collapse:collapse">'
+    + '<thead><tr>'
+    + '<th style="width:36px;padding:8px 10px;background:var(--bg1);position:sticky;top:0"></th>'
+    + '<th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--t2);font-weight:600;background:var(--bg1);position:sticky;top:0">탭 이름</th>'
+    + '<th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--t2);font-weight:600;background:var(--bg1);position:sticky;top:0">Sheets URL</th>'
+    + '<th style="text-align:right;padding:8px 10px;font-size:11px;color:var(--t2);font-weight:600;background:var(--bg1);position:sticky;top:0">항목 수</th>'
+    + headerSourceCell
+    + '</tr></thead>'
+    + '<tbody>' + rowsHtml + '</tbody>'
+    + '</table>';
+
+  // 체크박스 핸들러
+  listEl.querySelectorAll('.tab-match-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      tabMatchState.checked[this.dataset.key] = this.checked;
+      updateTabMatchActionState();
+    });
+  });
+
+  updateTabMatchActionState();
+}
+
+function getCheckedTabMatchItems() {
+  if (!tabMatchState) return [];
+  return (tabMatchState.visibleItems || []).filter(function(item) {
+    return !!tabMatchState.checked[tabMatchState.itemKeyMap.get(item)];
+  });
+}
+
+function updateTabMatchActionState() {
+  if (!tabMatchState) return;
+  var infoEl = $('tabMatchSelectionInfo');
+  var mergeBtn = $('tabMatchMergeBtn');
+  var picker = $('tabMatchNamePicker');
+  var errEl = $('tabMatchError');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+  var checkedItems = getCheckedTabMatchItems();
+  if (infoEl) infoEl.textContent = checkedItems.length + '개 선택됨';
+
+  if (mergeBtn) {
+    mergeBtn.disabled = checkedItems.length < 2;
+    mergeBtn.textContent = checkedItems.length >= 2 ? (checkedItems.length + '개 합치기') : '합치기';
+  }
+
+  if (picker) {
+    if (checkedItems.length >= 2) {
+      picker.style.display = '';
+      renderTabMatchNamePicker(checkedItems);
+    } else {
+      picker.style.display = 'none';
+    }
+  }
+}
+
+function renderTabMatchNamePicker(checkedItems) {
+  var optsEl = $('tabMatchNameOptions');
+  if (!optsEl) return;
+  // 후보 이름들(중복 제거, trim)
+  var uniqueNames = [];
+  var seen = {};
+  checkedItems.forEach(function(item) {
+    var n = (item.tab.name || '').trim();
+    if (!n) return;
+    var key = n.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    uniqueNames.push(n);
+  });
+  var html = '';
+  uniqueNames.forEach(function(n, i) {
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer">' +
+      '<input type="radio" name="tabMatchChosenName" value="' + escapeHtmlForAttr(n) + '"' + (i === 0 ? ' checked' : '') + '> "' + escapeHtmlForAttr(n) + '"' +
+      '</label>';
+  });
+  html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
+    '<input type="radio" name="tabMatchChosenName" value="__custom__"> 직접 입력:' +
+    '<input type="text" id="tabMatchChosenNameCustom" placeholder="새 탭 이름" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none">' +
+    '</label>';
+  optsEl.innerHTML = html;
+}
+
+function getChosenMergeName(checkedItems) {
+  var sel = document.querySelector('input[name="tabMatchChosenName"]:checked');
+  var val = sel ? sel.value : '';
+  if (val === '__custom__') {
+    var customEl = $('tabMatchChosenNameCustom');
+    var custom = customEl ? (customEl.value || '').trim() : '';
+    if (custom) return custom;
+    // 비어있으면 첫 후보 이름으로 fallback
+    return (checkedItems[0] && checkedItems[0].tab.name) || '';
+  }
+  if (val) return val;
+  return (checkedItems[0] && checkedItems[0].tab.name) || '';
+}
+
+function showTabMatchError(msg) {
+  var errEl = $('tabMatchError');
+  if (!errEl) return;
+  errEl.textContent = msg;
+  errEl.style.display = '';
+}
+
+// URL 충돌 검증: 선택된 탭들의 비어있지 않은 sheetsUrl이 모두 같아야 OK
+function validateMergeUrls(checkedItems) {
+  var urls = [];
+  checkedItems.forEach(function(item) {
+    var u = tabUrlKey(item.tab);
+    if (u && urls.indexOf(u) === -1) urls.push(u);
+  });
+  if (urls.length >= 2) {
+    return { ok: false, msg: 'Sheets URL이 다른 탭이 섞여 있어요. 정말 같은 탭이 맞는지 확인해 주세요.' };
+  }
+  return { ok: true };
+}
+
+// 합치기 버튼: 모드에 따라 즉시 적용(cleanup) 또는 결정 누적(pull)
+function applyTabMatchSelection() {
+  if (!tabMatchState) return;
+  var checkedItems = getCheckedTabMatchItems();
+  if (checkedItems.length < 2) return;
+
+  var v = validateMergeUrls(checkedItems);
+  if (!v.ok) { showTabMatchError(v.msg); return; }
+
+  var chosenName = getChosenMergeName(checkedItems);
+
+  if (tabMatchState.mode === 'cleanup') {
+    // 즉시 allTabs에 적용
+    applyCleanupMergeInPlace(checkedItems, chosenName);
+    // 체크 해제 + allTagged 재구성
+    rebuildTabMatchStateAfterCleanupMerge();
+    renderTabMatchTable();
+    toast('🧹 ' + checkedItems.length + '개 탭을 합쳤어요', 'ok');
+  } else {
+    // pull: 결정 누적, 모달 새로고침 (선택된 항목 제거)
+    var canonical = (checkedItems.find(function(i) { return i.source === 'local'; }) || checkedItems[0]);
+    var others = checkedItems.filter(function(i) { return i !== canonical; });
+    tabMatchState.pullDecisions.push({
+      canonicalSource: canonical.source,
+      canonicalId: canonical.tab.id,
+      members: checkedItems.map(function(i) { return { source: i.source, id: i.tab.id }; }),
+      chosenName: chosenName
+    });
+    // 합쳐진 항목들을 allTagged에서 제거 + checked clear
+    var removedKeys = {};
+    checkedItems.forEach(function(i) { removedKeys[tabMatchState.itemKeyMap.get(i)] = true; });
+    tabMatchState.allTagged = tabMatchState.allTagged.filter(function(i) {
+      return !removedKeys[tabMatchState.itemKeyMap.get(i)];
+    });
+    tabMatchState.checked = {};
+    renderTabMatchTable();
+    updateTabMatchSkipButtonVisibility();
+    toast('☑️ ' + checkedItems.length + '개 탭을 합치도록 표시했어요', 'ok');
+  }
+}
+
+function updateTabMatchSkipButtonVisibility() {
+  if (!tabMatchState) return;
+  var skipBtn = $('tabMatchSkipBtn');
+  if (!skipBtn) return;
+  // pull 모드에서만 사용. 결정이 1개 이상 누적되거나 후보가 더 이상 없으면 표시
+  if (tabMatchState.mode !== 'pull') { skipBtn.style.display = 'none'; return; }
+  var groups = detectTabCandidateGroups(tabMatchState.allTagged);
+  if (groups.length === 0 || tabMatchState.pullDecisions.length > 0) {
+    skipBtn.style.display = '';
+    skipBtn.textContent = groups.length === 0 ? '진행' : '나머지 건너뛰고 진행';
+  } else {
+    skipBtn.style.display = 'none';
+  }
+}
+
+// cleanup: 선택된 탭들을 합쳐서 allTabs에 반영. 첫 번째 선택 탭이 canonical, 나머지는 제거.
+function applyCleanupMergeInPlace(checkedItems, chosenName) {
+  if (!checkedItems || checkedItems.length < 2) return;
+  // 스냅샷 형식으로 변환 (articles 필드 보장) → mergeTab → 다시 restore-friendly로 두지 말고 직접 allTabs 갱신
+  var snapshot = buildBackupSnapshot();
+  var snapTabsById = {};
+  (snapshot.tabs || []).forEach(function(t) { snapTabsById[t.id] = t; });
+
+  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
+  // 첫 항목을 canonical로
+  var canonicalSnapTab = snapTabsById[checkedItems[0].tab.id];
+  if (!canonicalSnapTab) return;
+  var merged = canonicalSnapTab;
+  for (var i = 1; i < checkedItems.length; i++) {
+    var other = snapTabsById[checkedItems[i].tab.id];
+    if (!other) continue;
+    merged = mergeTab(merged, other, 'local', emptySummary());
+    merged.id = canonicalSnapTab.id; // canonical id 유지
+  }
+  if (chosenName) merged.name = chosenName;
+
+  // snapshot.tabs 재구성: canonical을 머지 결과로 교체, 나머지 제거
+  var removeIds = {};
+  for (var j = 1; j < checkedItems.length; j++) removeIds[checkedItems[j].tab.id] = true;
+  snapshot.tabs = (snapshot.tabs || [])
+    .map(function(t) { return t.id === canonicalSnapTab.id ? merged : t; })
+    .filter(function(t) { return !removeIds[t.id]; });
+
+  // activeId가 제거된 탭이면 canonical로
+  if (removeIds[snapshot.activeId]) snapshot.activeId = canonicalSnapTab.id;
+
+  // 적용
+  restoreBackupSnapshot(snapshot, { silent: true });
+}
+
+function rebuildTabMatchStateAfterCleanupMerge() {
+  if (!tabMatchState) return;
+  // allTabs에서 새로 tagged 배열 만들기 (favorites 제외)
+  var fresh = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; })
+    .map(function(t) { return { tab: t, source: 'local' }; });
+  tabMatchState.allTagged = fresh;
+  tabMatchState.checked = {};
+  // itemKeyMap 재구축
+  var map = new Map();
+  fresh.forEach(function(item, idx) { map.set(item, tabRowKey(item, idx)); });
+  tabMatchState.itemKeyMap = map;
+}
+
+function onTabMatchShowAllToggle(checked) {
+  if (!tabMatchState) return;
+  tabMatchState.showAll = !!checked;
+  renderTabMatchTable();
+}
+
+// 모달 열기. caller가 await로 결과(또는 null)를 받음.
+//   pull mode 반환: { merges: [ { canonicalId, mergeIds: [...], chosenName }, ... ] } 또는 null(취소)
+//   cleanup mode 반환: { mergedCount } (취소 시 null)
+function openTabMergeModal(opts) {
+  // opts: { mode:'pull'|'cleanup', taggedTabs, title, desc }
   return new Promise(function(resolve) {
+    var fresh = (opts.taggedTabs || []).slice();
+    var map = new Map();
+    fresh.forEach(function(item, idx) { map.set(item, tabRowKey(item, idx)); });
+
+    tabMatchState = {
+      mode: opts.mode || 'cleanup',
+      allTagged: fresh,
+      itemKeyMap: map,
+      checked: {},
+      showAll: false,
+      visibleItems: [],
+      pullDecisions: [], // pull 모드 전용
+      cleanupCountStart: allTabs.length
+    };
     pendingTabMatchResolver = resolve;
-    pendingTabMatchState = opts;
 
     var titleEl = $('tabMatchModalTitle');
     var descEl = $('tabMatchModalDesc');
-    var autoEl = $('tabMatchAutoInfo');
-    var listEl = $('tabMatchList');
-    var confirmBtn = $('tabMatchConfirmBtn');
-    if (titleEl) titleEl.textContent = opts.title || '🔗 같은 탭으로 합칠지 확인';
-    if (descEl) descEl.textContent = opts.desc || '이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠까요?';
-    if (confirmBtn) confirmBtn.textContent = opts.confirmText || '합치고 진행';
+    var mergeBtn = $('tabMatchMergeBtn');
+    var skipBtn = $('tabMatchSkipBtn');
+    if (titleEl) titleEl.textContent = opts.title || (opts.mode === 'pull' ? '🔗 같은 탭으로 합칠지 확인' : '🧹 중복 탭 정리');
+    if (descEl) descEl.textContent = opts.desc || (opts.mode === 'pull'
+      ? '이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠 묶음에 체크하고 합치기를 누르세요.'
+      : '같은 탭으로 보이는 후보예요. 합칠 탭들에 체크하고 합치기를 누르세요.');
+    if (mergeBtn) { mergeBtn.disabled = true; mergeBtn.textContent = '합치기'; }
+    if (skipBtn) skipBtn.style.display = 'none';
 
-    if (autoEl) {
-      if (opts.autoCount && opts.autoCount > 0) {
-        autoEl.style.display = '';
-        autoEl.textContent = '✨ 이름과 Sheets URL이 모두 같은 ' + opts.autoCount + '개 탭은 자동으로 합쳐졌어요';
-      } else {
-        autoEl.style.display = 'none';
-      }
-    }
+    var showAllEl = $('tabMatchShowAll');
+    if (showAllEl) showAllEl.checked = false;
 
-    if (listEl) {
-      var html = '';
-      (opts.askPairs || []).forEach(function(pair, idx) {
-        html += renderTabMatchCard(pair, idx, opts.mode);
-      });
-      listEl.innerHTML = html;
-    }
+    renderTabMatchTable();
+    updateTabMatchSkipButtonVisibility();
 
     var bg = $('tabMatchModalBg');
     if (bg) bg.classList.add('open');
@@ -1989,85 +2245,59 @@ function closeTabMatchModal() {
   var bg = $('tabMatchModalBg');
   if (bg) bg.classList.remove('open');
   if (pendingTabMatchResolver) {
-    pendingTabMatchResolver(null);
+    var resolver = pendingTabMatchResolver;
     pendingTabMatchResolver = null;
+    var state = tabMatchState;
+    tabMatchState = null;
+    resolver(null);
+    // cleanup 모드라도 사용자가 합친 게 있을 수 있지만, 합치기 시점에 이미 적용했으므로 null 반환만으로 충분
   }
-  pendingTabMatchState = null;
+  tabMatchState = null;
 }
 
-function confirmTabMatchModal() {
-  if (!pendingTabMatchResolver || !pendingTabMatchState) return;
-  var state = pendingTabMatchState;
-  var decisions = { merge: [], keepSeparate: [] };
-  (state.askPairs || []).forEach(function(pair, idx) {
-    var choiceInput = document.querySelector('input[name="tabMatchChoice_' + idx + '"]:checked');
-    var choice = choiceInput ? choiceInput.value : 'merge';
-    if (choice === 'separate') {
-      decisions.keepSeparate.push({ aId: pair.aTab.id, bId: pair.bTab.id });
-      return;
-    }
-    var aName = pair.aTab.name || '';
-    var bName = pair.bTab.name || '';
-    var sameName = tabNameKey(pair.aTab) === tabNameKey(pair.bTab) && !!tabNameKey(pair.aTab);
-    var chosenName = '';
-    if (sameName) {
-      chosenName = aName;
-    } else {
-      var nameInput = document.querySelector('input[name="tabMatchName_' + idx + '"]:checked');
-      var nameChoice = nameInput ? nameInput.value : 'a';
-      if (nameChoice === 'a') chosenName = aName;
-      else if (nameChoice === 'b') chosenName = bName;
-      else {
-        var customEl = $('tabMatchNameCustom_' + idx);
-        var customVal = customEl ? (customEl.value || '').trim() : '';
-        chosenName = customVal || aName || bName || '';
-      }
-    }
-    decisions.merge.push({
-      // pull 모드: a=local, b=cloud → localId/cloudId 키로 변환
-      // cleanup 모드: a/b 모두 local → aId/bId 키로 변환
-      localId: pair.aTab.id,
-      cloudId: pair.bTab.id,
-      aId: pair.aTab.id,
-      bId: pair.bTab.id,
-      chosenName: chosenName
-    });
-  });
+// pull 흐름의 "건너뛰고 진행": 현재까지 누적된 결정을 반환
+function finishTabMatchModal() {
+  if (!tabMatchState || !pendingTabMatchResolver) return;
+  var decisions = (tabMatchState.mode === 'pull')
+    ? { merges: tabMatchState.pullDecisions.map(function(d) {
+        return {
+          canonicalId: d.canonicalId,
+          mergeIds: d.members.map(function(m) { return m.id; }),
+          chosenName: d.chosenName,
+          canonicalSource: d.canonicalSource
+        };
+      }) }
+    : { mergedCount: 0 };
   var bg = $('tabMatchModalBg');
   if (bg) bg.classList.remove('open');
   var resolver = pendingTabMatchResolver;
   pendingTabMatchResolver = null;
-  pendingTabMatchState = null;
+  tabMatchState = null;
   resolver(decisions);
 }
 
-// pull 흐름에서 호출: local↔cloud 매칭 후보 모달
-function askTabMatchPreference(autoCount, askPairs) {
-  var pairs = (askPairs || []).map(function(p) {
-    return { aLabel: '💻 이 기기', aTab: p.local, bLabel: '☁️ 클라우드', bTab: p.cloud, level: p.level };
-  });
-  return openTabMatchModal({
-    mode: 'pull',
-    autoCount: autoCount,
-    askPairs: pairs,
-    title: '🔗 같은 탭으로 합칠지 확인',
-    desc: '이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠까요?',
-    confirmText: '합치고 불러오기'
-  });
-}
+// caller 헬퍼들 ──
+// pull용: 매칭 후보 그룹들을 모달로 보여주고 결정 받아옴.
+async function askTabMatchPreference(localTabs, cloudTabs) {
+  var localIds = {}, cloudIds = {};
+  (localTabs || []).forEach(function(t) { if (t && t.id) localIds[t.id] = true; });
+  (cloudTabs || []).forEach(function(t) { if (t && t.id) cloudIds[t.id] = true; });
+  var commonIds = {};
+  Object.keys(localIds).forEach(function(id) { if (cloudIds[id]) commonIds[id] = true; });
 
-// cleanup 흐름에서 호출: 로컬 내 중복 페어 모달
-function askLocalTabMergeDecisions(pairs) {
-  var labelled = (pairs || []).map(function(p, i) {
-    return { aLabel: '📘 탭 A', aTab: p.a, bLabel: '📗 탭 B', bTab: p.b, level: p.level };
-  });
-  return openTabMatchModal({
-    mode: 'cleanup',
-    autoCount: 0,
-    askPairs: labelled,
-    title: '🧹 중복 탭 정리',
-    desc: '이 기기 안에 같은 탭으로 보이는 후보가 있어요. 합칠 것을 골라주세요.',
-    confirmText: '선택대로 정리'
+  var tagged = [];
+  (localTabs || []).forEach(function(t) { if (t && !commonIds[t.id]) tagged.push({ tab: t, source: 'local' }); });
+  (cloudTabs || []).forEach(function(t) { if (t && !commonIds[t.id]) tagged.push({ tab: t, source: 'cloud' }); });
+
+  // 후보 그룹이 없으면 모달 안 띄움
+  var groups = detectTabCandidateGroups(tagged);
+  if (groups.length === 0) return { merges: [] };
+
+  return await openTabMergeModal({
+    mode: 'pull',
+    taggedTabs: tagged,
+    title: '🔗 같은 탭으로 합칠지 확인',
+    desc: '이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠 묶음에 체크하고 합치기를 누르세요.'
   });
 }
 
@@ -2287,70 +2517,95 @@ function tabNameKey(tab) { return (tab && tab.name ? String(tab.name).trim().toL
 function tabUrlKey(tab) { return (tab && tab.sheetsUrl ? String(tab.sheetsUrl).trim() : ''); }
 function tabGroupKey(tab) { return (tab && tab.group ? String(tab.group).trim().toLowerCase() : ''); }
 
-// 두 탭의 매칭 레벨 판별: 'A' = 자동 머지(URL+이름 둘 다 같음),
-// 'B' = URL 같고 이름 다름(사용자 확인), 'C' = URL 둘 다 없고 이름 같음(사용자 확인), null = 매칭 아님
-function tabMatchLevel(tabA, tabB) {
-  if (!tabA || !tabB) return null;
-  var aUrl = tabUrlKey(tabA);
-  var bUrl = tabUrlKey(tabB);
-  var aName = tabNameKey(tabA);
-  var bName = tabNameKey(tabB);
-  if (aUrl && bUrl && aUrl === bUrl) {
-    if (aName && bName && aName === bName) return 'A';
-    return 'B';
-  }
-  if (!aUrl && !bUrl && aName && bName && aName === bName) return 'C';
-  return null;
+// 안정 키: URL 있으면 url:X, 없으면 name:X. 매칭의 1차 분류용.
+function tabStableKey(tab) {
+  if (!tab) return '';
+  var url = tabUrlKey(tab);
+  if (url) return 'url:' + url;
+  var name = tabNameKey(tab);
+  if (name) return 'name:' + name;
+  return '';
 }
 
-// 두 스냅샷에 대해, ID가 다르지만 같은 탭으로 보이는 후보 페어 탐지.
-// 같은 ID끼리는 mergeSnapshots가 알아서 매칭하므로 여기서는 제외.
+// taggedTabs: [{ tab, source: 'local'|'cloud' }, ...] 에서 같은 stable key를 갖는 그룹(2+) 반환.
+// 반환: [{ key, kind: 'url'|'name', members: [{tab,source}, ...] }, ...]
+function detectTabCandidateGroups(taggedTabs) {
+  var byKey = {};
+  (taggedTabs || []).forEach(function(t) {
+    if (!t || !t.tab) return;
+    var k = tabStableKey(t.tab);
+    if (!k) return;
+    if (!byKey[k]) byKey[k] = [];
+    byKey[k].push(t);
+  });
+  return Object.keys(byKey)
+    .filter(function(k) { return byKey[k].length >= 2; })
+    .map(function(k) {
+      return {
+        key: k,
+        kind: k.indexOf('url:') === 0 ? 'url' : 'name',
+        keyLabel: k.indexOf('url:') === 0 ? k.slice(4) : k.slice(5),
+        members: byKey[k]
+      };
+    });
+}
+
+// Pull 흐름용: local 탭(ID 매칭 안 된 것) ↔ cloud 탭(ID 매칭 안 된 것) 사이의 그룹 탐지.
+// 같은 ID끼리는 mergeSnapshots가 알아서 처리하므로 여기서는 제외.
 function detectTabMatchCandidates(localTabs, cloudTabs) {
-  var autoPairs = [];
-  var askPairs = [];
-  var usedCloud = {};
-  (localTabs || []).forEach(function(localTab) {
-    if (!localTab) return;
-    for (var i = 0; i < (cloudTabs || []).length; i++) {
-      var cloudTab = cloudTabs[i];
-      if (!cloudTab) continue;
-      if (usedCloud[cloudTab.id]) continue;
-      if (cloudTab.id === localTab.id) continue; // 이미 ID로 매칭됨
-      var level = tabMatchLevel(localTab, cloudTab);
-      if (!level) continue;
-      usedCloud[cloudTab.id] = true;
-      if (level === 'A') autoPairs.push({ local: localTab, cloud: cloudTab, level: level });
-      else askPairs.push({ local: localTab, cloud: cloudTab, level: level });
-      break;
+  var localIds = {}, cloudIds = {};
+  (localTabs || []).forEach(function(t) { if (t && t.id) localIds[t.id] = true; });
+  (cloudTabs || []).forEach(function(t) { if (t && t.id) cloudIds[t.id] = true; });
+  var commonIds = {};
+  Object.keys(localIds).forEach(function(id) { if (cloudIds[id]) commonIds[id] = true; });
+
+  var tagged = [];
+  (localTabs || []).forEach(function(t) {
+    if (!t || commonIds[t.id]) return; // 양쪽에 같은 id가 있으면 이미 mergeSnapshots가 처리
+    tagged.push({ tab: t, source: 'local' });
+  });
+  (cloudTabs || []).forEach(function(t) {
+    if (!t || commonIds[t.id]) return;
+    tagged.push({ tab: t, source: 'cloud' });
+  });
+  return detectTabCandidateGroups(tagged);
+}
+
+// Cleanup 흐름용: 로컬 탭들 사이의 그룹 탐지.
+function detectLocalTabGroups(localTabs) {
+  var tagged = (localTabs || []).map(function(t) { return { tab: t, source: 'local' }; });
+  return detectTabCandidateGroups(tagged);
+}
+
+// 사용자 결정을 cloudSnapshot에 적용 (Pull 흐름):
+// decisions.merges: [{ canonicalId, mergeIds: [...], chosenName }]
+//   - canonicalId가 LOCAL id이고 mergeIds 중 어떤 것이 cloud id이면, 그 cloud id를 canonicalId로 remap
+//   - chosenName이 있으면 그 cloud 탭의 name을 chosenName으로 덮어씀
+//   - canonicalId가 cloud id이면 local 탭은 안 건드리고 cloud 탭 이름만 chosenName으로 (mergeSnapshots에서 preference='cloud'이므로 cloud 이름 채택됨)
+function applyTabMatchDecisions(cloudSnapshot, decisions) {
+  var cloud = cloneJson(cloudSnapshot || {});
+  var idRemap = {};          // cloudId → newId
+  var renameById = {};        // cloudId → newName
+  (decisions && decisions.merges || []).forEach(function(dec) {
+    if (!dec || !dec.canonicalId) return;
+    (dec.mergeIds || []).forEach(function(mid) {
+      if (mid && mid !== dec.canonicalId) idRemap[mid] = dec.canonicalId;
+    });
+    if (dec.chosenName) {
+      // chosenName 적용 대상: canonical로 remap되는 cloud 탭들 + canonical 그 자체(cloud일 경우)
+      (dec.mergeIds || []).forEach(function(mid) {
+        if (mid) renameById[mid] = dec.chosenName;
+      });
+      renameById[dec.canonicalId] = dec.chosenName;
     }
   });
-  return { autoPairs: autoPairs, askPairs: askPairs };
-}
-
-// 사용자 결정 + 자동 페어를 cloudSnapshot에 적용: cloud 탭 ID를 local 탭 ID로 다시 쓰고, 필요하면 이름도 통일.
-// 결과 cloudSnapshot은 mergeSnapshots가 기존 ID 기반 로직으로 매칭하도록 만들어줌.
-function applyTabMatchDecisions(cloudSnapshot, autoPairs, decisions) {
-  var cloud = cloneJson(cloudSnapshot || {});
-  var idRemap = {};
-  var renameById = {};
-  (autoPairs || []).forEach(function(pair) {
-    if (pair && pair.cloud && pair.local) idRemap[pair.cloud.id] = pair.local.id;
-  });
-  if (decisions && decisions.merge) {
-    decisions.merge.forEach(function(dec) {
-      if (!dec) return;
-      idRemap[dec.cloudId] = dec.localId;
-      if (dec.chosenName) renameById[dec.cloudId] = dec.chosenName;
-    });
-  }
   cloud.tabs = (cloud.tabs || []).map(function(tab) {
     if (!tab) return tab;
-    var newId = idRemap[tab.id];
-    if (!newId) return tab;
-    var rewritten = Object.assign({}, tab);
-    rewritten.id = newId;
-    if (renameById[tab.id]) rewritten.name = renameById[tab.id];
-    return rewritten;
+    var changed = false;
+    var newTab = Object.assign({}, tab);
+    if (idRemap[tab.id]) { newTab.id = idRemap[tab.id]; changed = true; }
+    if (renameById[tab.id]) { newTab.name = renameById[tab.id]; changed = true; }
+    return changed ? newTab : tab;
   });
   return cloud;
 }
@@ -2723,19 +2978,14 @@ async function loadFromCloud() {
       return;
     }
 
-    // ── 탭 매칭 사전 처리: ID가 달라도 같은 탭으로 보이는 페어는 사용자에게 확인 ──
-    var pairing = detectTabMatchCandidates(localSnapshot.tabs || [], cloudSnapshot.tabs || []);
-    var matchDecisions = { merge: [], keepSeparate: [] };
-    if (pairing.askPairs.length > 0) {
-      var userDecisions = await askTabMatchPreference(pairing.autoPairs.length, pairing.askPairs);
-      if (!userDecisions) {
-        setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
-        return;
-      }
-      matchDecisions = userDecisions;
+    // ── 탭 매칭 사전 처리: ID가 달라도 같은 탭으로 보이는 후보 그룹이면 사용자가 합치기 결정 ──
+    var matchResult = await askTabMatchPreference(localSnapshot.tabs || [], cloudSnapshot.tabs || []);
+    if (matchResult === null) {
+      setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
+      return;
     }
-    // 자동 페어 + 사용자가 합치기로 결정한 페어를 cloudSnapshot에 반영
-    cloudSnapshot = applyTabMatchDecisions(cloudSnapshot, pairing.autoPairs, matchDecisions);
+    // 사용자가 합치기로 표시한 결정들을 cloudSnapshot에 반영
+    cloudSnapshot = applyTabMatchDecisions(cloudSnapshot, matchResult);
 
     var draft = mergeSnapshots(localSnapshot, cloudSnapshot, 'cloud');
     var preference = await getConflictPreference(draft.summary, 'cloud');
@@ -2760,66 +3010,27 @@ async function loadFromCloud() {
 }
 
 // ── 로컬 중복 탭 정리 ──
-// snapshot 형식(.articles)에서 검사. cloud 안 건드림.
-function detectLocalDuplicateTabs(snapshotTabs) {
-  var pairs = [];
-  var used = {};
-  for (var i = 0; i < (snapshotTabs || []).length; i++) {
-    var a = snapshotTabs[i];
-    if (!a || used[a.id]) continue;
-    for (var j = i + 1; j < snapshotTabs.length; j++) {
-      var b = snapshotTabs[j];
-      if (!b || used[b.id]) continue;
-      var level = tabMatchLevel(a, b);
-      if (level) {
-        pairs.push({ a: a, b: b, level: level });
-        used[a.id] = true;
-        used[b.id] = true;
-        break;
-      }
-    }
-  }
-  return pairs;
-}
-
 async function openTabCleanupModal() {
-  var snapshot = buildBackupSnapshot();
-  var tabs = snapshot.tabs || [];
-  var pairs = detectLocalDuplicateTabs(tabs);
-  if (pairs.length === 0) {
-    toast('중복으로 보이는 탭이 없어요', 'ok');
+  // 즐겨찾기 탭 제외하고 모든 local 탭을 후보로
+  var tagged = allTabs
+    .filter(function(t) { return t.id !== 'tab_favorites'; })
+    .map(function(t) { return { tab: t, source: 'local' }; });
+  var groups = detectTabCandidateGroups(tagged);
+  // "모든 탭 표시" 토글 없이 기본은 후보만이지만, 후보 0개여도 모달은 열어서 사용자가 "모든 탭 표시"로 자유 선택 가능하게
+  if (groups.length === 0 && allTabs.filter(function(t) { return t.id !== 'tab_favorites'; }).length === 0) {
+    toast('정리할 탭이 없어요', 'ok');
     return;
   }
-  var decisions = await askLocalTabMergeDecisions(pairs);
-  if (!decisions || !decisions.merge || decisions.merge.length === 0) {
-    // 취소 또는 모두 별개 유지
-    if (decisions) toast('변경 사항 없이 닫았어요', 'ok');
-    return;
+  if (groups.length === 0) {
+    // 후보 자동 감지된 게 없음. 토스트 + 모달도 열어줘서 사용자가 "모든 탭 표시"로 직접 고를 수 있게
+    toast('자동 감지된 중복 후보가 없어요. 필요하면 "모든 탭 표시"로 직접 골라주세요.', 'ok');
   }
-
-  // snapshot.tabs를 직접 머지: b를 a에 흡수, b 제거. a의 이름은 chosenName.
-  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
-  var removedIds = {};
-  decisions.merge.forEach(function(dec) {
-    var aTab = tabs.find(function(t) { return t.id === dec.aId; });
-    var bTab = tabs.find(function(t) { return t.id === dec.bId; });
-    if (!aTab || !bTab) return;
-    // a 우선으로 머지 (preference='local' = preferred 측은 첫 인자, mergeTab은 localTab=preferred when preference='local')
-    var merged = mergeTab(aTab, bTab, 'local', emptySummary());
-    if (dec.chosenName) merged.name = dec.chosenName;
-    merged.id = aTab.id;
-    // 자리에 다시 넣기
-    var aIdx = tabs.indexOf(aTab);
-    if (aIdx >= 0) tabs[aIdx] = merged;
-    removedIds[bTab.id] = aTab.id;
+  await openTabMergeModal({
+    mode: 'cleanup',
+    taggedTabs: tagged,
+    title: '🧹 중복 탭 정리',
+    desc: '같은 탭으로 보이는 후보예요. 합칠 탭들에 체크하고 합치기를 누르세요. 이 기기 안의 탭만 정리하며 클라우드는 건드리지 않아요.'
   });
-  snapshot.tabs = tabs.filter(function(t) { return !removedIds[t.id]; });
-  // 활성 탭이 제거 대상이었으면 흡수된 a 탭으로 갱신
-  if (snapshot.activeId && removedIds[snapshot.activeId]) {
-    snapshot.activeId = removedIds[snapshot.activeId];
-  }
-  restoreBackupSnapshot(snapshot, { silent: true });
-  toast('🧹 중복 탭 ' + decisions.merge.length + '개 정리 완료', 'ok');
 }
 
 function clearLog() {}
@@ -3469,7 +3680,7 @@ function switchTab(id) {
     ? '<span class="group-badge" onclick="changeGroup()" title="클릭하여 그룹 변경">' + esc(t.group) + '</span>'
     : '<span class="group-badge group-empty" onclick="changeGroup()" title="클릭하여 그룹 설정">+ 그룹 설정</span>';
   var sheetsHtml = t.sheetsUrl
-    ? '<span class="badge badge-g" title="Google Sheets 연결됨" style="cursor:default"><span class="dot"></span> Sheets 연결됨</span>'
+    ? '<span class="badge badge-g sheets-badge" title="Google Sheets 연결됨" style="cursor:default"><span class="dot"></span> Google Sheets</span>'
     : '';
   $('headerSub').innerHTML = groupHtml + (sheetsHtml ? '&nbsp;&nbsp;' + sheetsHtml : '');
 
