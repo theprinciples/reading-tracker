@@ -690,20 +690,20 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 
 <!-- DEVICE SYNC CONFLICT MODAL -->
 <div class="modal-bg" id="deviceConflictModalBg" onclick="if(event.target===this)closeDeviceConflictModal()">
-<div class="modal" style="max-width:560px">
+<div class="modal" style="max-width:640px;max-height:90vh;display:flex;flex-direction:column">
   <h3>⚖️ 병합 방향 선택</h3>
-  <p id="deviceConflictSummary" style="font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px">
-    이 기기 데이터와 클라우드 데이터가 모두 변경되어 어떤 값을 우선할지 정해야 합니다.
-  </p>
-  <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:14px">
-    출석, 읽음 기록, 즐겨찾기, 한쪽에만 있는 탭/항목은 자동으로 합쳐집니다. 메모, URL, 탭 이름처럼 겹칠 수 있는 값만 우선 방향을 물어봅니다.
-  </div>
-  <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap">
-    <button class="btn" onclick="closeDeviceConflictModal()">취소</button>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" onclick="resolveDeviceConflictChoice('cloud')">☁️ 클라우드 우선</button>
-      <button class="btn btn-g" onclick="resolveDeviceConflictChoice('local')">💻 이 기기 우선</button>
+  <div id="deviceConflictSummary" style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:10px"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <div style="font-size:11px;color:var(--t3)">항목별로 각각 선택할 수 있어요</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn" onclick="setAllConflictChoice('local')" style="font-size:10px;padding:4px 10px">💻 모두 이 기기</button>
+      <button class="btn" onclick="setAllConflictChoice('cloud')" style="font-size:10px;padding:4px 10px">☁️ 모두 클라우드</button>
     </div>
+  </div>
+  <div id="deviceConflictList" style="flex:1;overflow-y:auto;border:1px solid var(--bdr);border-radius:8px;padding:8px;background:var(--bg2)"></div>
+  <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap;margin-top:12px">
+    <button class="btn" onclick="closeDeviceConflictModal()">취소</button>
+    <button class="btn btn-g" onclick="applyDeviceConflictChoices()">적용</button>
   </div>
 </div>
 </div>
@@ -1859,6 +1859,9 @@ async function signOutFirebaseUser() {
   }
 }
 
+// 항목별 선택을 위한 현재 모달 상태
+var pendingDeviceConflictState = null;
+
 function closeDeviceConflictModal() {
   var bg = $('deviceConflictModalBg');
   if (bg) bg.classList.remove('open');
@@ -1866,22 +1869,69 @@ function closeDeviceConflictModal() {
     pendingDeviceConflictResolver(null);
     pendingDeviceConflictResolver = null;
   }
+  pendingDeviceConflictState = null;
 }
 
-function resolveDeviceConflictChoice(choice) {
+function setAllConflictChoice(choice) {
+  if (!pendingDeviceConflictState) return;
+  pendingDeviceConflictState.conflicts.forEach(function(c) {
+    var radio = document.querySelector('input[name="conflict_' + c.id + '"][value="' + choice + '"]');
+    if (radio) radio.checked = true;
+  });
+}
+
+function renderConflictItem(c) {
+  function displayValue(v) {
+    if (v === null || v === undefined || v === '') return '<em style="color:var(--t3)">(비어있음)</em>';
+    if (typeof v === 'boolean') return v ? '켜짐' : '꺼짐';
+    return escapeHtmlForAttr(String(v));
+  }
+  var canBoth = c.fieldType === 'longText'
+    && typeof c.localValue === 'string' && typeof c.cloudValue === 'string'
+    && c.localValue.trim() !== '' && c.cloudValue.trim() !== '';
+  var bothLabel = canBoth ? '<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer;line-height:1.5"><input type="radio" name="conflict_' + escapeHtmlForAttr(c.id) + '" value="both" style="margin-top:3px"><span>둘 다 합치기 (이 기기 값 + 클라우드 값)</span></label>' : '';
+  return ''
+    + '<div style="background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+    +   '<div style="font-size:12px;color:var(--t1);font-weight:600;margin-bottom:8px">' + escapeHtmlForAttr(c.label || '항목') + '</div>'
+    +   '<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer;line-height:1.5">'
+    +     '<input type="radio" name="conflict_' + escapeHtmlForAttr(c.id) + '" value="local" checked style="margin-top:3px">'
+    +     '<span><strong style="color:var(--green)">💻 이 기기:</strong> ' + displayValue(c.localValue) + '</span>'
+    +   '</label>'
+    +   '<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;margin-bottom:' + (canBoth ? '4' : '0') + 'px;cursor:pointer;line-height:1.5">'
+    +     '<input type="radio" name="conflict_' + escapeHtmlForAttr(c.id) + '" value="cloud" style="margin-top:3px">'
+    +     '<span><strong style="color:#4090ff">☁️ 클라우드:</strong> ' + displayValue(c.cloudValue) + '</span>'
+    +   '</label>'
+    +   bothLabel
+    + '</div>';
+}
+
+function applyDeviceConflictChoices() {
+  if (!pendingDeviceConflictState || !pendingDeviceConflictResolver) return;
+  var perItem = {};
+  pendingDeviceConflictState.conflicts.forEach(function(c) {
+    var sel = document.querySelector('input[name="conflict_' + c.id + '"]:checked');
+    perItem[c.id] = sel ? sel.value : 'local';
+  });
   var bg = $('deviceConflictModalBg');
   if (bg) bg.classList.remove('open');
-  if (pendingDeviceConflictResolver) {
-    pendingDeviceConflictResolver(choice);
-    pendingDeviceConflictResolver = null;
-  }
+  var resolver = pendingDeviceConflictResolver;
+  pendingDeviceConflictResolver = null;
+  pendingDeviceConflictState = null;
+  resolver({ perItem: perItem });
 }
 
-function askDeviceConflictPreference(summary) {
+function askDeviceConflictPreference(summary, conflicts) {
   return new Promise(function(resolve) {
     pendingDeviceConflictResolver = resolve;
-    var el = $('deviceConflictSummary');
-    if (el) el.innerHTML = summary;
+    pendingDeviceConflictState = { conflicts: conflicts || [] };
+    var summaryEl = $('deviceConflictSummary');
+    if (summaryEl) summaryEl.innerHTML = summary;
+    var listEl = $('deviceConflictList');
+    if (listEl) {
+      var html = '';
+      (conflicts || []).forEach(function(c) { html += renderConflictItem(c); });
+      listEl.innerHTML = html;
+    }
     var bg = $('deviceConflictModalBg');
     if (bg) bg.classList.add('open');
   });
@@ -2151,7 +2201,7 @@ function applyCleanupMergeInPlace(checkedItems, chosenName) {
   var snapTabsById = {};
   (snapshot.tabs || []).forEach(function(t) { snapTabsById[t.id] = t; });
 
-  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
+  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], conflicts:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
   // 첫 항목을 canonical로
   var canonicalSnapTab = snapTabsById[checkedItems[0].tab.id];
   if (!canonicalSnapTab) return;
@@ -2389,6 +2439,17 @@ function summarizeConflictDetails(summary) {
   return text.replace(/\n/g, '<br>');
 }
 
+// 필드 타입 분류: 사용자 선택 모달에서 "둘 다 합치기" 옵션을 줄지 결정
+//   longText: notes, customCol, assignment — 합치기 가능 (줄바꿈 연결)
+//   shortMeta: 탭/책 이름, 그룹, URL, date 등 짧은 텍스트 — 합치기 의미 없음
+//   boolean: missionDone 같은 true/false — 합치기 불가
+function classifyFieldType(label) {
+  if (!label) return 'shortMeta';
+  if (/노트|메모|추가 항목|과제(?! 이름)|customCol/i.test(label)) return 'longText';
+  if (/완료|설정|표시|미션|모드/i.test(label)) return 'boolean';
+  return 'shortMeta';
+}
+
 function resolvePreferredValue(localValue, cloudValue, preference, summary, label) {
   if (deepEqualSimple(localValue, cloudValue)) return cloneJson(localValue);
   if (isEmptyValue(localValue) && !isEmptyValue(cloudValue)) {
@@ -2401,6 +2462,15 @@ function resolvePreferredValue(localValue, cloudValue, preference, summary, labe
   }
   summary.conflictCount++;
   if (label) summary.conflictLabels.push(label);
+  if (!summary.conflicts) summary.conflicts = [];
+  var conflictId = 'conflict_' + summary.conflicts.length;
+  summary.conflicts.push({
+    id: conflictId,
+    label: label || '',
+    fieldType: classifyFieldType(label),
+    localValue: cloneJson(localValue),
+    cloudValue: cloneJson(cloudValue)
+  });
   return cloneJson(preference === 'cloud' ? cloudValue : localValue);
 }
 
@@ -2455,31 +2525,193 @@ function mergeArticle(localItem, cloudItem, preference, summary, contextLabel) {
   merged.customColMission = resolvePreferredValue(!!localItem.customColMission, !!cloudItem.customColMission, preference, summary, contextLabel + ' 미션 설정');
   merged.missionDone = resolvePreferredValue(!!localItem.missionDone, !!cloudItem.missionDone, preference, summary, contextLabel + ' 미션 완료');
   merged.assignmentDone = resolvePreferredValue(!!localItem.assignmentDone, !!cloudItem.assignmentDone, preference, summary, contextLabel + ' 과제 완료');
+  // 태그는 union 머지: 양쪽 합치고 중복 제거. 묻지 않음.
+  var tagsSeen = {};
+  var tagsMerged = [];
+  (Array.isArray(localItem.tags) ? localItem.tags : []).concat(Array.isArray(cloudItem.tags) ? cloudItem.tags : []).forEach(function(tag) {
+    if (!tag) return;
+    var t = String(tag).trim();
+    if (!t || tagsSeen[t]) return;
+    tagsSeen[t] = true;
+    tagsMerged.push(t);
+  });
+  merged.tags = tagsMerged;
   merged.key = localItem.key || cloudItem.key;
   return merged;
 }
 
+// 같은 책인데 key가 미묘하게 다른 경우(공백/대소문자/trailing slash/날짜 포맷)에도 매칭되도록 정규화
+function normalizeArticleKey(key) {
+  if (!key) return '';
+  return String(key).trim().toLowerCase().replace(/\/+$/, '');
+}
+function normalizeArticleTitle(title) {
+  return String(title || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+function articleSecondaryKey(item) {
+  if (!item) return '';
+  var title = normalizeArticleTitle(item.title);
+  if (!title) return '';
+  var date = String(item.date || '').trim().replace(/[\/.]/g, '-');
+  return 'title:' + title + '|' + date;
+}
+
+// mergeArticles 강화 버전:
+//   - 1차: 정규화된 article.key로 매칭
+//   - 2차(fallback): title + date 기반 매칭 (title 비어있지 않은 경우만)
+//   - 매칭된 article의 canonical key는 local 쪽(없으면 cloud) key 채택
+//   - 호출자가 readMap/starSet 키도 통합할 수 있도록 keyRemap 반환
+//     localKeyRemap[old_local_key] = canonical_key  (보통 변경 없음, local이 canonical)
+//     cloudKeyRemap[old_cloud_key] = canonical_key
 function mergeArticles(localArticles, cloudArticles, preference, summary, tabName) {
-  var preferred = preference === 'cloud' ? (cloudArticles || []) : (localArticles || []);
-  var secondary = preference === 'cloud' ? (localArticles || []) : (cloudArticles || []);
-  var localByKey = {};
-  var cloudByKey = {};
-  (localArticles || []).forEach(function(item) { localByKey[item.key] = item; });
-  (cloudArticles || []).forEach(function(item) { cloudByKey[item.key] = item; });
-  var order = [];
-  preferred.forEach(function(item) { if (item && item.key && order.indexOf(item.key) === -1) order.push(item.key); });
-  secondary.forEach(function(item) { if (item && item.key && order.indexOf(item.key) === -1) order.push(item.key); });
+  var localList = (localArticles || []).filter(Boolean);
+  var cloudList = (cloudArticles || []).filter(Boolean);
+
+  // 정규화 키 인덱스
+  var localByNormKey = {};
+  var cloudByNormKey = {};
+  localList.forEach(function(item) {
+    var nk = normalizeArticleKey(item.key);
+    if (nk && !localByNormKey[nk]) localByNormKey[nk] = item;
+  });
+  cloudList.forEach(function(item) {
+    var nk = normalizeArticleKey(item.key);
+    if (nk && !cloudByNormKey[nk]) cloudByNormKey[nk] = item;
+  });
+
+  // title fallback 인덱스 (정규화 키로 매칭 안 되는 경우만 사용)
+  var localBySecKey = {};
+  var cloudBySecKey = {};
+  localList.forEach(function(item) {
+    var sk = articleSecondaryKey(item);
+    if (sk && !localBySecKey[sk]) localBySecKey[sk] = item;
+  });
+  cloudList.forEach(function(item) {
+    var sk = articleSecondaryKey(item);
+    if (sk && !cloudBySecKey[sk]) cloudBySecKey[sk] = item;
+  });
+
+  var localKeyRemap = {};
+  var cloudKeyRemap = {};
+  var usedLocal = {}; // local item key (raw)
+  var usedCloud = {};
+  var pairs = []; // [{ local, cloud, canonicalKey }]
+
+  function localItemKey(item) { return item.key || ''; }
+  function cloudItemKey(item) { return item.key || ''; }
+
+  // 1차: 정규화 key로 매칭
+  localList.forEach(function(localItem) {
+    var lRaw = localItemKey(localItem);
+    if (usedLocal[lRaw]) return;
+    var nk = normalizeArticleKey(lRaw);
+    if (!nk) return;
+    var cloudItem = cloudByNormKey[nk];
+    if (cloudItem && !usedCloud[cloudItemKey(cloudItem)]) {
+      var canonical = lRaw || cloudItemKey(cloudItem);
+      localKeyRemap[lRaw] = canonical;
+      cloudKeyRemap[cloudItemKey(cloudItem)] = canonical;
+      usedLocal[lRaw] = true;
+      usedCloud[cloudItemKey(cloudItem)] = true;
+      pairs.push({ local: localItem, cloud: cloudItem, canonicalKey: canonical });
+    }
+  });
+
+  // 2차: title fallback
+  localList.forEach(function(localItem) {
+    var lRaw = localItemKey(localItem);
+    if (usedLocal[lRaw]) return;
+    var sk = articleSecondaryKey(localItem);
+    if (!sk) return;
+    var cloudItem = cloudBySecKey[sk];
+    if (cloudItem && !usedCloud[cloudItemKey(cloudItem)]) {
+      var canonical = lRaw || cloudItemKey(cloudItem);
+      localKeyRemap[lRaw] = canonical;
+      cloudKeyRemap[cloudItemKey(cloudItem)] = canonical;
+      usedLocal[lRaw] = true;
+      usedCloud[cloudItemKey(cloudItem)] = true;
+      pairs.push({ local: localItem, cloud: cloudItem, canonicalKey: canonical });
+    }
+  });
+
+  // 나머지: 한쪽에만 있는 것
+  var localOnly = localList.filter(function(item) { return !usedLocal[localItemKey(item)]; });
+  var cloudOnly = cloudList.filter(function(item) { return !usedCloud[cloudItemKey(item)]; });
+  localOnly.forEach(function(item) {
+    var canonical = localItemKey(item);
+    if (canonical) localKeyRemap[canonical] = canonical;
+    pairs.push({ local: item, cloud: null, canonicalKey: canonical });
+  });
+  cloudOnly.forEach(function(item) {
+    var canonical = cloudItemKey(item);
+    if (canonical) cloudKeyRemap[canonical] = canonical;
+    pairs.push({ local: null, cloud: item, canonicalKey: canonical });
+  });
+
+  // preferred 순서대로 정렬 (먼저 preferred 측에 있는 것, 그 다음 secondary만 있는 것)
+  // 머지 결과의 articles 순서: preferred 측에서의 순서 유지
+  var preferred = preference === 'cloud' ? cloudList : localList;
+  var orderMap = {};
+  preferred.forEach(function(item, idx) {
+    var canonical = preference === 'cloud'
+      ? (cloudKeyRemap[cloudItemKey(item)] || cloudItemKey(item))
+      : (localKeyRemap[localItemKey(item)] || localItemKey(item));
+    if (canonical && orderMap[canonical] === undefined) orderMap[canonical] = idx;
+  });
+  pairs.sort(function(a, b) {
+    var aOrder = orderMap[a.canonicalKey];
+    var bOrder = orderMap[b.canonicalKey];
+    if (aOrder === undefined && bOrder === undefined) return 0;
+    if (aOrder === undefined) return 1;
+    if (bOrder === undefined) return -1;
+    return aOrder - bOrder;
+  });
 
   var merged = [];
-  order.forEach(function(key, idx) {
-    var localItem = localByKey[key];
-    var cloudItem = cloudByKey[key];
-    if (!localItem || !cloudItem) summary.autoMergedItemCount++;
-    var mergedItem = mergeArticle(localItem, cloudItem, preference, summary, '[' + tabName + '] #' + (idx + 1));
+  pairs.forEach(function(p, idx) {
+    if (!p.local || !p.cloud) summary.autoMergedItemCount++;
+    var mergedItem = mergeArticle(p.local, p.cloud, preference, summary, '[' + tabName + '] #' + (idx + 1));
+    if (p.canonicalKey) mergedItem.key = p.canonicalKey;
     mergedItem.num = idx + 1;
     merged.push(mergedItem);
   });
-  return merged;
+
+  return { merged: merged, localKeyRemap: localKeyRemap, cloudKeyRemap: cloudKeyRemap };
+}
+
+// 후방 호환: 기존 호출자가 배열을 받는 패턴이면 .merged 만 꺼내 쓰면 됨.
+function mergeArticlesArray(localArticles, cloudArticles, preference, summary, tabName) {
+  return mergeArticles(localArticles, cloudArticles, preference, summary, tabName).merged;
+}
+
+function remapMapKeys(map, keyRemap) {
+  if (!map || typeof map !== 'object') return {};
+  if (!keyRemap || Object.keys(keyRemap).length === 0) return map;
+  var out = {};
+  Object.keys(map).forEach(function(k) {
+    var nk = keyRemap[k] || k;
+    // 같은 canonical로 두 키가 합쳐지면 더 늦은 날짜 채택
+    if (out[nk] !== undefined) {
+      out[nk] = pickLaterReadDate(out[nk], map[k]);
+    } else {
+      out[nk] = map[k];
+    }
+  });
+  return out;
+}
+
+function remapSetKeys(set, keyRemap) {
+  if (!Array.isArray(set)) return [];
+  if (!keyRemap || Object.keys(keyRemap).length === 0) return set.slice();
+  var seen = {};
+  var out = [];
+  set.forEach(function(k) {
+    var nk = keyRemap[k] || k;
+    if (!nk || seen[nk]) return;
+    seen[nk] = true;
+    out.push(nk);
+  });
+  return out;
 }
 
 function mergeTab(localTab, cloudTab, preference, summary) {
@@ -2505,10 +2737,16 @@ function mergeTab(localTab, cloudTab, preference, summary) {
   merged.assignmentLabel = resolvePreferredValue(localTab.assignmentLabel || '과제', cloudTab.assignmentLabel || '과제', preference, summary, '[' + tabName + '] 과제 이름');
   merged.assignmentSourceCol = resolvePreferredValue(localTab.assignmentSourceCol || '', cloudTab.assignmentSourceCol || '', preference, summary, '[' + tabName + '] 과제 원본 컬럼');
   merged.assignmentEmoji = resolvePreferredValue(localTab.assignmentEmoji || '🎯', cloudTab.assignmentEmoji || '🎯', preference, summary, '[' + tabName + '] 과제 이모지');
-  merged.articles = mergeArticles(localTab.articles || [], cloudTab.articles || [], preference, summary, tabName);
+  var articlesResult = mergeArticles(localTab.articles || [], cloudTab.articles || [], preference, summary, tabName);
+  merged.articles = articlesResult.merged;
   delete merged.data;
-  merged.readMap = mergeReadMap(localTab.readMap || {}, cloudTab.readMap || {}, summary);
-  merged.starSet = mergeStarSet(localTab.starSet || [], cloudTab.starSet || [], summary);
+  // article 매칭에서 통합된 key가 있으면 readMap/starSet 키도 같이 remap한 뒤 union 머지
+  var localReadMap = remapMapKeys(localTab.readMap || {}, articlesResult.localKeyRemap);
+  var cloudReadMap = remapMapKeys(cloudTab.readMap || {}, articlesResult.cloudKeyRemap);
+  merged.readMap = mergeReadMap(localReadMap, cloudReadMap, summary);
+  var localStarSet = remapSetKeys(localTab.starSet || [], articlesResult.localKeyRemap);
+  var cloudStarSet = remapSetKeys(cloudTab.starSet || [], articlesResult.cloudKeyRemap);
+  merged.starSet = mergeStarSet(localStarSet, cloudStarSet, summary);
   return merged;
 }
 
@@ -2577,6 +2815,36 @@ function detectLocalTabGroups(localTabs) {
   return detectTabCandidateGroups(tagged);
 }
 
+// Pull 시 자동 머지 대상 페어 탐지: Sheets URL이 같고 + 이름도 같은 (Level A) 페어만.
+// 그 외 매칭은 사용자가 "중복 탭 정리"에서 직접 처리하도록 둠.
+// 반환: { cloudId: localId, ... }
+function findAutoMergeMatches(localTabs, cloudTabs) {
+  var localIds = {}, cloudIds = {};
+  (localTabs || []).forEach(function(t) { if (t && t.id) localIds[t.id] = true; });
+  (cloudTabs || []).forEach(function(t) { if (t && t.id) cloudIds[t.id] = true; });
+  var commonIds = {};
+  Object.keys(localIds).forEach(function(id) { if (cloudIds[id]) commonIds[id] = true; });
+
+  var result = {};
+  var usedCloud = {};
+  (localTabs || []).forEach(function(localTab) {
+    if (!localTab || commonIds[localTab.id]) return;
+    var lUrl = tabUrlKey(localTab);
+    var lName = tabNameKey(localTab);
+    if (!lUrl || !lName) return; // Level A는 URL과 이름이 둘 다 있어야 성립
+    for (var i = 0; i < (cloudTabs || []).length; i++) {
+      var cloudTab = cloudTabs[i];
+      if (!cloudTab || commonIds[cloudTab.id] || usedCloud[cloudTab.id]) continue;
+      if (lUrl === tabUrlKey(cloudTab) && lName === tabNameKey(cloudTab)) {
+        result[cloudTab.id] = localTab.id;
+        usedCloud[cloudTab.id] = true;
+        break;
+      }
+    }
+  });
+  return result;
+}
+
 // 사용자 결정을 cloudSnapshot에 적용 (Pull 흐름):
 // decisions.merges: [{ canonicalId, mergeIds: [...], chosenName }]
 //   - canonicalId가 LOCAL id이고 mergeIds 중 어떤 것이 cloud id이면, 그 cloud id를 canonicalId로 remap
@@ -2616,6 +2884,7 @@ function mergeSnapshots(localSnapshot, cloudSnapshot, preference) {
   var summary = {
     conflictCount: 0,
     conflictLabels: [],
+    conflicts: [],
     autoMergedReadCount: 0,
     autoMergedStarCount: 0,
     autoMergedItemCount: 0,
@@ -2766,12 +3035,138 @@ async function ensureSyncWarningAccepted() {
 
 async function getConflictPreference(summary, defaultPreference) {
   if (!summary.conflictCount) return defaultPreference;
-  var choice = await askDeviceConflictPreference(
-    '자동 병합 가능한 항목은 먼저 합쳤습니다.<br><br>' +
-    summarizeConflictDetails(summary) +
-    '<br><br>어느 쪽 값을 우선해서 최종 스냅샷을 만들까요?'
-  );
-  return choice || null;
+  var summaryHtml = ''
+    + '<div style="background:rgba(61,204,122,.08);border:1px solid rgba(61,204,122,.3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--t2);line-height:1.8;margin-bottom:10px">'
+    +   '<strong style="color:var(--t1)">자동으로 합쳐진 항목</strong><br>'
+    +   '✓ 한쪽에만 있는 책/탭 → 모두 보존<br>'
+    +   '✓ 읽음 기록(날짜) → 더 늦은 날짜로 통합<br>'
+    +   '✓ 즐겨찾기, 태그 → 양쪽 합침<br>'
+    +   '✓ 출석 날짜 → 양쪽 합침'
+    + '</div>'
+    + '<div style="margin-bottom:6px;color:var(--t1);font-size:13px;font-weight:600">선택이 필요한 항목 <span style="color:#f04060">' + summary.conflictCount + '개</span></div>';
+  var conflicts = summary.conflicts || [];
+  var result = await askDeviceConflictPreference(summaryHtml, conflicts);
+  return result; // { perItem: { id: 'local'|'cloud'|'both' } } 또는 null
+}
+
+// 항목별 사용자 결정에 따라 머지된 스냅샷을 후처리.
+// localDraft(preference='local')에서 시작 → 'cloud' or 'both' 선택된 충돌만 finalSnap에 덮어씀.
+// 적용 순서 중요: articles 먼저 → 탭 비-name 필드 → 탭 이름 → 상위(snapshot 자체) 필드
+// 그래야 t.name으로 탭을 찾는 동안 이름이 안 바뀜.
+function buildSnapshotWithPerItemChoices(localSnapshot, cloudSnapshot, perItemDecisions, baseSummary) {
+  var localDraft = mergeSnapshots(localSnapshot, cloudSnapshot, 'local');
+  var finalSnap = cloneJson(localDraft.merged);
+  var conflicts = localDraft.summary.conflicts || [];
+
+  function overridePriority(label) {
+    if (!label) return 100;
+    if (!/^\[/.test(label)) return 30; // 상위 필드 (트래커 이름, 테마 등)
+    if (/#\d+/.test(label)) return 10; // article 안의 필드 — 가장 먼저
+    if (/\]\s+탭 이름$/.test(label)) return 25; // 탭 이름 — 같은 탭의 다른 필드 다 처리한 뒤
+    return 20; // 탭의 비-name 필드
+  }
+
+  var pending = conflicts.map(function(c, i) {
+    return { conflict: c, originalIndex: i, priority: overridePriority(c.label) };
+  });
+  pending.sort(function(a, b) {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.originalIndex - b.originalIndex;
+  });
+
+  pending.forEach(function(p) {
+    var c = p.conflict;
+    var decision = (perItemDecisions && perItemDecisions[c.id]) || 'local';
+    if (decision === 'local') return; // localDraft가 이미 local 값
+    var chosenValue;
+    if (decision === 'cloud') {
+      chosenValue = c.cloudValue;
+    } else if (decision === 'both' && c.fieldType === 'longText'
+               && typeof c.localValue === 'string' && typeof c.cloudValue === 'string') {
+      var l = (c.localValue || '').trim();
+      var cv = (c.cloudValue || '').trim();
+      if (l && cv && l !== cv) chosenValue = l + '\n\n---\n\n' + cv;
+      else chosenValue = l || cv;
+    } else {
+      return; // both인데 longText 아니면 그대로 local
+    }
+    applyConflictOverride(finalSnap, c, chosenValue);
+  });
+
+  return { merged: finalSnap, summary: baseSummary || localDraft.summary };
+}
+
+// finalSnap을 traverse하면서 conflict.label에 매칭되는 필드를 찾아 newValue로 바꿈.
+// label 패턴 예: "[탭이름] 탭 이름", "[탭이름] #3 노트", "트래커 이름", "테마" 등
+function applyConflictOverride(snapshot, conflict, newValue) {
+  var label = conflict.label || '';
+  // 탑레벨 필드
+  var topLevel = {
+    '트래커 이름': 'customTitle',
+    '테마': 'theme',
+    '출석 목표': 'attendanceGoal',
+    '사이클 시작일': 'cycleStart',
+    '추가 항목 설정': 'ccSettings',
+    '날짜 이모지': 'dateEmoji'
+  };
+  if (topLevel[label]) {
+    if (label === '추가 항목 설정') {
+      snapshot.ccSettings = { enabled: !!newValue };
+    } else {
+      snapshot[topLevel[label]] = newValue;
+    }
+    return;
+  }
+
+  // 탭 단위 필드: "[탭이름] 필드명" 또는 "[탭이름] #N 필드명"
+  var m = label.match(/^\[([^\]]+)\]\s+(.*)$/);
+  if (!m) return;
+  var tabName = m[1];
+  var rest = m[2];
+  var tab = (snapshot.tabs || []).find(function(t) { return t.name === tabName; });
+  if (!tab) return;
+
+  var articleMatch = rest.match(/^#(\d+)\s+(.+)$/);
+  if (articleMatch) {
+    var artIdx = parseInt(articleMatch[1], 10) - 1;
+    var artFieldLabel = articleMatch[2];
+    var article = (tab.articles || tab.data || [])[artIdx];
+    if (!article) return;
+    var artFieldMap = {
+      '제목': 'title',
+      '카테고리': 'category',
+      'URL': 'url',
+      '날짜': 'date',
+      '추가 항목': 'customCol',
+      '노트': 'notes',
+      '과제': 'assignment',
+      '미션 설정': 'customColMission',
+      '미션 완료': 'missionDone',
+      '과제 완료': 'assignmentDone'
+    };
+    var fld = artFieldMap[artFieldLabel];
+    if (fld) article[fld] = newValue;
+    return;
+  }
+
+  var tabFieldMap = {
+    '탭 이름': 'name',
+    '그룹': 'group',
+    'Sheets URL': 'sheetsUrl',
+    '파일 소스': 'fileSource',
+    '항목 이름': 'dateLabel',
+    '날짜 표시': 'hideDateCol',
+    '추가 항목 표시': 'hideCcCol',
+    '추가 항목 이름': 'ccLabel',
+    '추가 항목 이모지': 'ccEmoji',
+    '미션 모드': 'missionMode',
+    '과제 컬럼': 'hasAssignment',
+    '과제 이름': 'assignmentLabel',
+    '과제 원본 컬럼': 'assignmentSourceCol',
+    '과제 이모지': 'assignmentEmoji'
+  };
+  var tFld = tabFieldMap[rest];
+  if (tFld) tab[tFld] = newValue;
 }
 
 // v3.1: gzip 압축/해제 (CompressionStream 지원 브라우저 + 옛 브라우저 fallback)
@@ -2978,22 +3373,33 @@ async function loadFromCloud() {
       return;
     }
 
-    // ── 탭 매칭 사전 처리: ID가 달라도 같은 탭으로 보이는 후보 그룹이면 사용자가 합치기 결정 ──
-    var matchResult = await askTabMatchPreference(localSnapshot.tabs || [], cloudSnapshot.tabs || []);
-    if (matchResult === null) {
-      setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
-      return;
+    // ── Level A 자동 머지: Sheets URL과 이름이 둘 다 같은 페어만 조용히 매칭 ──
+    // 그 외 같은 탭 후보는 사용자가 "중복 탭 정리"에서 직접 처리. Pull 모달은 안 띄움.
+    var autoMergeMap = findAutoMergeMatches(localSnapshot.tabs || [], cloudSnapshot.tabs || []);
+    if (Object.keys(autoMergeMap).length > 0) {
+      cloudSnapshot.tabs = (cloudSnapshot.tabs || []).map(function(tab) {
+        if (!tab || !autoMergeMap[tab.id]) return tab;
+        var rewritten = Object.assign({}, tab);
+        rewritten.id = autoMergeMap[tab.id];
+        return rewritten;
+      });
     }
-    // 사용자가 합치기로 표시한 결정들을 cloudSnapshot에 반영
-    cloudSnapshot = applyTabMatchDecisions(cloudSnapshot, matchResult);
 
     var draft = mergeSnapshots(localSnapshot, cloudSnapshot, 'cloud');
-    var preference = await getConflictPreference(draft.summary, 'cloud');
-    if (!preference) {
-      setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
-      return;
+    if (draft.summary.conflictCount > 0) {
+      var decisions = await getConflictPreference(draft.summary, 'cloud');
+      if (!decisions) {
+        setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
+        return;
+      }
+      // decisions: { perItem: { id: 'local'|'cloud'|'both' } } 또는 후방호환 문자열
+      if (typeof decisions === 'string') {
+        // 옛 API (전부 한쪽 우선)
+        if (decisions !== 'cloud') draft = mergeSnapshots(localSnapshot, cloudSnapshot, decisions);
+      } else if (decisions.perItem) {
+        draft = buildSnapshotWithPerItemChoices(localSnapshot, cloudSnapshot, decisions.perItem, draft.summary);
+      }
     }
-    if (preference !== 'cloud') draft = mergeSnapshots(localSnapshot, cloudSnapshot, preference);
 
     if (!snapshotsEqual(draft.merged, cloudSnapshot)) {
       await writeMergedSnapshotToCloud(firebaseCurrentUser.uid, draft.merged, 'load-merge');
