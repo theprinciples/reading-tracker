@@ -674,12 +674,13 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   <div id="deviceSyncStatusBox" style="background:rgba(232,184,48,.08);border:1px solid rgba(232,184,48,.28);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:12px">
     <div id="deviceSyncStatusText">로그인 후 수동으로 동기화할 수 있어요. 메모, URL, 읽기 진행도, 탭 설정 등 현재 트래커 상태 전체가 클라우드에 저장됩니다.</div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
     <button class="btn" id="deviceSyncPushBtn" onclick="syncToCloud()" style="font-size:13px;padding:14px 16px;justify-content:center" disabled>☁️ 클라우드에 저장</button>
     <button class="btn" id="deviceSyncLoadBtn" onclick="loadFromCloud()" style="font-size:13px;padding:14px 16px;justify-content:center" disabled>📥 클라우드에서 불러오기</button>
   </div>
+  <button class="btn" id="deviceSyncCleanupBtn" onclick="openTabCleanupModal()" style="font-size:12px;padding:10px 14px;justify-content:center;width:100%;margin-bottom:12px">🧹 중복 탭 정리</button>
   <div style="font-size:10px;color:var(--t3);line-height:1.6;margin-bottom:12px">
-    자동 동기화는 하지 않아요.
+    자동 동기화는 하지 않아요. 중복 탭 정리는 이 기기 안의 같은 탭만 정리해요 (클라우드는 건드리지 않음).
   </div>
   <div class="modal-btns">
     <button class="btn" onclick="closeDeviceSyncModal()">닫기</button>
@@ -703,6 +704,25 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
       <button class="btn" onclick="resolveDeviceConflictChoice('cloud')">☁️ 클라우드 우선</button>
       <button class="btn btn-g" onclick="resolveDeviceConflictChoice('local')">💻 이 기기 우선</button>
     </div>
+  </div>
+</div>
+</div>
+
+<!-- TAB MATCH / CLEANUP MODAL -->
+<div class="modal-bg" id="tabMatchModalBg" onclick="if(event.target===this)closeTabMatchModal()">
+<div class="modal" style="max-width:640px;max-height:85vh;display:flex;flex-direction:column">
+  <h3 id="tabMatchModalTitle">🔗 같은 탭으로 합칠지 확인</h3>
+  <p id="tabMatchModalDesc" style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:10px">
+    이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠까요?
+  </p>
+  <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:10px">
+    체크/별표/메모/도서 목록은 어떤 선택을 해도 양쪽 데이터가 모두 보존됩니다. 탭 이름/그룹 같은 단순 설정만 손실될 수 있어서 선택지를 보여드려요.
+  </div>
+  <div id="tabMatchAutoInfo" style="font-size:11px;color:var(--t3);margin-bottom:10px;display:none"></div>
+  <div id="tabMatchList" style="flex:1;overflow-y:auto;border:1px solid var(--bdr);border-radius:8px;padding:8px;background:var(--bg2)"></div>
+  <div class="modal-btns" style="justify-content:space-between;flex-wrap:wrap;margin-top:12px">
+    <button class="btn" onclick="closeTabMatchModal()">취소</button>
+    <button class="btn btn-g" id="tabMatchConfirmBtn" onclick="confirmTabMatchModal()">합치고 진행</button>
   </div>
 </div>
 </div>
@@ -1283,7 +1303,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.0';
+const APP_VERSION = 'v3.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1853,6 +1873,204 @@ function askDeviceConflictPreference(summary) {
   });
 }
 
+// ── 탭 매칭 / 정리 모달 ──
+// 두 가지 모드 모두 같은 모달을 재사용:
+//   mode='pull': pull 시 local↔cloud 페어 확인. confirm 시 askPairs에 대한 결정만 반환
+//   mode='cleanup': 로컬 내 중복 페어 확인. confirm 시 페어별 합치기 여부 + 이름 반환
+var pendingTabMatchResolver = null;
+var pendingTabMatchState = null;
+
+function escapeHtmlForAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderTabMatchCard(pair, idx, mode) {
+  // pair: { aLabel, aTab, bLabel, bTab, level }
+  var aName = pair.aTab.name || '(이름 없음)';
+  var bName = pair.bTab.name || '(이름 없음)';
+  var aGroup = pair.aTab.group || '-';
+  var bGroup = pair.bTab.group || '-';
+  var aUrl = pair.aTab.sheetsUrl || '';
+  var bUrl = pair.bTab.sheetsUrl || '';
+  var sameName = tabNameKey(pair.aTab) === tabNameKey(pair.bTab) && !!tabNameKey(pair.aTab);
+
+  var aUrlHtml = aUrl ? '<div style="font-size:10px;color:var(--t3);word-break:break-all;margin-top:2px">🔗 ' + escapeHtmlForAttr(aUrl) + '</div>' : '';
+  var bUrlHtml = bUrl ? '<div style="font-size:10px;color:var(--t3);word-break:break-all;margin-top:2px">🔗 ' + escapeHtmlForAttr(bUrl) + '</div>' : '';
+
+  var nameOptionsHtml = '';
+  if (!sameName) {
+    nameOptionsHtml = ''
+      + '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--bdr)">'
+      +   '<div style="font-size:11px;color:var(--t2);margin-bottom:6px">합칠 때 탭 이름:</div>'
+      +   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer">'
+      +     '<input type="radio" name="tabMatchName_' + idx + '" value="a" checked> "' + escapeHtmlForAttr(aName) + '" 사용 (' + escapeHtmlForAttr(pair.aLabel) + ')'
+      +   '</label>'
+      +   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer">'
+      +     '<input type="radio" name="tabMatchName_' + idx + '" value="b"> "' + escapeHtmlForAttr(bName) + '" 사용 (' + escapeHtmlForAttr(pair.bLabel) + ')'
+      +   '</label>'
+      +   '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
+      +     '<input type="radio" name="tabMatchName_' + idx + '" value="custom"> 직접 입력:'
+      +     '<input type="text" id="tabMatchNameCustom_' + idx + '" placeholder="새 탭 이름" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none">'
+      +   '</label>'
+      + '</div>';
+  }
+
+  return ''
+    + '<div class="tab-match-card" data-idx="' + idx + '" style="background:var(--bg1);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+    +   '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
+    +     '<div style="background:var(--bg2);border-radius:6px;padding:8px 10px">'
+    +       '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + escapeHtmlForAttr(pair.aLabel) + '</div>'
+    +       '<div style="font-weight:600;font-size:13px;color:var(--t1)">"' + escapeHtmlForAttr(aName) + '"</div>'
+    +       '<div style="font-size:10px;color:var(--t3);margin-top:2px">그룹: ' + escapeHtmlForAttr(aGroup) + '</div>'
+    +       aUrlHtml
+    +     '</div>'
+    +     '<div style="background:var(--bg2);border-radius:6px;padding:8px 10px">'
+    +       '<div style="font-size:11px;color:var(--t3);margin-bottom:2px">' + escapeHtmlForAttr(pair.bLabel) + '</div>'
+    +       '<div style="font-weight:600;font-size:13px;color:var(--t1)">"' + escapeHtmlForAttr(bName) + '"</div>'
+    +       '<div style="font-size:10px;color:var(--t3);margin-top:2px">그룹: ' + escapeHtmlForAttr(bGroup) + '</div>'
+    +       bUrlHtml
+    +     '</div>'
+    +   '</div>'
+    +   '<div style="display:flex;flex-direction:column;gap:4px">'
+    +     '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
+    +       '<input type="radio" name="tabMatchChoice_' + idx + '" value="merge" checked> 같은 탭으로 합치기'
+    +     '</label>'
+    +     '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
+    +       '<input type="radio" name="tabMatchChoice_' + idx + '" value="separate"> 별개 탭으로 유지'
+    +     '</label>'
+    +   '</div>'
+    +   nameOptionsHtml
+    + '</div>';
+}
+
+function openTabMatchModal(opts) {
+  // opts: { mode:'pull'|'cleanup', autoCount, askPairs:[{aLabel,aTab,bLabel,bTab,level}], title, desc, confirmText }
+  return new Promise(function(resolve) {
+    pendingTabMatchResolver = resolve;
+    pendingTabMatchState = opts;
+
+    var titleEl = $('tabMatchModalTitle');
+    var descEl = $('tabMatchModalDesc');
+    var autoEl = $('tabMatchAutoInfo');
+    var listEl = $('tabMatchList');
+    var confirmBtn = $('tabMatchConfirmBtn');
+    if (titleEl) titleEl.textContent = opts.title || '🔗 같은 탭으로 합칠지 확인';
+    if (descEl) descEl.textContent = opts.desc || '이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠까요?';
+    if (confirmBtn) confirmBtn.textContent = opts.confirmText || '합치고 진행';
+
+    if (autoEl) {
+      if (opts.autoCount && opts.autoCount > 0) {
+        autoEl.style.display = '';
+        autoEl.textContent = '✨ 이름과 Sheets URL이 모두 같은 ' + opts.autoCount + '개 탭은 자동으로 합쳐졌어요';
+      } else {
+        autoEl.style.display = 'none';
+      }
+    }
+
+    if (listEl) {
+      var html = '';
+      (opts.askPairs || []).forEach(function(pair, idx) {
+        html += renderTabMatchCard(pair, idx, opts.mode);
+      });
+      listEl.innerHTML = html;
+    }
+
+    var bg = $('tabMatchModalBg');
+    if (bg) bg.classList.add('open');
+  });
+}
+
+function closeTabMatchModal() {
+  var bg = $('tabMatchModalBg');
+  if (bg) bg.classList.remove('open');
+  if (pendingTabMatchResolver) {
+    pendingTabMatchResolver(null);
+    pendingTabMatchResolver = null;
+  }
+  pendingTabMatchState = null;
+}
+
+function confirmTabMatchModal() {
+  if (!pendingTabMatchResolver || !pendingTabMatchState) return;
+  var state = pendingTabMatchState;
+  var decisions = { merge: [], keepSeparate: [] };
+  (state.askPairs || []).forEach(function(pair, idx) {
+    var choiceInput = document.querySelector('input[name="tabMatchChoice_' + idx + '"]:checked');
+    var choice = choiceInput ? choiceInput.value : 'merge';
+    if (choice === 'separate') {
+      decisions.keepSeparate.push({ aId: pair.aTab.id, bId: pair.bTab.id });
+      return;
+    }
+    var aName = pair.aTab.name || '';
+    var bName = pair.bTab.name || '';
+    var sameName = tabNameKey(pair.aTab) === tabNameKey(pair.bTab) && !!tabNameKey(pair.aTab);
+    var chosenName = '';
+    if (sameName) {
+      chosenName = aName;
+    } else {
+      var nameInput = document.querySelector('input[name="tabMatchName_' + idx + '"]:checked');
+      var nameChoice = nameInput ? nameInput.value : 'a';
+      if (nameChoice === 'a') chosenName = aName;
+      else if (nameChoice === 'b') chosenName = bName;
+      else {
+        var customEl = $('tabMatchNameCustom_' + idx);
+        var customVal = customEl ? (customEl.value || '').trim() : '';
+        chosenName = customVal || aName || bName || '';
+      }
+    }
+    decisions.merge.push({
+      // pull 모드: a=local, b=cloud → localId/cloudId 키로 변환
+      // cleanup 모드: a/b 모두 local → aId/bId 키로 변환
+      localId: pair.aTab.id,
+      cloudId: pair.bTab.id,
+      aId: pair.aTab.id,
+      bId: pair.bTab.id,
+      chosenName: chosenName
+    });
+  });
+  var bg = $('tabMatchModalBg');
+  if (bg) bg.classList.remove('open');
+  var resolver = pendingTabMatchResolver;
+  pendingTabMatchResolver = null;
+  pendingTabMatchState = null;
+  resolver(decisions);
+}
+
+// pull 흐름에서 호출: local↔cloud 매칭 후보 모달
+function askTabMatchPreference(autoCount, askPairs) {
+  var pairs = (askPairs || []).map(function(p) {
+    return { aLabel: '💻 이 기기', aTab: p.local, bLabel: '☁️ 클라우드', bTab: p.cloud, level: p.level };
+  });
+  return openTabMatchModal({
+    mode: 'pull',
+    autoCount: autoCount,
+    askPairs: pairs,
+    title: '🔗 같은 탭으로 합칠지 확인',
+    desc: '이 기기와 클라우드에 비슷한 탭이 있어요. 같은 탭으로 합칠까요?',
+    confirmText: '합치고 불러오기'
+  });
+}
+
+// cleanup 흐름에서 호출: 로컬 내 중복 페어 모달
+function askLocalTabMergeDecisions(pairs) {
+  var labelled = (pairs || []).map(function(p, i) {
+    return { aLabel: '📘 탭 A', aTab: p.a, bLabel: '📗 탭 B', bTab: p.b, level: p.level };
+  });
+  return openTabMatchModal({
+    mode: 'cleanup',
+    autoCount: 0,
+    askPairs: labelled,
+    title: '🧹 중복 탭 정리',
+    desc: '이 기기 안에 같은 탭으로 보이는 후보가 있어요. 합칠 것을 골라주세요.',
+    confirmText: '선택대로 정리'
+  });
+}
+
 function setDeviceSyncBusyState(isBusy, statusText) {
   deviceSyncBusy = isBusy;
   var pushBtn = $('deviceSyncPushBtn');
@@ -2064,6 +2282,79 @@ function mergeTab(localTab, cloudTab, preference, summary) {
   return merged;
 }
 
+// ── 탭 매칭 헬퍼: ID가 달라도 같은 탭임을 판별하기 위한 유틸 ──
+function tabNameKey(tab) { return (tab && tab.name ? String(tab.name).trim().toLowerCase() : ''); }
+function tabUrlKey(tab) { return (tab && tab.sheetsUrl ? String(tab.sheetsUrl).trim() : ''); }
+function tabGroupKey(tab) { return (tab && tab.group ? String(tab.group).trim().toLowerCase() : ''); }
+
+// 두 탭의 매칭 레벨 판별: 'A' = 자동 머지(URL+이름 둘 다 같음),
+// 'B' = URL 같고 이름 다름(사용자 확인), 'C' = URL 둘 다 없고 이름 같음(사용자 확인), null = 매칭 아님
+function tabMatchLevel(tabA, tabB) {
+  if (!tabA || !tabB) return null;
+  var aUrl = tabUrlKey(tabA);
+  var bUrl = tabUrlKey(tabB);
+  var aName = tabNameKey(tabA);
+  var bName = tabNameKey(tabB);
+  if (aUrl && bUrl && aUrl === bUrl) {
+    if (aName && bName && aName === bName) return 'A';
+    return 'B';
+  }
+  if (!aUrl && !bUrl && aName && bName && aName === bName) return 'C';
+  return null;
+}
+
+// 두 스냅샷에 대해, ID가 다르지만 같은 탭으로 보이는 후보 페어 탐지.
+// 같은 ID끼리는 mergeSnapshots가 알아서 매칭하므로 여기서는 제외.
+function detectTabMatchCandidates(localTabs, cloudTabs) {
+  var autoPairs = [];
+  var askPairs = [];
+  var usedCloud = {};
+  (localTabs || []).forEach(function(localTab) {
+    if (!localTab) return;
+    for (var i = 0; i < (cloudTabs || []).length; i++) {
+      var cloudTab = cloudTabs[i];
+      if (!cloudTab) continue;
+      if (usedCloud[cloudTab.id]) continue;
+      if (cloudTab.id === localTab.id) continue; // 이미 ID로 매칭됨
+      var level = tabMatchLevel(localTab, cloudTab);
+      if (!level) continue;
+      usedCloud[cloudTab.id] = true;
+      if (level === 'A') autoPairs.push({ local: localTab, cloud: cloudTab, level: level });
+      else askPairs.push({ local: localTab, cloud: cloudTab, level: level });
+      break;
+    }
+  });
+  return { autoPairs: autoPairs, askPairs: askPairs };
+}
+
+// 사용자 결정 + 자동 페어를 cloudSnapshot에 적용: cloud 탭 ID를 local 탭 ID로 다시 쓰고, 필요하면 이름도 통일.
+// 결과 cloudSnapshot은 mergeSnapshots가 기존 ID 기반 로직으로 매칭하도록 만들어줌.
+function applyTabMatchDecisions(cloudSnapshot, autoPairs, decisions) {
+  var cloud = cloneJson(cloudSnapshot || {});
+  var idRemap = {};
+  var renameById = {};
+  (autoPairs || []).forEach(function(pair) {
+    if (pair && pair.cloud && pair.local) idRemap[pair.cloud.id] = pair.local.id;
+  });
+  if (decisions && decisions.merge) {
+    decisions.merge.forEach(function(dec) {
+      if (!dec) return;
+      idRemap[dec.cloudId] = dec.localId;
+      if (dec.chosenName) renameById[dec.cloudId] = dec.chosenName;
+    });
+  }
+  cloud.tabs = (cloud.tabs || []).map(function(tab) {
+    if (!tab) return tab;
+    var newId = idRemap[tab.id];
+    if (!newId) return tab;
+    var rewritten = Object.assign({}, tab);
+    rewritten.id = newId;
+    if (renameById[tab.id]) rewritten.name = renameById[tab.id];
+    return rewritten;
+  });
+  return cloud;
+}
+
 function mergeSnapshots(localSnapshot, cloudSnapshot, preference) {
   var local = cloneJson(localSnapshot || buildBackupSnapshot());
   var cloud = cloneJson(cloudSnapshot || buildBackupSnapshot());
@@ -2123,7 +2414,26 @@ function isLocalDataAheadOfCloud(localSnapshot, cloudSnapshot) {
 
 async function fetchCloudSnapshotDoc(uid) {
   var snap = await firebaseBridge.getDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'sync', 'main'));
-  return snap.exists() ? snap.data() : null;
+  if (!snap.exists()) return null;
+  var meta = snap.data();
+
+  // v3.1: Storage 사용 중 → Storage에서 압축된 스냅샷 다운로드 + 해제
+  if (meta && meta.storageVersion === 1 && firebaseBridge.storage && firebaseBridge.getBytes) {
+    try {
+      var ext = meta.compressed ? '.gz' : '';
+      var storagePath = 'sync/' + uid + '/snapshot.json' + ext;
+      var storageRef = firebaseBridge.ref(firebaseBridge.storage, storagePath);
+      var bytes = await firebaseBridge.getBytes(storageRef);
+      var snapshot = await gunzipSnapshot(new Uint8Array(bytes), !!meta.compressed);
+      meta.data = snapshot; // 기존 코드가 .data를 기대하므로 동일 모양으로
+    } catch (e) {
+      console.error('Storage snapshot read failed', e);
+      meta.data = null;
+    }
+  }
+  // 레거시: meta.data가 이미 Firestore 문서에 들어있는 경우 그대로 사용
+
+  return meta;
 }
 
 async function fetchCloudUsage(uid) {
@@ -2209,6 +2519,36 @@ async function getConflictPreference(summary, defaultPreference) {
   return choice || null;
 }
 
+// v3.1: gzip 압축/해제 (CompressionStream 지원 브라우저 + 옛 브라우저 fallback)
+async function gzipSnapshot(obj) {
+  var json = JSON.stringify(obj);
+  if (typeof CompressionStream === 'undefined') {
+    return { bytes: new TextEncoder().encode(json), compressed: false };
+  }
+  try {
+    var stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+    var blob = await new Response(stream).blob();
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), compressed: true };
+  } catch (e) {
+    console.warn('gzip failed, falling back to uncompressed', e);
+    return { bytes: new TextEncoder().encode(json), compressed: false };
+  }
+}
+
+async function gunzipSnapshot(bytes, compressed) {
+  if (!compressed || typeof DecompressionStream === 'undefined') {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  try {
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    var text = await new Response(stream).text();
+    return JSON.parse(text);
+  } catch (e) {
+    // Fallback: try as plain text in case data is actually uncompressed
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+}
+
 async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
   var usage = await fetchCloudUsage(uid);
   var dailyLimit = getDailySyncLimitForCurrentUser();
@@ -2216,13 +2556,29 @@ async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
     throw new Error('오늘의 클라우드 동기화 횟수를 모두 사용했어요.');
   }
 
-  var bytes = estimateSnapshotBytes(mergedSnapshot);
-  if (bytes > 900000) {
-    throw new Error('데이터가 너무 커서 클라우드 동기화를 안전하게 진행할 수 없어요.');
+  // v3.1: gzip 압축 → Firebase Storage 업로드 (Firestore 1MB 한도 회피)
+  var rawBytes = estimateSnapshotBytes(mergedSnapshot);
+  var packed = await gzipSnapshot(mergedSnapshot);
+  // 새 안전 한도: 압축 후 5MB (raw로는 25-50MB)
+  if (packed.bytes.length > 5_000_000) {
+    throw new Error('데이터가 5MB(압축 후)를 초과합니다. 항목이나 노트가 너무 많아요. 일부 정리해주세요.');
   }
 
   var snapshotVersion = 'sync_' + Date.now().toString(36);
   var nowMs = Date.now();
+
+  // 1. Storage에 압축된 스냅샷 업로드
+  if (firebaseBridge.storage && firebaseBridge.uploadBytes) {
+    var ext = packed.compressed ? '.gz' : '';
+    var contentType = packed.compressed ? 'application/gzip' : 'application/json';
+    var storagePath = 'sync/' + uid + '/snapshot.json' + ext;
+    var storageRef = firebaseBridge.ref(firebaseBridge.storage, storagePath);
+    await firebaseBridge.uploadBytes(storageRef, packed.bytes, { contentType: contentType });
+  } else {
+    throw new Error('Firebase Storage가 초기화되지 않았어요. 새로고침해 주세요.');
+  }
+
+  // 2. Firestore에는 메타데이터만 저장 (snapshot/data 필드 없음 — 자동 제거됨)
   await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'sync', 'main'), {
     schemaVersion: CLOUD_SYNC_SCHEMA_VERSION,
     snapshotVersion: snapshotVersion,
@@ -2231,8 +2587,10 @@ async function writeMergedSnapshotToCloud(uid, mergedSnapshot, reasonLabel) {
     updatedByDeviceId: getDeviceId(),
     updatedByDeviceName: getEffectiveDeviceName(),
     updatedByEmail: firebaseCurrentUser ? (firebaseCurrentUser.email || '') : '',
-    snapshotBytes: bytes,
-    data: mergedSnapshot
+    snapshotBytes: rawBytes,
+    compressedBytes: packed.bytes.length,
+    compressed: packed.compressed,
+    storageVersion: 1
   });
   await firebaseBridge.setDoc(firebaseBridge.doc(firebaseBridge.db, 'users', uid, 'usage', 'daily'), {
     date: todayStr(),
@@ -2272,7 +2630,7 @@ async function syncToCloud() {
   }
   if (!await ensureSyncWarningAccepted()) return;
 
-  setDeviceSyncBusyState(true, '클라우드 데이터를 확인하고 병합 중입니다...');
+  setDeviceSyncBusyState(true, '로컬 데이터를 클라우드에 업로드 중입니다...');
   try {
     var localSnapshot = buildBackupSnapshot();
     var cloudDoc = await fetchCloudSnapshotDoc(firebaseCurrentUser.uid);
@@ -2288,16 +2646,19 @@ async function syncToCloud() {
         lastSyncedVersion: cloudDoc.snapshotVersion || ''
       });
     } else {
-      var draft = mergeSnapshots(localSnapshot, cloudSnapshot, 'local');
-      var preference = await getConflictPreference(draft.summary, 'local');
-      if (!preference) {
-        setDeviceSyncBusyState(false, '동기화가 취소되었습니다.');
-        return;
+      // Push = 로컬을 그대로 cloud에 업로드. 병합/충돌 모달 없음.
+      var pushMeta = readCloudSyncMeta();
+      var cloudWasUpdatedElsewhere =
+        !!cloudDoc.snapshotVersion &&
+        pushMeta && pushMeta.lastSyncedVersion &&
+        cloudDoc.snapshotVersion !== pushMeta.lastSyncedVersion;
+
+      await writeMergedSnapshotToCloud(firebaseCurrentUser.uid, localSnapshot, 'push-overwrite');
+      if (cloudWasUpdatedElsewhere) {
+        toast('☁️ 업로드 완료 — 다른 기기에서 바뀐 내용은 덮어쓰였어요', 'ok');
+      } else {
+        toast('☁️ 클라우드에 업로드했어요', 'ok');
       }
-      if (preference !== 'local') draft = mergeSnapshots(localSnapshot, cloudSnapshot, preference);
-      await writeMergedSnapshotToCloud(firebaseCurrentUser.uid, draft.merged, 'push-merge');
-      restoreBackupSnapshot(draft.merged, { silent: true });
-      toast('☁️ 병합 후 클라우드에 동기화했어요', 'ok');
     }
     setDeviceSyncBusyState(false, '클라우드 동기화 상태가 최신입니다.');
     await refreshDeviceSyncSummary();
@@ -2358,6 +2719,20 @@ async function loadFromCloud() {
       return;
     }
 
+    // ── 탭 매칭 사전 처리: ID가 달라도 같은 탭으로 보이는 페어는 사용자에게 확인 ──
+    var pairing = detectTabMatchCandidates(localSnapshot.tabs || [], cloudSnapshot.tabs || []);
+    var matchDecisions = { merge: [], keepSeparate: [] };
+    if (pairing.askPairs.length > 0) {
+      var userDecisions = await askTabMatchPreference(pairing.autoPairs.length, pairing.askPairs);
+      if (!userDecisions) {
+        setDeviceSyncBusyState(false, '불러오기가 취소되었습니다.');
+        return;
+      }
+      matchDecisions = userDecisions;
+    }
+    // 자동 페어 + 사용자가 합치기로 결정한 페어를 cloudSnapshot에 반영
+    cloudSnapshot = applyTabMatchDecisions(cloudSnapshot, pairing.autoPairs, matchDecisions);
+
     var draft = mergeSnapshots(localSnapshot, cloudSnapshot, 'cloud');
     var preference = await getConflictPreference(draft.summary, 'cloud');
     if (!preference) {
@@ -2378,6 +2753,69 @@ async function loadFromCloud() {
     setDeviceSyncBusyState(false, err.message || '클라우드 불러오기에 실패했어요.');
     toast('❌ 불러오기 실패: ' + (err.message || '알 수 없는 오류'), 'err');
   }
+}
+
+// ── 로컬 중복 탭 정리 ──
+// snapshot 형식(.articles)에서 검사. cloud 안 건드림.
+function detectLocalDuplicateTabs(snapshotTabs) {
+  var pairs = [];
+  var used = {};
+  for (var i = 0; i < (snapshotTabs || []).length; i++) {
+    var a = snapshotTabs[i];
+    if (!a || used[a.id]) continue;
+    for (var j = i + 1; j < snapshotTabs.length; j++) {
+      var b = snapshotTabs[j];
+      if (!b || used[b.id]) continue;
+      var level = tabMatchLevel(a, b);
+      if (level) {
+        pairs.push({ a: a, b: b, level: level });
+        used[a.id] = true;
+        used[b.id] = true;
+        break;
+      }
+    }
+  }
+  return pairs;
+}
+
+async function openTabCleanupModal() {
+  var snapshot = buildBackupSnapshot();
+  var tabs = snapshot.tabs || [];
+  var pairs = detectLocalDuplicateTabs(tabs);
+  if (pairs.length === 0) {
+    toast('중복으로 보이는 탭이 없어요', 'ok');
+    return;
+  }
+  var decisions = await askLocalTabMergeDecisions(pairs);
+  if (!decisions || !decisions.merge || decisions.merge.length === 0) {
+    // 취소 또는 모두 별개 유지
+    if (decisions) toast('변경 사항 없이 닫았어요', 'ok');
+    return;
+  }
+
+  // snapshot.tabs를 직접 머지: b를 a에 흡수, b 제거. a의 이름은 chosenName.
+  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
+  var removedIds = {};
+  decisions.merge.forEach(function(dec) {
+    var aTab = tabs.find(function(t) { return t.id === dec.aId; });
+    var bTab = tabs.find(function(t) { return t.id === dec.bId; });
+    if (!aTab || !bTab) return;
+    // a 우선으로 머지 (preference='local' = preferred 측은 첫 인자, mergeTab은 localTab=preferred when preference='local')
+    var merged = mergeTab(aTab, bTab, 'local', emptySummary());
+    if (dec.chosenName) merged.name = dec.chosenName;
+    merged.id = aTab.id;
+    // 자리에 다시 넣기
+    var aIdx = tabs.indexOf(aTab);
+    if (aIdx >= 0) tabs[aIdx] = merged;
+    removedIds[bTab.id] = aTab.id;
+  });
+  snapshot.tabs = tabs.filter(function(t) { return !removedIds[t.id]; });
+  // 활성 탭이 제거 대상이었으면 흡수된 a 탭으로 갱신
+  if (snapshot.activeId && removedIds[snapshot.activeId]) {
+    snapshot.activeId = removedIds[snapshot.activeId];
+  }
+  restoreBackupSnapshot(snapshot, { silent: true });
+  toast('🧹 중복 탭 ' + decisions.merge.length + '개 정리 완료', 'ok');
 }
 
 function clearLog() {}
@@ -4334,6 +4772,9 @@ function updateSheetsUI(connected) {
   $('sheetsBadge').innerHTML = connected
     ? '<span class="badge badge-g"><span class="dot"></span> 연결됨</span>'
     : '<span class="badge badge-r"><span class="dot"></span> 미연결</span>';
+  $('btnSheets').innerHTML = connected
+    ? '🔗 Google Sheets <span style="font-size:10px;color:var(--green);font-weight:700">연결됨</span>'
+    : '🔗 Google Sheets';
   $('btnSync').style.display = connected ? '' : 'none';
   $('btnDisconnect').style.display = connected ? '' : 'none';
 }
@@ -8288,6 +8729,7 @@ function doUpdate() {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
   import { browserLocalPersistence, getAuth, GoogleAuthProvider, onAuthStateChanged, setPersistence, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
   import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getBytes, deleteObject } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBmJI47PbdL2R9Oks42VGQzn4ATpsLfHT0",
@@ -8302,6 +8744,7 @@ function doUpdate() {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
     if (typeof window.initFirebaseBridge === 'function') {
       window.initFirebaseBridge({
@@ -8316,7 +8759,12 @@ function doUpdate() {
         serverTimestamp,
         setDoc,
         signInWithPopup,
-        signOut
+        signOut,
+        storage,
+        ref,
+        uploadBytes,
+        getBytes,
+        deleteObject
       });
     }
   } catch (err) {
