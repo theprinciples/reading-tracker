@@ -2229,7 +2229,9 @@ function applyCleanupMergeInPlace(checkedItems, chosenName, mode) {
   var snapTabsById = {};
   (snapshot.tabs || []).forEach(function(t) { snapTabsById[t.id] = t; });
 
-  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], conflicts:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0 }; };
+  // cleanup 모드는 사용자가 "이 탭들을 합쳐라"라고 명시적으로 한 거니까,
+  // longText 필드(노트, customCol, assignment)는 양쪽 다른 값이면 자동 union으로 보존.
+  var emptySummary = function() { return { conflictCount:0, conflictLabels:[], conflicts:[], autoMergedReadCount:0, autoMergedStarCount:0, autoMergedItemCount:0, autoAcceptedCount:0, longTextStrategy: 'union' }; };
   var canonicalSnapTab = snapTabsById[checkedItems[0].tab.id];
   if (!canonicalSnapTab) return;
   var merged = canonicalSnapTab;
@@ -2507,6 +2509,18 @@ function resolvePreferredValue(localValue, cloudValue, preference, summary, labe
   if (!isEmptyValue(localValue) && isEmptyValue(cloudValue)) {
     summary.autoAcceptedCount++;
     return cloneJson(localValue);
+  }
+  // cleanup 등에서 사용자가 "둘 다 합쳐라" 의도로 호출한 경우, longText 필드는 자동 union.
+  // summary.longTextStrategy === 'union' 일 때만 적용 (기본 pull/일반 머지 흐름엔 영향 없음).
+  if (summary && summary.longTextStrategy === 'union'
+      && classifyFieldType(label) === 'longText'
+      && typeof localValue === 'string' && typeof cloudValue === 'string') {
+    var l = String(localValue).trim();
+    var c = String(cloudValue).trim();
+    if (l && c && l !== c) {
+      summary.autoAcceptedCount++;
+      return l + '\n\n---\n\n' + c;
+    }
   }
   summary.conflictCount++;
   if (label) summary.conflictLabels.push(label);
