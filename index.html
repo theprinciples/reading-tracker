@@ -151,6 +151,8 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .badge-g { background:var(--green2); color:var(--green); }
 .badge-r { background:var(--red2); color:var(--red); }
 .dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.sheets-btn-dot { display:inline-block; width:6px; height:6px; flex:0 0 6px; border-radius:50%; background:var(--green); margin-left:4px; vertical-align:middle; }
+.sheets-btn-status-text { font-size:10px; color:var(--green); font-weight:700; margin-left:4px; }
 
 /* DEBUG LOG */
 /* COLUMN MAPPING */
@@ -587,6 +589,9 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 
   /* Favorites filter */
   #favView > div:first-child { flex-direction:column; gap:8px; }
+
+  /* btnSheets "연결됨" 텍스트는 모바일에서 숨김 (그린 닷만 표시) */
+  .sheets-btn-status-text { display: none; }
 }
 </style>
 </head>
@@ -5458,7 +5463,7 @@ function updateSheetsUI(connected) {
     ? '<span class="badge badge-g"><span class="dot"></span> 연결됨</span>'
     : '<span class="badge badge-r"><span class="dot"></span> 미연결</span>';
   $('btnSheets').innerHTML = connected
-    ? '🔗 Google Sheets <span style="font-size:10px;color:var(--green);font-weight:700">연결됨</span>'
+    ? '🔗 Google Sheets <span class="sheets-btn-dot"></span><span class="sheets-btn-status-text">연결됨</span>'
     : '🔗 Google Sheets';
   $('btnSync').style.display = connected ? '' : 'none';
   $('btnDisconnect').style.display = connected ? '' : 'none';
