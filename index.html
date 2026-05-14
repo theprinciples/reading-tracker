@@ -590,8 +590,9 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
   /* Favorites filter */
   #favView > div:first-child { flex-direction:column; gap:8px; }
 
-  /* btnSheets "연결됨" 텍스트는 모바일에서 숨김 (그린 닷만 표시) */
+  /* "Google Sheets" 텍스트는 모바일에서 숨기고 그린 닷만 표시 (헤더/패널 버튼 둘 다) */
   .sheets-btn-status-text { display: none; }
+  .sheets-badge-text { display: none; }
 }
 </style>
 </head>
@@ -2523,6 +2524,15 @@ function resolvePreferredValue(localValue, cloudValue, preference, summary, labe
     var l = String(localValue).trim();
     var c = String(cloudValue).trim();
     if (l && c && l !== c) {
+      // substring 체크: 한쪽이 이미 다른 쪽을 포함하면 superset 채택 (중복 누적 방지)
+      if (l.indexOf(c) !== -1) {
+        summary.autoAcceptedCount++;
+        return cloneJson(localValue);
+      }
+      if (c.indexOf(l) !== -1) {
+        summary.autoAcceptedCount++;
+        return cloneJson(cloudValue);
+      }
       summary.autoAcceptedCount++;
       return l + '\n\n---\n\n' + c;
     }
@@ -3152,7 +3162,10 @@ function buildSnapshotWithPerItemChoices(localSnapshot, cloudSnapshot, perItemDe
                && typeof c.localValue === 'string' && typeof c.cloudValue === 'string') {
       var l = (c.localValue || '').trim();
       var cv = (c.cloudValue || '').trim();
-      if (l && cv && l !== cv) chosenValue = l + '\n\n---\n\n' + cv;
+      // substring 체크: 한쪽이 다른 쪽을 이미 포함하면 superset 채택 (중복 누적 방지)
+      if (l && cv && l.indexOf(cv) !== -1) chosenValue = c.localValue;
+      else if (l && cv && cv.indexOf(l) !== -1) chosenValue = c.cloudValue;
+      else if (l && cv && l !== cv) chosenValue = l + '\n\n---\n\n' + cv;
       else chosenValue = l || cv;
     } else {
       return; // both인데 longText 아니면 그대로 local
@@ -4153,7 +4166,7 @@ function switchTab(id) {
     ? '<span class="group-badge" onclick="changeGroup()" title="클릭하여 그룹 변경">' + esc(t.group) + '</span>'
     : '<span class="group-badge group-empty" onclick="changeGroup()" title="클릭하여 그룹 설정">+ 그룹 설정</span>';
   var sheetsHtml = t.sheetsUrl
-    ? '<span class="badge badge-g sheets-badge" title="Google Sheets 연결됨" style="cursor:default"><span class="dot"></span> Google Sheets</span>'
+    ? '<span class="badge badge-g sheets-badge" title="Google Sheets 연결됨" style="cursor:default"><span class="dot"></span><span class="sheets-badge-text"> Google Sheets</span></span>'
     : '';
   $('headerSub').innerHTML = groupHtml + (sheetsHtml ? '&nbsp;&nbsp;' + sheetsHtml : '');
 
