@@ -1335,8 +1335,10 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.4.1';
+const APP_VERSION = 'v3.4.3';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
+const STORAGE_KEY_GZ = 'pt_v6_data_gz'; // v3.4.2: quota 초과 시 gzip+base64로 저장하는 백업 키
+const SAFETY_BANNER_DISMISSED_KEY = 'pt_safety_banner_dismissed_v1';
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
 const CYCLE_START_KEY = 'pt_cycle_start'; // v1.8: bulb cycle reset point (YYYY-MM-DD)
@@ -3540,9 +3542,20 @@ function esc(s) {
 // =============================================
 // STORAGE (localStorage)
 // =============================================
-function saveToStorage() {
-  try {
-    const data = allTabs.filter(t => t.id !== 'tab_favorites').map(t => ({
+
+// 모바일 (iOS Safari ITP, Android 캐시 정리 등 OS-level 저장공간 삭제 위험 환경) 감지
+function isMobileDevice() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+}
+
+// v3.4.2: saveToStorage 재설계 — 옛 lite save가 articles를 통째로 버리던 데이터 손실 버그 차단.
+// 3단계 fallback:
+//   1) 정상 JSON save (호환성, 매번 압축 비용 회피)
+//   2) quota 초과 시 gzip 압축 후 base64로 STORAGE_KEY_GZ에 저장 (보통 5–10배 절약)
+//   3) 그것도 안 되면 차라리 저장 실패로 두고 명확한 토스트 — 옛 데이터는 그대로 유지
+async function saveToStorage() {
+  var buildTab = function(t) {
+    return {
       id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
       fileSource: t.fileSource || false,
       dateLabel: t.dateLabel || '날짜',
@@ -3558,35 +3571,109 @@ function saveToStorage() {
       articles: t.data,
       readMap: t.readMap,
       starSet: t.starSet || []
-    }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ activeId: activeTabId, tabs: data }));
-  } catch(e) {
-    console.error('Save failed:', e);
-    try {
-      const lite = allTabs.filter(t => t.id !== 'tab_favorites').map(t => ({
-        id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
-        fileSource: t.fileSource || false,
-        dateLabel: t.dateLabel || '날짜',
-        hideDateCol: t.hideDateCol || false, hideCcCol: t.hideCcCol || false,
-        ccLabel: t.ccLabel || '추가 항목',
-        ccEmoji: t.ccEmoji || '📌',
-        columnMap: t.columnMap || null,
-        missionMode: t.missionMode || false,
-        readMap: t.readMap,
-        starSet: t.starSet || []
-      }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ activeId: activeTabId, tabs: lite }));
-      toast('⚠️ 데이터가 너무 커서 읽음 기록만 저장됨', 'err');
-    } catch(e2) { console.error('Lite save also failed:', e2); }
+    };
+  };
+
+  var regularTabs = allTabs.filter(function(t) { return t.id !== 'tab_favorites'; });
+  var payload = { activeId: activeTabId, tabs: regularTabs.map(buildTab) };
+
+  // 시도 1: 일반 JSON save
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    // 압축 백업 키가 남아있으면 정리 (정상 사이즈로 돌아온 케이스)
+    try { localStorage.removeItem(STORAGE_KEY_GZ); } catch(e) {}
+    return;
+  } catch(e1) {
+    console.warn('Full save failed, trying gzip:', e1 && e1.message);
   }
+
+  // 시도 2: gzip 압축 후 base64로 저장
+  try {
+    var packed = await gzipSnapshot(payload);
+    if (packed && packed.bytes) {
+      // Uint8Array → base64
+      var chunkSize = 0x8000; // 32KB 청크 (apply 인자 한도 회피)
+      var binStr = '';
+      for (var i = 0; i < packed.bytes.length; i += chunkSize) {
+        binStr += String.fromCharCode.apply(null, packed.bytes.subarray(i, i + chunkSize));
+      }
+      var b64 = btoa(binStr);
+      // 메타데이터 wrapping (압축 여부 표시)
+      var wrapped = JSON.stringify({ __gz: !!packed.compressed, data: b64 });
+      localStorage.setItem(STORAGE_KEY_GZ, wrapped);
+      // 옛 비압축 키 정리 (이제 압축 본만 유효)
+      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+      toast('💾 저장 공간이 빠듯해서 압축해서 저장했어요', 'ok');
+      return;
+    }
+  } catch(e2) {
+    console.warn('Gzip save also failed:', e2 && e2.message);
+  }
+
+  // 시도 3: 절대 articles 통째 안 버림. 옛 데이터 유지 + 명확한 경고.
+  toast('❌ 저장 공간이 부족합니다! "💾 JSON 백업" 받고 옛 탭/메모를 정리해주세요!', 'err');
 }
 var saveData = saveToStorage; // alias for backward compatibility
 
-function loadFromStorage() {
+// 데이터 안전 배너 (v3.4.2): 모바일 사용자에게 cloud/JSON 백업 권장. 한 번 dismiss 후 표시 안 함.
+function maybeShowSafetyBanner() {
+  if (!isMobileDevice()) return;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const obj = JSON.parse(raw);
+    if (localStorage.getItem(SAFETY_BANNER_DISMISSED_KEY) === 'yes') return;
+  } catch(e) { return; }
+  if (document.getElementById('safetyBanner')) return;
+
+  var homeView = document.getElementById('homeView');
+  if (!homeView) return;
+
+  var banner = document.createElement('div');
+  banner.id = 'safetyBanner';
+  banner.style.cssText = 'background:rgba(232,184,48,.10);border:1px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:16px;line-height:1.6;font-size:13px;color:var(--t1)';
+  banner.innerHTML =
+    '<div style="font-weight:600;color:var(--gold);margin-bottom:6px">⚠️ 데이터 안전 안내</div>' +
+    '<div style="margin-bottom:10px;color:var(--t2);font-size:12px">폰의 저장공간은 OS가 임의로 정리할 수 있어요 (iOS는 일주일 이상 안 쓰면, Android는 저장공간 부족 시).<br>' +
+    '정기적으로 <strong>☁️ 클라우드 동기화</strong>나 <strong>💾 JSON 백업</strong>을 받아두세요!</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn" onclick="openDeviceSyncModal();dismissSafetyBanner()" style="font-size:12px;padding:6px 12px">☁️ 클라우드 켜기</button>' +
+    '<button class="btn" onclick="exportBackup();dismissSafetyBanner()" style="font-size:12px;padding:6px 12px">💾 JSON 백업</button>' +
+    '<button class="btn" onclick="dismissSafetyBanner()" style="font-size:12px;padding:6px 12px">알겠어요</button>' +
+    '</div>';
+  if (homeView.firstChild) homeView.insertBefore(banner, homeView.firstChild);
+  else homeView.appendChild(banner);
+}
+
+function dismissSafetyBanner() {
+  try { localStorage.setItem(SAFETY_BANNER_DISMISSED_KEY, 'yes'); } catch(e) {}
+  var el = document.getElementById('safetyBanner');
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+async function loadFromStorage() {
+  var obj = null;
+  // 1차: 일반 키
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) obj = JSON.parse(raw);
+  } catch(e) { console.error('Load(STORAGE_KEY) failed:', e); }
+  // 2차: 압축 키 (v3.4.2 fallback save된 경우)
+  if (!obj) {
+    try {
+      var wrappedRaw = localStorage.getItem(STORAGE_KEY_GZ);
+      if (wrappedRaw) {
+        var wrapped = JSON.parse(wrappedRaw);
+        var b64 = wrapped && wrapped.data;
+        var compressed = !!(wrapped && wrapped.__gz);
+        if (b64) {
+          var bin = atob(b64);
+          var bytes = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          obj = await gunzipSnapshot(bytes, compressed);
+        }
+      }
+    } catch(e) { console.error('Load(STORAGE_KEY_GZ) failed:', e); }
+  }
+  if (!obj) return;
+  try {
     if (obj.tabs) {
       obj.tabs.forEach(t => {
         // Backward compat: old format had readKeys (array), new has readMap (object)
@@ -4080,6 +4167,7 @@ function switchTab(id) {
     $('panelSheets').classList.remove('open');
     $('panelManual').classList.remove('open');
     renderHome();
+    maybeShowSafetyBanner();
     return;
   }
 
@@ -5950,8 +6038,8 @@ function openRemapModal() {
     var timeout = setTimeout(function() {
       delete window[cbName];
       if (script.parentNode) script.remove();
-      toast('❌ 시트 로딩 실패 (타임아웃)', 'err');
-    }, 10000);
+      toast('❌ Sheets 응답 지연 (타임아웃 20초)', 'err');
+    }, 20000);
     window[cbName] = function(data) {
       clearTimeout(timeout);
       if (script.parentNode) script.remove();
@@ -6135,13 +6223,26 @@ function doSyncSheets() {
   fetchSheetsForSync(idMatch[1], tab);
 }
 
-function fetchSheetsForSync(sheetId, tab) {
+function fetchSheetsForSync(sheetId, tab, retryAttempt) {
+  retryAttempt = retryAttempt || 0;
+  var MAX_RETRIES = 1; // 1회 자동 재시도
+
+  function handleFetchFailure(reason) {
+    if (retryAttempt < MAX_RETRIES) {
+      toast('🔄 Sheets 응답 지연 — 재시도 중... (' + (retryAttempt + 2) + '/' + (MAX_RETRIES + 1) + ')', 'ok');
+      setTimeout(function() { fetchSheetsForSync(sheetId, tab, retryAttempt + 1); }, 3000);
+    } else {
+      // 재시도 끝 → CSV fallback 시도
+      tryCsvFallback(sheetId, tab, reason);
+    }
+  }
+
   const cbName = '_syncCb_' + Date.now();
   const timeout = setTimeout(() => {
     delete window[cbName];
     if (script.parentNode) script.remove();
-    toast('❌ 동기화 실패 (타임아웃)', 'err');
-  }, 10000);
+    handleFetchFailure('timeout');
+  }, 20000);
 
   window[cbName] = function(response) {
     clearTimeout(timeout);
@@ -6217,7 +6318,7 @@ function fetchSheetsForSync(sheetId, tab) {
 
       showSyncModal(syncAllItems, freshData.length, tab.data.length);
     } catch(e) {
-      toast('❌ 동기화 실패: ' + e.message, 'err');
+      toast('❌ Sheets 응답 파싱 실패: ' + (e && e.message), 'err');
     }
   };
 
@@ -6227,9 +6328,110 @@ function fetchSheetsForSync(sheetId, tab) {
   script.onerror = () => {
     clearTimeout(timeout);
     delete window[cbName];
-    toast('❌ Sheets 접근 실패', 'err');
+    handleFetchFailure('onerror');
   };
   document.head.appendChild(script);
+}
+
+// v3.4.3: JSONP 실패 후 CSV endpoint로 마지막 시도 (광고 차단기/Lockdown Mode 등 third-party script 차단 환경 우회용)
+async function tryCsvFallback(sheetId, tab, prevReason) {
+  toast('🔄 CSV 방식으로 다시 시도 중...', 'ok');
+  try {
+    var url = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv';
+    var resp = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var text = await resp.text();
+    if (!text || !text.trim()) throw new Error('빈 CSV 응답');
+    var parsed = parseCsvText(text);
+    if (!parsed.cols || parsed.cols.length === 0) throw new Error('CSV 컬럼 없음');
+
+    var freshRows = parsed.rows;
+    var cols = parsed.cols;
+
+    var freshData;
+    if (tab.columnMap && tab.columnMap.title) {
+      var savedMission = _mapMission;
+      _mapMission = (tab.data || []).some(function(d) { return d.customColMission; });
+      freshData = normalizeWithMapping(freshRows, tab.columnMap);
+      _mapMission = savedMission;
+    } else {
+      freshData = normalizeRows(freshRows);
+    }
+
+    var syncAsgHeader = detectAssignmentHeader(cols);
+    window._syncAsgHeader = syncAsgHeader;
+    window._syncFreshRows = freshRows;
+    if (syncAsgHeader) {
+      freshData.forEach(function(item, i) {
+        item.assignment = String((freshRows[i] && freshRows[i][syncAsgHeader]) || '').trim();
+        if (typeof item.assignmentDone !== 'boolean') item.assignmentDone = false;
+      });
+    }
+    window._syncFreshData = freshData;
+
+    var localLookups = buildSyncLookupMaps(tab.data);
+    var localByKey = localLookups.byKey;
+    var localByTitle = localLookups.byTitle;
+
+    syncAllItems = freshData.map(function(d) {
+      var key = String(d.key || '').trim();
+      var keyMatches = key ? localByKey[key] : null;
+      if (keyMatches && keyMatches.length > 0) return { item: d, status: 'identical' };
+      var tLower = (d.title || '').toLowerCase().trim();
+      var matches = localByTitle[tLower];
+      if (!matches || matches.length === 0) return { item: d, status: 'new' };
+      var identical = matches.some(function(m) {
+        return m.date === d.date && m.category === d.category && (m.url || '') === (d.url || '');
+      });
+      if (identical) return { item: d, status: 'identical' };
+      return { item: d, status: 'title_dupe' };
+    });
+
+    showSyncModal(syncAllItems, freshData.length, tab.data.length);
+    toast('✅ CSV 방식으로 가져왔어요', 'ok');
+  } catch(e) {
+    // 모든 fallback 실패
+    var msg = '❌ CSV 백업도 실패';
+    if (e && e.message) msg += ': ' + e.message;
+    if (prevReason === 'onerror') msg += ' (JSONP는 스크립트 차단됨)';
+    else if (prevReason === 'timeout') msg += ' (JSONP는 타임아웃)';
+    toast(msg, 'err');
+  }
+}
+
+// 간단한 CSV parser: ',', '\n', 쌍따옴표 escape 처리. Google Sheets gviz CSV 형식 가정.
+function parseCsvText(text) {
+  var rows = [];
+  var row = [];
+  var cur = '';
+  var inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { cur += '"'; i++; } // escaped
+        else inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (ch === '\r') { /* skip */ }
+      else cur += ch;
+    }
+  }
+  if (cur.length > 0 || row.length > 0) { row.push(cur); rows.push(row); }
+
+  if (rows.length === 0) return { cols: [], rows: [] };
+  var cols = (rows[0] || []).map(function(c, i) { return (c || '').trim() || ('col' + i); });
+  var dataRows = rows.slice(1).map(function(r) {
+    var obj = {};
+    cols.forEach(function(colName, idx) { obj[colName] = r[idx] != null ? r[idx] : ''; });
+    return obj;
+  });
+  return { cols: cols, rows: dataRows };
 }
 
 function showSyncModal(allItems, sheetTotal, localTotal) {
@@ -8572,6 +8774,10 @@ function renderHome() {
       '<button class="btn" onclick="event.stopPropagation();showMakeListPopup()" style="font-size:13px;padding:12px 20px">📝 목록 만들기</button>' +
       '<button class="btn" onclick="event.stopPropagation();importBackup()" style="font-size:13px;padding:12px 20px">📥 백업 불러오기</button>' +
       '</div>' +
+      '<div style="margin-top:24px;padding-top:16px;border-top:1px dashed var(--bdr)">' +
+      '<p style="color:var(--t2);font-size:12px;margin-bottom:10px;line-height:1.6">💡 데이터를 안전하게 보관하려면 <strong>클라우드 동기화</strong>를 권장해요.<br>여러 기기에서도 같이 사용할 수 있어요.</p>' +
+      '<button class="btn" onclick="event.stopPropagation();openDeviceSyncModal()" style="font-size:13px;padding:12px 20px">☁️ 클라우드 동기화 켜기</button>' +
+      '</div>' +
       '</div>' +
       '</div>';
 
@@ -9006,26 +9212,29 @@ function isEmptyPlaceholderTab(tab) {
   return true;
 }
 
-loadFromStorage();
+// v3.4.2: loadFromStorage가 async가 됐으니 init 전체를 async IIFE로 감쌈
+(async function init() {
+  try { await loadFromStorage(); } catch(e) { console.error('init load failed:', e); }
 
-// 기존 잔여 placeholder 조용히 제거 (있었던 경우만 saveToStorage)
-var __placeholderBefore = allTabs.length;
-allTabs = allTabs.filter(function(t) { return !isEmptyPlaceholderTab(t); });
-if (allTabs.length !== __placeholderBefore) {
-  if (!allTabs.find(function(t) { return t.id === activeTabId; })) activeTabId = 'tab_home';
-  try { saveToStorage(); } catch(e) {}
-}
+  // 기존 잔여 placeholder 조용히 제거 (있었던 경우만 saveToStorage)
+  var __placeholderBefore = allTabs.length;
+  allTabs = allTabs.filter(function(t) { return !isEmptyPlaceholderTab(t); });
+  if (allTabs.length !== __placeholderBefore) {
+    if (!allTabs.find(function(t) { return t.id === activeTabId; })) activeTabId = 'tab_home';
+    try { await saveToStorage(); } catch(e) {}
+  }
 
-// 더 이상 자동 placeholder 안 만듦. 비어 있으면 home 탭의 welcome 화면이 처리.
-if (!activeTabId || (activeTabId !== 'tab_home' && activeTabId !== 'tab_favorites' && !allTabs.find(t => t.id === activeTabId))) {
-  activeTabId = allTabs.length > 0 ? allTabs[0].id : 'tab_home';
-}
+  // 더 이상 자동 placeholder 안 만듦. 비어 있으면 home 탭의 welcome 화면이 처리.
+  if (!activeTabId || (activeTabId !== 'tab_home' && activeTabId !== 'tab_favorites' && !allTabs.find(function(t) { return t.id === activeTabId; }))) {
+    activeTabId = allTabs.length > 0 ? allTabs[0].id : 'tab_home';
+  }
 
-loadCustomColSettings();
-renderTabs();
-switchTab('tab_home');
-applyCustomTitle();
-updateAuthUI();
+  loadCustomColSettings();
+  renderTabs();
+  switchTab('tab_home');
+  applyCustomTitle();
+  updateAuthUI();
+})();
 
 // =============================================
 // AUTO UPDATE CHECK (on tab focus)
