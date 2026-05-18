@@ -1,8 +1,7 @@
 {
-  "version": "v3.4.1",
+  "version": "v3.4.3",
   "changelog": [
-    "🔧 <strong>노트 버그 수정</strong> — 같은 내용이 반복적으로 누적되던 문제 해결",
-    "☁️ <strong>하루 클라우드 동기화 한도 5회 → 10회</strong>로 늘림"
-  ],
-  "images": []
+    "📶 <strong>Google Sheets 동기화 안정성 향상</strong> — 모바일 느린 네트워크 대응 (타임아웃 10초 → 20초) CSV 방식으로 자동 재시도",
+    "🔍 <strong>에러 메시지 세분화</strong> — 실패 단계별로 구분 표시"
+  ]
 }
