@@ -1369,7 +1369,7 @@ a.reread-title:hover { color:var(--gold); }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.5.0';
+const APP_VERSION = 'v3.5.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const STORAGE_KEY_GZ = 'pt_v6_data_gz'; // v3.4.2: quota 초과 시 gzip+base64로 저장하는 백업 키
 const SAFETY_BANNER_DISMISSED_KEY = 'pt_safety_banner_dismissed_v1';
@@ -5913,17 +5913,43 @@ function toggleStar(key) {
   renderTable();
 }
 
-// v3.5.0: 회독수 +1
+// v3.5.0: 회독수 +/-
+// 단일 클릭: 280ms 후 +1 (지연 후 commit). 빠르게 두 번 클릭: -1 (0 이하 클램프)
+var _rerClickTimer = {};
+var _RER_DBL_MS = 280;
+
 function addReReadCount(num) {
+  // 이미 대기 중인 타이머가 있으면 → 두 번째 클릭. 증가 취소하고 감소.
+  if (_rerClickTimer[num]) {
+    clearTimeout(_rerClickTimer[num]);
+    delete _rerClickTimer[num];
+    _applyReReadDelta(num, -1);
+    return;
+  }
+  // 첫 클릭: 타이머 걸어둠. 시간 안에 두 번째 클릭 없으면 +1 확정.
+  _rerClickTimer[num] = setTimeout(function() {
+    delete _rerClickTimer[num];
+    _applyReReadDelta(num, +1);
+  }, _RER_DBL_MS);
+}
+
+function _applyReReadDelta(num, delta) {
   var tab = getActiveTab();
   if (!tab) return;
   var item = (tab.data || []).find(function(d) { return d.num === num; });
   if (!item) return;
-  item.reReadCount = (item.reReadCount || 0) + 1;
+  var oldCount = item.reReadCount || 0;
+  var newCount = Math.max(0, oldCount + delta);
+  if (newCount === oldCount) {
+    // 0회에서 -1 시도 — silent no-op (작은 안내만)
+    toast('🔁 회독수 0회', 'ok');
+    return;
+  }
+  item.reReadCount = newCount;
   saveToStorage();
   renderTable();
   if (currentChartView === 'reread') renderReReadChart();
-  toast('🔁 회독 +1 (' + item.reReadCount + '회)', 'ok');
+  toast('🔁 회독 ' + (delta > 0 ? '+1' : '-1') + ' (' + item.reReadCount + '회)', 'ok');
 }
 
 function unstarFromFav(tabId, key) {
@@ -7642,7 +7668,7 @@ function renderTable() {
     return `<tr class="${rd ? 'read-row' : ''}" data-key="${esc(r.key)}">
       <td><div class="chk ${rd ? 'on' : ''}" onclick="toggleRead('${escKey(r.key)}')"></div></td>
       <td><div class="star ${isStarred(r.key) ? 'on' : ''}" onclick="toggleStar('${escKey(r.key)}')">${isStarred(r.key) ? '★' : '☆'}</div></td>
-      <td class="td-rer"><div class="reread-cell" title="회독 +1" onclick="addReReadCount(${r.num})">🔁${(r.reReadCount || 0) > 0 ? '<span class="reread-cell-num">' + r.reReadCount + '</span>' : ''}</div></td>
+      <td class="td-rer"><div class="reread-cell" title="한번: +1 · 빠르게 두번: -1" onclick="addReReadCount(${r.num})">🔁${(r.reReadCount || 0) > 0 ? '<span class="reread-cell-num">' + r.reReadCount + '</span>' : ''}</div></td>
       <td class="td-n">${r.num}</td>
       <td><span class="td-c" style="${window._catColors && window._catColors[r.category] ? 'background:' + window._catColors[r.category] + '22;color:' + window._catColors[r.category] : ''}" title="${esc(r.category)}">${esc(r.category)}</span></td>
       <td class="td-ti">${titleHtml}</td>
