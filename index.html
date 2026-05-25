@@ -311,6 +311,13 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 .star { cursor:pointer; font-size:16px; opacity:.25; transition:.15s; user-select:none; }
 .star:hover { opacity:.6; }
 .star.on { opacity:1; color:#f5c542; }
+
+/* v3.5.0: 회독수 셀 (테이블 행) */
+.td-rer { text-align:center; }
+thead th[title="회독 +1"] { text-align:center; }
+.reread-cell { cursor:pointer; display:inline-flex; align-items:center; gap:3px; font-size:13px; opacity:.45; transition:.15s; user-select:none; padding:2px 6px; border-radius:6px; }
+.reread-cell:hover { opacity:1; background:rgba(232,184,48,.12); }
+.reread-cell-num { font-size:11px; font-weight:700; color:var(--gold); opacity:1; }
 .fav-src { font-size:10px; font-weight:500; color:var(--t3); padding:2px 8px; background:var(--bg2); border-radius:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
 
 /* Favorites table - full width layout */
@@ -414,6 +421,19 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 .chrt { background:var(--card); border:1px solid var(--bdr); border-radius:var(--r); padding:20px; }
 .chrt h3 { font-size:13px; font-weight:700; margin-bottom:16px; color:var(--t2); }
 .chrt-w { position:relative; height:260px; }
+
+/* v3.5.0: 차트 토글 (회독수 ↔ 카테고리 분포) */
+.chart-toggle { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+.chart-tab { background:var(--bg2); border:1px solid var(--bdr); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; color:var(--t2); font-family:inherit; transition:.15s; }
+.chart-tab:hover { color:var(--t1); }
+.chart-tab.active { background:var(--gold2); color:var(--gold); border-color:var(--gold); }
+.reread-list { max-height:280px; overflow-y:auto; padding:8px 4px; margin-top:14px; border-top:1px solid var(--bdr); }
+.reread-row { display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:6px; transition:.15s; }
+.reread-row:hover { background:var(--bg2); }
+.reread-title { flex:1; font-size:13px; color:var(--t1); text-decoration:none; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+a.reread-title:hover { color:var(--gold); }
+.reread-count { flex:0 0 70px; font-size:13px; color:var(--t2); text-align:right; font-weight:500; }
+.reread-empty { padding:30px 12px; text-align:center; color:var(--t3); font-size:12px; line-height:1.6; }
 
 /* EMPTY */
 .empty { text-align:center; padding:60px 20px; color:var(--t3); }
@@ -1153,8 +1173,8 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
     <div class="tw">
       <table>
         <thead><tr>
-          <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:44px">#</th>
-          <th style="width:70px">카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:160px;display:none" id="thAssignment"></th><th style="width:90px"></th>
+          <th style="width:36px">읽음</th><th style="width:30px">⭐</th><th style="width:46px" title="회독 +1">회독</th><th style="width:44px">#</th>
+          <th style="width:70px">카테고리</th><th>제목</th><th style="width:100px" id="thDate">날짜</th><th style="width:160px;display:none" id="thCustomCol"></th><th style="width:160px;display:none" id="thAssignment"></th><th style="width:60px"></th>
         </tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -1164,7 +1184,20 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
     <!-- CHARTS -->
     <div class="charts">
       <div class="chrt"><div style="margin-bottom:12px"><h3 style="margin:0 0 8px">📊 나의 읽기 속도</h3><div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto"><div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--bdr);flex-shrink:0"><button class="speed-mode-btn active" id="speedModeMonthly" onclick="setSpeedMode('monthly')" style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">월별</button><button class="speed-mode-btn" id="speedModeWeekly" onclick="setSpeedMode('weekly')" style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">주별</button><button class="speed-mode-btn" id="speedModeDaily" onclick="setSpeedMode('daily')" style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;font-family:inherit;transition:.15s">일별</button></div><select id="yearFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;flex-shrink:0"></select><select id="monthFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;display:none;flex-shrink:0"></select><select id="weekFilter" class="fsel" onchange="renderReadingChart()" style="font-size:11px;padding:4px 8px;display:none;flex-shrink:0"></select></div></div><div class="chrt-w"><canvas id="monthlyChart"></canvas></div></div>
-      <div class="chrt" id="catChartBox"><h3 id="catChartToggle" onclick="toggleCatChart()">🗂️ 카테고리 분포 <span id="catChartArrow" class="cat-arrow">▼ (펼쳐보기)</span></h3><div id="catChartContent" class="cat-chart-content"><div class="chrt-w" style="max-width:500px;margin:0 auto"><canvas id="catChart"></canvas></div><div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div></div></div>
+      <div class="chrt" id="catChartBox">
+        <div class="chart-toggle">
+          <button class="chart-tab active" id="chartTabReread" onclick="setChartView('reread')">🔁 회독수</button>
+          <button class="chart-tab" id="chartTabCat" onclick="setChartView('cat')">🗂️ 카테고리 분포</button>
+        </div>
+        <div id="reReadChartBox">
+          <div class="chrt-w" style="max-width:1400px;margin:0 auto"><canvas id="reReadChart"></canvas></div>
+          <div id="reReadList" class="reread-list"></div>
+        </div>
+        <div id="catChartContent" class="cat-chart-content" style="display:none">
+          <div class="chrt-w" style="max-width:500px;margin:0 auto"><canvas id="catChart"></canvas></div>
+          <div id="catEtcNote" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1336,7 +1369,7 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.4.4';
+const APP_VERSION = 'v3.5.0';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const STORAGE_KEY_GZ = 'pt_v6_data_gz'; // v3.4.2: quota 초과 시 gzip+base64로 저장하는 백업 키
 const SAFETY_BANNER_DISMISSED_KEY = 'pt_safety_banner_dismissed_v1';
@@ -1504,7 +1537,11 @@ function setTheme(name) {
 let allTabs = [];
 let activeTabId = null;
 let currentPage = 1;
-let chartRing = null, chartMonthly = null, chartCat = null;
+let chartRing = null, chartMonthly = null, chartCat = null, chartReRead = null;
+// v3.5.0: 차트 토글 — 'reread' 또는 'cat'
+var currentChartView = (function() {
+  try { return localStorage.getItem('pt_chart_view') || 'reread'; } catch(e) { return 'reread'; }
+})();
 let attendance = []; // array of date strings like "2026-02-12"
 var ccEnabled = false, ccLabel = '추가 항목', ccEmoji = '📌';
 
@@ -5876,6 +5913,19 @@ function toggleStar(key) {
   renderTable();
 }
 
+// v3.5.0: 회독수 +1
+function addReReadCount(num) {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var item = (tab.data || []).find(function(d) { return d.num === num; });
+  if (!item) return;
+  item.reReadCount = (item.reReadCount || 0) + 1;
+  saveToStorage();
+  renderTable();
+  if (currentChartView === 'reread') renderReReadChart();
+  toast('🔁 회독 +1 (' + item.reReadCount + '회)', 'ok');
+}
+
 function unstarFromFav(tabId, key) {
   var tab = allTabs.find(function(t) { return t.id === tabId; });
   if (!tab || !tab.starSet) return;
@@ -7131,7 +7181,7 @@ function saveEdit() {
   autoAdjustCcEnabled();
   _sortedCache = null; _sortedCacheKey = '';
   renderTable();
-  if (catChanged) { renderProgress(); renderCatChart(); }
+  if (catChanged) { renderProgress(); if (currentChartView === 'cat') renderCatChart(); }
   toast('💾 #' + num + ' 수정됨', 'ok');
   localStorage.removeItem('pt_draft_' + num);
   closeEditModal();
@@ -7592,6 +7642,7 @@ function renderTable() {
     return `<tr class="${rd ? 'read-row' : ''}" data-key="${esc(r.key)}">
       <td><div class="chk ${rd ? 'on' : ''}" onclick="toggleRead('${escKey(r.key)}')"></div></td>
       <td><div class="star ${isStarred(r.key) ? 'on' : ''}" onclick="toggleStar('${escKey(r.key)}')">${isStarred(r.key) ? '★' : '☆'}</div></td>
+      <td class="td-rer"><div class="reread-cell" title="회독 +1" onclick="addReReadCount(${r.num})">🔁${(r.reReadCount || 0) > 0 ? '<span class="reread-cell-num">' + r.reReadCount + '</span>' : ''}</div></td>
       <td class="td-n">${r.num}</td>
       <td><span class="td-c" style="${window._catColors && window._catColors[r.category] ? 'background:' + window._catColors[r.category] + '22;color:' + window._catColors[r.category] : ''}" title="${esc(r.category)}">${esc(r.category)}</span></td>
       <td class="td-ti">${titleHtml}</td>
@@ -7686,7 +7737,8 @@ function populateFilters() {
 
 function renderCharts() {
   renderReadingChart();
-  renderCatChart();
+  // v3.5.0: 현재 토글된 view에 맞는 차트 렌더 + 토글 UI 동기화
+  setChartView(currentChartView);
 }
 
 var speedMode = 'monthly';
@@ -7882,6 +7934,54 @@ function renderReadingChart() {
   });
 }
 
+// v3.5.0: 도넛 슬라이스 안에 % 표시하는 plugin. 작은 슬라이스(7% 미만)는 가독성 위해 skip.
+var doughnutPercentPlugin = {
+  id: 'doughnutPercent',
+  afterDatasetsDraw: function(chart) {
+    var ctx = chart.ctx;
+    var data = chart.data.datasets[0].data;
+    var total = data.reduce(function(s, v) { return s + (Number(v) || 0); }, 0);
+    if (total === 0) return;
+    var meta = chart.getDatasetMeta(0);
+    data.forEach(function(value, i) {
+      var pct = Math.round((value / total) * 100);
+      if (pct < 7) return;
+      var arc = meta.data[i];
+      if (!arc) return;
+      var pos = arc.tooltipPosition();
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,.7)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(pct + '%', pos.x, pos.y);
+      ctx.restore();
+    });
+  }
+};
+
+// 도넛 ↔ legend 사이에 여백 만들기.
+// legend.width 만 늘리면 차트 영역만 줄어들고 라벨은 여전히 도넛 옆에 붙음.
+// → legend 컨테이너를 GAP 만큼 키우고, 각 라벨 hitBox 의 left 도 같이 +GAP 해서
+//   라벨이 오른쪽으로 밀려나 실제 시각적 gap 생성.
+var LEGEND_GAP = 60;
+var legendMarginPlugin = {
+  id: 'legendMargin',
+  beforeInit: function(chart) {
+    if (!chart.legend) return;
+    var origFit = chart.legend.fit;
+    chart.legend.fit = function() {
+      origFit.bind(chart.legend)();
+      this.width += LEGEND_GAP;
+      if (this.legendHitBoxes && this.legendHitBoxes.length) {
+        this.legendHitBoxes.forEach(function(box) { box.left += LEGEND_GAP; });
+      }
+    };
+  }
+};
+
 function renderCatChart() {
   const tab = getActiveTab();
   if (!tab) return;
@@ -7911,15 +8011,113 @@ function renderCatChart() {
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '52%',
       plugins: {
-        legend: { position: 'right', align: 'start', labels: { color: '#ffffff', font: { size: 12, family: 'system-ui, sans-serif' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
+        legend: { position: 'right', align: 'center', labels: { color: '#ffffff', font: { size: 12, family: 'system-ui, sans-serif' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
         tooltip: { backgroundColor: '#16161f', titleColor: '#e8b830', bodyColor: '#fff', borderColor: '#252538', borderWidth: 1, padding: 10, cornerRadius: 6 }
       }
-    }
+    },
+    plugins: [doughnutPercentPlugin]
   });
 
   $('catEtcNote').innerHTML = etcNames.length > 0
     ? '<span style="color:' + COLORS[topCats.length - 1] + '">●</span> 기타: ' + etcNames.map(function(n) { return '<span>' + esc(n) + '</span>'; }).join(', ')
     : '';
+}
+
+// v3.5.0: 회독수 차트 (도넛 + 리스트)
+function renderReReadChart() {
+  var tab = getActiveTab();
+  if (!tab) return;
+  var items = (tab.data || []).filter(function(d) { return (d.reReadCount || 0) > 0; });
+  items.sort(function(a, b) { return (b.reReadCount || 0) - (a.reReadCount || 0); });
+
+  var canvas = $('reReadChart');
+  var listEl = $('reReadList');
+  if (!canvas || !listEl) return;
+
+  if (items.length === 0) {
+    if (chartReRead) { chartReRead.destroy(); chartReRead = null; }
+    canvas.style.display = 'none';
+    listEl.innerHTML = '<div class="reread-empty">아직 회독한 항목이 없어요.<br>테이블에서 🔁 버튼을 눌러 회독수를 기록해보세요!</div>';
+    listEl.style.borderTop = 'none';
+    listEl.style.marginTop = '0';
+    return;
+  }
+  canvas.style.display = '';
+  listEl.style.borderTop = '';
+  listEl.style.marginTop = '';
+
+  // 도넛: 상위 15 + 기타
+  var topItems, restItems;
+  if (items.length <= 15) {
+    topItems = items.slice();
+    restItems = [];
+  } else {
+    topItems = items.slice(0, 15);
+    restItems = items.slice(15);
+  }
+  var restSum = restItems.reduce(function(s, x) { return s + (x.reReadCount || 0); }, 0);
+  // 짧은 라벨(legend용) + 풀 라벨(tooltip용) 분리 + % 계산
+  // LEGEND_MAX: 좁은 화면(< 700px) 에서만 18자로 자름. 넓은 화면은 truncation 안 함 — 긴 제목도 다 보이게.
+  // (Chart.js 가 legend 너비를 자동 조절하므로 도넛이 좀 작아질 수 있지만 사용자 의도에 맞춤)
+  var canvasW = canvas.parentElement.getBoundingClientRect().width || 500;
+  var LEGEND_MAX = canvasW >= 700 ? 999 : 18;
+  function truncate(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n) + '…' : s; }
+  var dataValues = topItems.map(function(d) { return d.reReadCount || 0; });
+  if (restSum > 0) dataValues.push(restSum);
+  var totalSum = dataValues.reduce(function(s, v) { return s + v; }, 0);
+  function pct(v) { return totalSum > 0 ? Math.round((v / totalSum) * 100) : 0; }
+
+  var labels = topItems.map(function(d) {
+    return pct(d.reReadCount || 0) + '% #' + d.num + ' ' + truncate(d.title || '', LEGEND_MAX);
+  });
+  var fullLabels = topItems.map(function(d) {
+    return '#' + d.num + ' ' + (d.title || '');
+  });
+  if (restSum > 0) {
+    labels.push(pct(restSum) + '% 기타 (' + restItems.length + '개)');
+    fullLabels.push('기타 (' + restItems.length + '개)');
+  }
+
+  if (chartReRead) chartReRead.destroy();
+  chartReRead = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: COLORS.slice(0, labels.length), borderColor: '#16161f', borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '52%',
+      plugins: {
+        legend: { position: 'right', align: 'center', labels: { color: '#ffffff', font: { size: 12, family: 'system-ui, sans-serif' }, padding: 6, boxWidth: 10, boxHeight: 10 } },
+        tooltip: { backgroundColor: '#16161f', titleColor: '#e8b830', bodyColor: '#fff', borderColor: '#252538', borderWidth: 1, padding: 10, cornerRadius: 6, callbacks: { label: function(ctx) { return fullLabels[ctx.dataIndex] + ': ' + ctx.parsed + '회 (' + pct(ctx.parsed) + '%)'; } } }
+      }
+    },
+    plugins: [doughnutPercentPlugin, legendMarginPlugin]
+  });
+
+  // 리스트: 모든 0이 아닌 항목 (스크롤)
+  var listHtml = items.map(function(d) {
+    var safeTitle = esc(d.title || '');
+    var safeUrl = esc(d.url || '');
+    var titleHtml = d.url
+      ? '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer" class="reread-title" title="' + safeTitle + '">#' + d.num + ' ' + safeTitle + '</a>'
+      : '<span class="reread-title" title="' + safeTitle + '">#' + d.num + ' ' + safeTitle + '</span>';
+    return '<div class="reread-row">' + titleHtml + '<span class="reread-count">🔁 ' + (d.reReadCount || 0) + '회</span></div>';
+  }).join('');
+  listEl.innerHTML = listHtml;
+}
+
+function setChartView(view) {
+  if (view !== 'reread' && view !== 'cat') view = 'reread';
+  currentChartView = view;
+  try { localStorage.setItem('pt_chart_view', view); } catch(e) {}
+  var tabReread = $('chartTabReread');
+  var tabCat = $('chartTabCat');
+  if (tabReread) tabReread.classList.toggle('active', view === 'reread');
+  if (tabCat) tabCat.classList.toggle('active', view === 'cat');
+  var reBox = $('reReadChartBox');
+  var catBox = $('catChartContent');
+  if (reBox) reBox.style.display = view === 'reread' ? '' : 'none';
+  if (catBox) catBox.style.display = view === 'cat' ? '' : 'none';
+  if (view === 'reread') renderReReadChart();
+  else renderCatChart();
 }
 
 // =============================================
