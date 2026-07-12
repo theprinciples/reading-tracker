@@ -20,32 +20,81 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="독서 트래커">
-<meta name="theme-color" content="#08080d">
+<meta name="theme-color" content="#f7f1e3">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>독서 트래커</title>
+<!-- 첫 페인트 전에 배경 모드 확정 (FOUC 방지). data-bgmode 를 즉시 세팅해
+     아래 <style> 안의 html[data-bgmode] 블록이 올바른 색으로 그리게 함. 기본 = 아이보리. -->
+<script>
+(function(){try{
+  var m = localStorage.getItem('pt_bg_mode') || 'ivory';
+  var BG = {dark:'#08080d',midnight:'#0a1220',light:'#f7f7fa',ivory:'#f7f1e3',sepia:'#2b2118'};
+  if(!BG[m]) m = 'ivory';
+  document.documentElement.setAttribute('data-bgmode', m);
+  var mt = document.querySelector('meta[name="theme-color"]');
+  if(mt && BG[m]) mt.setAttribute('content', BG[m]);
+}catch(e){}})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
-  --bg: #08080d; --bg2: #101018; --card: #16161f; --card2: #1e1e2c;
-  --inp: #0e0e16; --bdr: #252538; --bdr2: #3a3a55;
-  --t1: #ffffff; --t2: #ffffff; --t3: #ffffff;
+  /* 기본 = 아이보리(따뜻한 종이색). 다크 등은 아래 html[data-bgmode] 블록 + JS 인라인으로 전환 */
+  --bg: #f7f1e3; --bg2: #efe7d3; --card: #fffdf6; --card2: #f5eede;
+  --inp: #f3ecdb; --bdr: #e0d5bc; --bdr2: #c9bb9c;
+  --t1: #2b2418; --t2: #57503f; --t3: #94896f;
   --gold: #e8b830; --gold2: rgba(232,184,48,.12); --gold-light: #ffdd77;
   --green: #3dcc7a; --green2: rgba(61,204,122,.12);
   --red: #f04060; --red2: rgba(240,64,96,.12);
-  --r: 10px; --rs: 6px;
+  --asg: #9966ff;
+  /* 읽음 행 흐림 / 호버 틴트 — 배경 모드별 재정의 (아래 블록) */
+  --dim1: rgba(43,36,24,.45); --dim2: rgba(43,36,24,.66); --hover: rgba(0,0,0,.05);
+  /* 신규 역할 변수 (기본은 골드 악센트) */
+  --ink: var(--t1); --cta: var(--gold); --progress: var(--gold-light); --info: #219ebc; --soft: var(--gold2);
+  --r: 10px; --rs: 6px; --rm: 14px; --rl: 18px;
+}
+/* 배경 모드 첫 페인트 보정 — JS(setBgMode) 실행 전에도 색이 맞도록.
+   ⚠️ 아래 setBgMode의 BG_MODES 값과 반드시 동기화. 아이보리는 :root 기본과 동일(블록 생략). */
+html[data-bgmode="dark"] {
+  --bg: #08080d; --bg2: #101018; --card: #16161f; --card2: #1e1e2c;
+  --inp: #0e0e16; --bdr: #252538; --bdr2: #3a3a55;
+  --t1: #ffffff; --t2: #ffffff; --t3: #ffffff;
+  --dim1: rgba(232,232,240,.5); --dim2: rgba(232,232,240,.7); --hover: rgba(255,255,255,.07);
+}
+html[data-bgmode="midnight"] {
+  --bg: #0a1220; --bg2: #0f1a2e; --card: #15223a; --card2: #1c2c49;
+  --inp: #0d1728; --bdr: #24365a; --bdr2: #33497a;
+  --t1: #f2f6ff; --t2: #c9d6ee; --t3: #8fa3c8;
+  --dim1: rgba(242,246,255,.5); --dim2: rgba(242,246,255,.7); --hover: rgba(255,255,255,.07);
+}
+html[data-bgmode="light"] {
+  --bg: #f7f7fa; --bg2: #eeeef3; --card: #ffffff; --card2: #f2f2f7;
+  --inp: #f0f0f5; --bdr: #d9d9e3; --bdr2: #bcbccc;
+  --t1: #1a1a24; --t2: #44444f; --t3: #8a8a96;
+  --dim1: rgba(26,26,36,.45); --dim2: rgba(26,26,36,.66); --hover: rgba(0,0,0,.05);
+}
+html[data-bgmode="sepia"] {
+  --bg: #2b2118; --bg2: #342a20; --card: #3d3226; --card2: #473b2d;
+  --inp: #332920; --bdr: #54462f; --bdr2: #6b5a3e;
+  --t1: #f5ead8; --t2: #d9c9ac; --t3: #a8987c;
+  --dim1: rgba(245,234,216,.5); --dim2: rgba(245,234,216,.7); --hover: rgba(255,255,255,.06);
 }
 .theme-dot { width:12px; height:12px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:.15s; opacity:0.6; }
 .theme-dot:hover { opacity:1; transform:scale(1.2); }
-.theme-dot.active { border-color:#fff; opacity:1; }
+.theme-dot.active { border-color:var(--t1); opacity:1; }
+
+/* 배경 모드 스와치 (다크/미드나잇/라이트/아이보리/세피아) */
+.bg-dot { width:12px; height:12px; border-radius:4px; cursor:pointer; border:2px solid var(--bdr2); transition:.15s; opacity:0.7; box-sizing:border-box; }
+.bg-dot:hover { opacity:1; transform:scale(1.2); }
+.bg-dot.active { border-color:var(--gold); opacity:1; }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
+::-webkit-scrollbar-thumb { background:var(--bdr2); border-radius:3px; }
 .app { max-width:1440px; margin:0 auto; padding:10px 20px 24px; }
 
 /* TABS */
@@ -57,7 +106,7 @@ body { font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-u
 .tab-pinned { position:sticky; left:0; z-index:2; background:var(--bg); }
 .tab-x { margin-left:6px; font-size:11px; opacity:.3; cursor:pointer; }
 .tab-x:hover { opacity:1; color:var(--red); }
-.tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed #555; border-radius:var(--rs); cursor:pointer; margin-left:17px; margin-right:0; font-family:inherit; }
+.tab-add { padding:8px 12px; font-size:15px; color:var(--t3); background:none; border:1px dashed var(--bdr2); border-radius:var(--rs); cursor:pointer; margin-left:17px; margin-right:0; font-family:inherit; }
 .tab-add:hover { color:var(--gold); border-color:var(--gold); }
 .tab-util {
   width:44px;
@@ -234,12 +283,12 @@ table { width:100%; border-collapse:collapse; }
 thead th { padding:12px 14px; text-align:left; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--t3); background:var(--bg2); border-bottom:1px solid var(--bdr); white-space:nowrap; vertical-align:middle; }
 tbody tr { border-bottom:1px solid rgba(37,37,56,.4); transition:.1s; }
 tbody tr:hover { background:var(--card2); }
-tbody tr.read-row td { color:rgba(232,232,240,.5); }
-tbody tr.read-row:hover td { color:rgba(232,232,240,.7); }
+tbody tr.read-row td { color:var(--dim1); }
+tbody tr.read-row:hover td { color:var(--dim2); }
 tbody tr.read-row .td-c { opacity:.5; }
 tbody tr.read-row:hover .td-c { opacity:.7; }
-tbody tr.read-row .td-ti a, tbody tr.read-row .td-ti span { color:rgba(232,232,240,.5) !important; }
-tbody tr.read-row:hover .td-ti a, tbody tr.read-row:hover .td-ti span { color:rgba(232,232,240,.7) !important; }
+tbody tr.read-row .td-ti a, tbody tr.read-row .td-ti span { color:var(--dim1) !important; }
+tbody tr.read-row:hover .td-ti a, tbody tr.read-row:hover .td-ti span { color:var(--dim2) !important; }
 tbody tr.read-row .td-cc-inner:not(.mission-label) { opacity:.5; }
 tbody tr.read-row:hover .td-cc-inner:not(.mission-label) { opacity:.7; }
 tbody tr.read-row .td-dt { opacity:.5; }
@@ -275,10 +324,10 @@ tbody td { padding:10px 14px; font-size:12px; vertical-align:middle; }
 @keyframes rowPulse { 0%,100%{ background:transparent; } 50%{ background:rgba(232,184,48,.28); } }
 tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 .mission-chk.asg-chk { border-color:rgba(153,102,255,.5); }
-.mission-chk.asg-chk:hover { border-color:#9966ff; background:rgba(153,102,255,.1); }
-.mission-chk.asg-chk.done { background:#9966ff; border-color:#9966ff; color:#fff; }
+.mission-chk.asg-chk:hover { border-color:var(--asg); background:rgba(153,102,255,.1); }
+.mission-chk.asg-chk.done { background:var(--asg); border-color:var(--asg); color:#fff; }
 .td-cc-inner { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--t2); cursor:pointer; padding:2px 4px; border-radius:4px; transition:.15s; max-width:160px; }
-.td-cc-inner:hover { background:rgba(255,255,255,.06); }
+.td-cc-inner:hover { background:var(--hover); }
 .td-cc-add { font-size:11px; color:var(--t3); cursor:pointer; opacity:.4; }
 .td-cc-add:hover { opacity:.8; color:var(--gold); }
 .mission-chk { width:18px; height:18px; border-radius:4px; border:2px solid rgba(61,204,122,.4); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; font-size:10px; flex-shrink:0; }
@@ -296,14 +345,14 @@ tbody tr.row-pulse { animation:rowPulse .9s ease-in-out 2; }
 .kg-mode-btn.active { border-color:var(--gold); background:var(--gold2); color:var(--gold); }
 .td-act { white-space:nowrap; text-align:center; }
 .act-wrap { display:inline-flex; gap:2px; align-items:center; }
-.act-btn { cursor:pointer; opacity:.6; font-size:14px; padding:6px 8px; transition:.15s; color:#fff; line-height:1; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; user-select:none; }
-.act-btn:hover { opacity:1; background:rgba(255,255,255,.08); }
+.act-btn { cursor:pointer; opacity:.6; font-size:14px; padding:6px 8px; transition:.15s; color:var(--t1); line-height:1; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; user-select:none; }
+.act-btn:hover { opacity:1; background:var(--hover); }
 .act-del:hover { color:var(--red); background:var(--red2); }
 
 /* INLINE DELETE CONFIRM */
 .act-confirm { display:inline-flex; gap:4px; }
 .act-cf-btn { font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer; font-weight:600; background:var(--card2); color:var(--t2); border:1px solid var(--bdr); transition:.15s; user-select:none; }
-.act-cf-btn:hover { border-color:var(--t3); color:#fff; }
+.act-cf-btn:hover { border-color:var(--t3); color:var(--t1); }
 .act-cf-del { background:var(--red2); color:var(--red); border-color:var(--red); }
 .act-cf-del:hover { background:var(--red); color:#fff; }
 
@@ -360,7 +409,7 @@ thead th[title="회독 +1"] { text-align:center; }
 .cal-day.checked { background:var(--gold); color:#000; font-weight:700; }
 .cal-day.today { border:1px solid var(--gold); }
 .cal-day.empty { background:transparent; cursor:default; }
-.cal-day.selected { outline:2px solid #fff; outline-offset:1px; }
+.cal-day.selected { outline:2px solid var(--t1); outline-offset:1px; }
 .day-detail-wrap { flex-shrink:0; width:240px; height:380px; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:14px; box-sizing:border-box; }
 .day-detail-hdr { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:10px; border-bottom:1px solid var(--bdr); margin-bottom:10px; flex-shrink:0; }
 .day-detail-title { font-size:13px; font-weight:700; color:var(--t1); }
@@ -378,7 +427,7 @@ thead th[title="회독 +1"] { text-align:center; }
 /* KG */
 .kg-pill { padding:6px 13px; border-radius:10px; font-size:13px; cursor:pointer; transition:.15s; border:1px solid transparent; white-space:nowrap; flex-shrink:0; }
 .kg-pill:hover { opacity:.8; }
-.kg-pill.active { border-color:#fff; }
+.kg-pill.active { border-color:var(--t1); }
 .kg-info-link { cursor:pointer; transition:.15s; padding:1px 3px; border-radius:3px; }
 .kg-info-link:hover { background:rgba(232,184,48,.18); color:var(--gold); }
 .kg-info-title { cursor:pointer; transition:.15s; padding:1px 3px; border-radius:3px; display:inline-block; }
@@ -402,7 +451,7 @@ thead th[title="회독 +1"] { text-align:center; }
 .tag-ac-item .tag-ac-hash { color:var(--gold); font-weight:700; }
 .tag-ac-empty { padding:8px 14px; font-size:12px; color:var(--t3); opacity:.5; }
 .goal-item { padding:3px 6px; border-radius:6px; margin-bottom:2px; transition:.15s; opacity:0.5; }
-.goal-item.active { opacity:1; background:rgba(232,184,48,0.08); border-left:2px solid #e8b830; padding-left:8px; }
+.goal-item.active { opacity:1; background:var(--gold2); border-left:2px solid var(--gold); padding-left:8px; }
 .home-guide-section { background:var(--card); border:1px solid var(--bdr); border-radius:var(--rs); padding:16px 22px; margin-bottom:10px; font-size:14px; line-height:2; }
 .home-card-stats { font-size:14px; color:var(--t2); display:flex; justify-content:space-between; }
 .home-card-pct { font-size:24px; font-weight:800; color:var(--gold); }
@@ -798,6 +847,13 @@ a.reread-title:hover { color:var(--gold); }
           <div class="theme-dot" onclick="setTheme('purple')" title="퍼플" style="background:#b088ff"></div>
           <div class="theme-dot" onclick="setTheme('rose')" title="로즈" style="background:#f06080"></div>
         </div>
+        <div id="bgSelector" style="display:flex;gap:6px;flex-shrink:0">
+          <div class="bg-dot" data-mode="dark" onclick="setBgMode('dark')" title="다크" style="background:#08080d"></div>
+          <div class="bg-dot" data-mode="midnight" onclick="setBgMode('midnight')" title="미드나잇" style="background:#15223a"></div>
+          <div class="bg-dot" data-mode="light" onclick="setBgMode('light')" title="라이트" style="background:#f7f7fa"></div>
+          <div class="bg-dot" data-mode="ivory" onclick="setBgMode('ivory')" title="아이보리" style="background:#f7f1e3"></div>
+          <div class="bg-dot" data-mode="sepia" onclick="setBgMode('sepia')" title="세피아" style="background:#3d3226"></div>
+        </div>
         <div style="display:flex;gap:3px">
           <button class="tab-arrow" onclick="scrollTabsToEdge(-1)" title="맨 처음">◀◀</button>
           <button class="tab-arrow" onclick="scrollTabs(-1)" title="왼쪽">◀</button>
@@ -889,7 +945,7 @@ a.reread-title:hover { color:var(--gold); }
           <div id="mapCcEmojiPicker" style="display:flex;gap:6px;margin-top:6px"></div>
           <select id="mapCustomCol" class="map-sel" style="margin-top:4px" onchange="updateMappingPreview()"></select>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-            <div id="mapMissionToggle" onclick="toggleMapMission()" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none">
+            <div id="mapMissionToggle" onclick="toggleMapMission()" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none">
               <span id="mapMissionChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
               🎯 미션/과제로 사용
             </div>
@@ -900,7 +956,7 @@ a.reread-title:hover { color:var(--gold); }
       <div id="assignmentNotice" style="display:none;margin-top:12px;padding:12px 14px;border-radius:var(--rs);background:rgba(153,102,255,.08);border:1px solid rgba(153,102,255,.3)">
         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);font-weight:600;margin-bottom:4px">📋 <span id="assignmentNoticeTitle">"과제" 컬럼이 발견됐어요</span></div>
         <div style="font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:8px">추가 항목과 별도로 과제 전용 컬럼을 만들 수 있어요. 텍스트 있는 셀만 체크박스로 표시됩니다.</div>
-        <div onclick="toggleMapAssignment()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:12px;color:var(--t2);transition:.15s;user-select:none" id="mapAssignmentToggle">
+        <div onclick="toggleMapAssignment()" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:7px;border:1px solid var(--bdr);cursor:pointer;font-size:12px;color:var(--t2);transition:.15s;user-select:none" id="mapAssignmentToggle">
           <span id="mapAssignmentChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
           <span id="mapAssignmentLabel">과제 컬럼 추가하기</span>
         </div>
@@ -960,7 +1016,7 @@ a.reread-title:hover { color:var(--gold); }
         <div id="manCcEmojiPicker" style="display:none;margin-bottom:6px"></div>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="text" id="manCustomCol" class="man-inp" placeholder="메모, 페이지 수, 미션/과제 등 자유롭게..." style="flex:1">
-          <div id="manMissionToggle" onclick="toggleManMission()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap">
+          <div id="manMissionToggle" onclick="toggleManMission()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none;white-space:nowrap">
             <span id="manMissionChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
             🎯
           </div>
@@ -971,7 +1027,7 @@ a.reread-title:hover { color:var(--gold); }
         <label id="manAssignmentLabel" style="margin:0;margin-bottom:4px">🎯 과제 (선택)</label>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="text" id="manAssignment" class="man-inp" placeholder="과제 내용 (예: Chapter 5 요약 정리)" style="flex:1">
-          <div id="manAsgDoneToggle" onclick="toggleManAsgDone()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap">
+          <div id="manAsgDoneToggle" onclick="toggleManAsgDone()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none;white-space:nowrap">
             <span id="manAsgDoneChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span>
             ✓
           </div>
@@ -1031,7 +1087,7 @@ a.reread-title:hover { color:var(--gold); }
       <label id="editCustomColLabel" style="margin-top:8px">📌 추가 항목</label>
       <div style="display:flex;gap:8px;align-items:flex-start">
         <textarea id="editCustomCol" placeholder="메모, 페이지 수, 미션/과제 등 자유롭게..." rows="2" style="flex:1;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
-        <div id="editMissionToggle" onclick="toggleEditMission()" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap;margin-top:2px">
+        <div id="editMissionToggle" onclick="toggleEditMission()" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none;white-space:nowrap;margin-top:2px">
           <span id="editMissionChk" style="width:16px;height:16px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:10px;transition:.15s"></span>
           🎯 미션/과제
         </div>
@@ -1042,7 +1098,7 @@ a.reread-title:hover { color:var(--gold); }
         <label id="editAssignmentLabel" style="margin-top:8px">🎯 과제</label>
         <div style="display:flex;gap:8px;align-items:flex-start">
           <textarea id="editAssignment" placeholder="과제 내용 (예: Chapter 5 요약 정리)" rows="2" style="flex:1;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;resize:vertical;line-height:1.6"></textarea>
-          <div id="editAssignmentDoneToggle" onclick="toggleEditAssignmentDone()" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none;white-space:nowrap;margin-top:2px">
+          <div id="editAssignmentDoneToggle" onclick="toggleEditAssignmentDone()" style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none;white-space:nowrap;margin-top:2px">
             <span id="editAssignmentDoneChk" style="width:16px;height:16px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:10px;transition:.15s"></span>
             ✓ 완료
           </div>
@@ -1234,10 +1290,10 @@ a.reread-title:hover { color:var(--gold); }
       <div class="home-guide-section"><strong style="color:var(--gold)">5. 🧠 마인드맵</strong><br>- 아티클 편집(✏️)에서 태그 입력 (예시: AI 코인 구글 버티브)<br>- 태그 기반 연결 관계 시각화<br>- 드롭다운으로 전체 / 그룹별 / 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">6. ⭐ 즐겨찾기</strong><br>- 아티클 옆 ☆ 클릭으로 즐겨찾기 추가<br>- 즐겨찾기 탭에서 모든 탭의 별표 항목을 통합 조회<br>- 탭별 필터 가능</div>
       <div class="home-guide-section"><strong style="color:var(--gold)">7. 📊 대시보드/탭</strong><br>- 노트 편집(✏️)에서 노트 입력 — URL 입력 시 🗒️ 클릭으로 링크 열기, 텍스트 입력 시 💬에 팝업 표시<br>- 각 탭에서 진행률, 월별 추이, 카테고리 분포 확인 가능<br>- 검색 & 필터 — 제목, 카테고리, URL 통합 검색. 카테고리별 / 읽음 상태별 필터, 정렬 지원</div>
-      <div class="home-guide-section" style="margin-top:24px;border-color:#4f8cff;opacity:0.95">
-        <strong style="color:#8fb6ff">☁️ 기기 연동 준비</strong><br>
+      <div class="home-guide-section" style="margin-top:24px;border-color:var(--info);opacity:0.95">
+        <strong style="color:var(--info)">☁️ 기기 연동 준비</strong><br>
         <span style="font-size:12px;color:var(--t3);line-height:1.7;display:block;margin-top:8px">
-          상단의 <strong style="color:#8fb6ff">☁️ 기기 연동</strong> 버튼에서 사용할 수 있어요.
+          상단의 <strong style="color:var(--info)">☁️ 기기 연동</strong> 버튼에서 사용할 수 있어요.
         </span><br>
         <div style="background:rgba(79,140,255,.08);border:1px solid rgba(79,140,255,.28);border-radius:10px;padding:14px 16px">
           <div style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:10px">로그인, 저장, 불러오기를 한 번에 관리할 수 있어요.</div>
@@ -1267,6 +1323,8 @@ a.reread-title:hover { color:var(--gold); }
         <div id="bulbWrap" class="bulb-wrap">
           <canvas id="bulbCanvas" width="240" height="320" style="margin-top:20px"></canvas>
           <div id="bulbLabel" style="text-align:center;font-size:12px;color:var(--t3);margin-top:-8px"></div>
+          <div id="treeWrap" style="display:none;margin-top:14px;cursor:pointer" onclick="replayTreeWatering()" title="클릭하면 씨앗부터 다시 자라요 🌱"></div>
+          <div id="treeLabel" style="display:none;text-align:center;font-size:12px;color:var(--t3);margin-top:2px"></div>
           <div style="text-align:center;margin-top:8px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap">
             <select id="goalSelect" class="fsel" onchange="changeGoal(this.value)" style="font-size:11px">
               <option value="30">🎯 30일</option>
@@ -1276,6 +1334,7 @@ a.reread-title:hover { color:var(--gold); }
               <option value="365">🎯 365일</option>
             </select>
             <button class="btn btn-sm" onclick="resetAttendance()">🔄 리셋</button>
+            <button class="btn btn-sm" id="homeVisualToggle" onclick="toggleHomeVisual()">💡 전구로 보기</button>
           </div>
         </div>
         <div id="dayDetailPanel" class="day-detail-wrap" style="display:none">
@@ -1357,7 +1416,7 @@ a.reread-title:hover { color:var(--gold); }
 <!-- Global Tooltip (outside table to avoid read-row opacity inheritance) -->
 <div id="globalTooltip" style="display:none;position:fixed;background:#0a0a14;border:1px solid #3a3a55;border-radius:8px;padding:12px 16px;font-size:13px;color:#ffffff;min-width:200px;max-width:400px;white-space:normal;word-break:break-word;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,.75);line-height:1.7;pointer-events:none"></div>
 
-<footer style="text-align:center;padding:24px 0 12px;font-size:10px;color:#888">
+<footer style="text-align:center;padding:24px 0 12px;font-size:10px;color:var(--t3)">
   © 2026 theprinciples · GitHub · CC BY-NC-SA 4.0
 </footer>
 
@@ -1369,7 +1428,7 @@ a.reread-title:hover { color:var(--gold); }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v3.5.1';
+const APP_VERSION = 'v4.0.0';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const STORAGE_KEY_GZ = 'pt_v6_data_gz'; // v3.4.2: quota 초과 시 gzip+base64로 저장하는 백업 키
 const SAFETY_BANNER_DISMISSED_KEY = 'pt_safety_banner_dismissed_v1';
@@ -4808,7 +4867,7 @@ function showMappingUI(rows, sheetName) {
   _mapMission = false;
   window._mapCcEmoji = '📌';
   var mbtn = $('mapMissionToggle');
-  if (mbtn) { mbtn.style.background = ''; mbtn.style.borderColor = '#2a2a3a'; mbtn.style.color = '#888'; }
+  if (mbtn) { mbtn.style.background = ''; mbtn.style.borderColor = 'var(--bdr)'; mbtn.style.color = 'var(--t3)'; }
   var mchk = $('mapMissionChk');
   if (mchk) { mchk.style.borderColor = 'rgba(61,204,122,.4)'; mchk.style.background = 'transparent'; mchk.textContent = ''; }
   renderCcEmojiPicker('mapCcEmojiPicker', '📌', function(e) { window._mapCcEmoji = e; });
@@ -7239,7 +7298,7 @@ function openMiniEdit(num, mode) {
     $('miniEditTitle').textContent = '🎯 미션/과제 편집';
     var isMission = item.customColMission || false;
     body.innerHTML = '<input type="text" id="miniCc" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;margin-bottom:8px" placeholder="메모, 페이지 수, 미션/과제 등 자유롭게...">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div id="miniMissionToggle" onclick="toggleMiniMission()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none"><span id="miniMissionChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span> 🎯 미션/과제</div></div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div id="miniMissionToggle" onclick="toggleMiniMission()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none"><span id="miniMissionChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(61,204,122,.4);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span> 🎯 미션/과제</div></div>' +
       '<div style="font-size:10px;color:var(--t3)">🎯 체크 시 테이블에 체크박스 표시, 미션/과제 진행률에 반영</div>';
     $('miniCc').value = item.customCol || '';
     window._miniMission = isMission;
@@ -7249,7 +7308,7 @@ function openMiniEdit(num, mode) {
     $('miniEditTitle').textContent = '🎯 ' + getTabAssignmentLabel(tab) + ' 편집';
     var isDone = !!item.assignmentDone;
     body.innerHTML = '<textarea id="miniAsg" rows="2" style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bdr);background:var(--inp);color:var(--t1);font-size:12px;outline:none;font-family:inherit;margin-bottom:8px;resize:vertical;line-height:1.6" placeholder="과제 내용 (예: Chapter 5 요약 정리)"></textarea>' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div id="miniAsgDoneToggle" onclick="toggleMiniAsgDone()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid #2a2a3a;cursor:pointer;font-size:11px;color:#888;transition:.15s;user-select:none"><span id="miniAsgDoneChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span> ✓ 완료</div></div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div id="miniAsgDoneToggle" onclick="toggleMiniAsgDone()" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;border:1px solid var(--bdr);cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none"><span id="miniAsgDoneChk" style="width:14px;height:14px;border-radius:4px;border:2px solid rgba(153,102,255,.5);display:inline-flex;align-items:center;justify-content:center;font-size:9px;transition:.15s"></span> ✓ 완료</div></div>' +
       '<div style="font-size:10px;color:var(--t3)">🎯 텍스트 있을 때만 완료 체크 가능</div>';
     $('miniAsg').value = item.assignment || '';
     window._miniAsgDone = isDone;
@@ -7271,8 +7330,8 @@ function updateMiniMissionBtn() {
   var chk = $('miniMissionChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(61,204,122,.15)' : '';
-  btn.style.borderColor = on ? '#3dcc7a' : '#2a2a3a';
-  btn.style.color = on ? '#3dcc7a' : '#888';
+  btn.style.borderColor = on ? '#3dcc7a' : 'var(--bdr)';
+  btn.style.color = on ? '#3dcc7a' : 'var(--t3)';
   chk.style.borderColor = on ? '#3dcc7a' : 'rgba(61,204,122,.4)';
   chk.style.background = on ? '#3dcc7a' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -7291,8 +7350,8 @@ function updateMiniAsgDoneBtn() {
   var chk = $('miniAsgDoneChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
-  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
-  btn.style.color = on ? '#9966ff' : '#888';
+  btn.style.borderColor = on ? '#9966ff' : 'var(--bdr)';
+  btn.style.color = on ? '#9966ff' : 'var(--t3)';
   chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
   chk.style.background = on ? '#9966ff' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -9034,7 +9093,7 @@ function renderHome() {
     stopBulbAnim();
     $('homeCards').innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 200px);width:100%">' +
-      '<div id="welcomeDropZone" style="text-align:center;padding:60px 40px;border:2px dashed #555;border-radius:16px;cursor:pointer;transition:.2s;max-width:500px;width:100%">' +
+      '<div id="welcomeDropZone" style="text-align:center;padding:60px 40px;border:2px dashed var(--bdr2);border-radius:16px;cursor:pointer;transition:.2s;max-width:500px;width:100%">' +
       '<div style="font-size:48px;margin-bottom:16px">📚</div>' +
       '<h2 style="color:var(--t1);font-size:20px;margin-bottom:8px">독서 트래커에 오신 걸 환영합니다!</h2>' +
       '<p style="color:var(--t3);font-size:13px;margin-bottom:8px;line-height:1.6">CSV, Excel, 또는 Google Sheets에서<br>읽기 목록을 불러와 시작하세요.</p>' +
@@ -9649,8 +9708,8 @@ function toggleMapMission() {
   var chk = $('mapMissionChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(61,204,122,.15)' : '';
-  btn.style.borderColor = on ? '#3dcc7a' : '#2a2a3a';
-  btn.style.color = on ? '#3dcc7a' : '#888';
+  btn.style.borderColor = on ? '#3dcc7a' : 'var(--bdr)';
+  btn.style.color = on ? '#3dcc7a' : 'var(--t3)';
   chk.style.borderColor = on ? '#3dcc7a' : 'rgba(61,204,122,.4)';
   chk.style.background = on ? '#3dcc7a' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -9674,7 +9733,7 @@ function updateMapAssignmentUI() {
   var chk = $('mapAssignmentChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
-  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
+  btn.style.borderColor = on ? '#9966ff' : 'var(--bdr)';
   btn.style.color = on ? '#9966ff' : 'var(--t2)';
   chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
   chk.style.background = on ? '#9966ff' : 'transparent';
@@ -9738,8 +9797,8 @@ function updateEditMissionBtn() {
   var chk = $('editMissionChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(61,204,122,.15)' : '';
-  btn.style.borderColor = on ? '#3dcc7a' : '#2a2a3a';
-  btn.style.color = on ? '#3dcc7a' : '#888';
+  btn.style.borderColor = on ? '#3dcc7a' : 'var(--bdr)';
+  btn.style.color = on ? '#3dcc7a' : 'var(--t3)';
   chk.style.borderColor = on ? '#3dcc7a' : 'rgba(61,204,122,.4)';
   chk.style.background = on ? '#3dcc7a' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -9761,8 +9820,8 @@ function updateEditAssignmentDoneBtn() {
   var chk = $('editAssignmentDoneChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
-  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
-  btn.style.color = on ? '#9966ff' : '#888';
+  btn.style.borderColor = on ? '#9966ff' : 'var(--bdr)';
+  btn.style.color = on ? '#9966ff' : 'var(--t3)';
   chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
   chk.style.background = on ? '#9966ff' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -9780,8 +9839,8 @@ function updateManMissionBtn() {
   var chk = $('manMissionChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(61,204,122,.15)' : '';
-  btn.style.borderColor = on ? '#3dcc7a' : '#2a2a3a';
-  btn.style.color = on ? '#3dcc7a' : '#888';
+  btn.style.borderColor = on ? '#3dcc7a' : 'var(--bdr)';
+  btn.style.color = on ? '#3dcc7a' : 'var(--t3)';
   chk.style.borderColor = on ? '#3dcc7a' : 'rgba(61,204,122,.4)';
   chk.style.background = on ? '#3dcc7a' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -9803,8 +9862,8 @@ function updateManAsgDoneBtn() {
   var chk = $('manAsgDoneChk');
   if (!btn) return;
   btn.style.background = on ? 'rgba(153,102,255,.15)' : '';
-  btn.style.borderColor = on ? '#9966ff' : '#2a2a3a';
-  btn.style.color = on ? '#9966ff' : '#888';
+  btn.style.borderColor = on ? '#9966ff' : 'var(--bdr)';
+  btn.style.color = on ? '#9966ff' : 'var(--t3)';
   chk.style.borderColor = on ? '#9966ff' : 'rgba(153,102,255,.5)';
   chk.style.background = on ? '#9966ff' : 'transparent';
   chk.textContent = on ? '✓' : '';
@@ -9927,6 +9986,785 @@ function doUpdate() {
   localStorage.setItem('pt_last_images', JSON.stringify(window._updateImages || []));
   location.reload();
 }
+</script>
+<script>
+// =============================================
+// 배경 모드 (다크/미드나잇/라이트/아이보리/세피아)
+// =============================================
+// 기존 THEMES(위쪽)는 강조색(--gold)만 바꿈 → 여기는 배경 팔레트 축을 추가.
+// 두 축은 독립: 강조색 5종 × 배경 5종 자유 조합.
+// 통합 패턴: CSS 변수 덮어쓰기 + 차트 렌더 함수 몽키패치(글자색 보정). 레거시 로직 무수정.
+(function() {
+  var BG_KEY = 'pt_bg_mode';
+
+  var BG_MODES = {
+    dark: {
+      label: '다크', swatch: '#08080d',
+      vars: {
+        '--bg': '#08080d', '--bg2': '#101018', '--card': '#16161f', '--card2': '#1e1e2c',
+        '--inp': '#0e0e16', '--bdr': '#252538', '--bdr2': '#3a3a55',
+        '--t1': '#ffffff', '--t2': '#ffffff', '--t3': '#ffffff',
+        '--dim1': 'rgba(232,232,240,.5)', '--dim2': 'rgba(232,232,240,.7)', '--hover': 'rgba(255,255,255,.07)'
+      }
+    },
+    midnight: {
+      label: '미드나잇', swatch: '#0a1220',
+      vars: {
+        '--bg': '#0a1220', '--bg2': '#0f1a2e', '--card': '#15223a', '--card2': '#1c2c49',
+        '--inp': '#0d1728', '--bdr': '#24365a', '--bdr2': '#33497a',
+        '--t1': '#f2f6ff', '--t2': '#c9d6ee', '--t3': '#8fa3c8',
+        '--dim1': 'rgba(242,246,255,.5)', '--dim2': 'rgba(242,246,255,.7)', '--hover': 'rgba(255,255,255,.07)'
+      }
+    },
+    light: {
+      label: '라이트', swatch: '#f7f7fa',
+      vars: {
+        '--bg': '#f7f7fa', '--bg2': '#eeeef3', '--card': '#ffffff', '--card2': '#f2f2f7',
+        '--inp': '#f0f0f5', '--bdr': '#d9d9e3', '--bdr2': '#bcbccc',
+        '--t1': '#1a1a24', '--t2': '#44444f', '--t3': '#8a8a96',
+        '--dim1': 'rgba(26,26,36,.45)', '--dim2': 'rgba(26,26,36,.66)', '--hover': 'rgba(0,0,0,.05)'
+      }
+    },
+    ivory: {
+      label: '아이보리', swatch: '#f7f1e3',
+      vars: {
+        '--bg': '#f7f1e3', '--bg2': '#efe7d3', '--card': '#fffdf6', '--card2': '#f5eede',
+        '--inp': '#f3ecdb', '--bdr': '#e0d5bc', '--bdr2': '#c9bb9c',
+        '--t1': '#2b2418', '--t2': '#57503f', '--t3': '#94896f',
+        '--dim1': 'rgba(43,36,24,.45)', '--dim2': 'rgba(43,36,24,.66)', '--hover': 'rgba(0,0,0,.05)'
+      }
+    },
+    sepia: {
+      label: '세피아', swatch: '#2b2118',
+      vars: {
+        '--bg': '#2b2118', '--bg2': '#342a20', '--card': '#3d3226', '--card2': '#473b2d',
+        '--inp': '#332920', '--bdr': '#54462f', '--bdr2': '#6b5a3e',
+        '--t1': '#f5ead8', '--t2': '#d9c9ac', '--t3': '#a8987c',
+        '--dim1': 'rgba(245,234,216,.5)', '--dim2': 'rgba(245,234,216,.7)', '--hover': 'rgba(255,255,255,.06)'
+      }
+    }
+  };
+
+  function getBgMode() {
+    try {
+      var m = localStorage.getItem(BG_KEY);
+      return BG_MODES[m] ? m : 'ivory';
+    } catch (e) { return 'ivory'; }
+  }
+
+  // 열린 차트들의 글자/그리드 색을 현재 모드에 맞게 보정
+  function fixupCharts() {
+    if (typeof window.Chart === 'undefined') return;
+    var cs = getComputedStyle(document.documentElement);
+    var t1 = cs.getPropertyValue('--t1').trim() || '#fff';
+    var t3 = cs.getPropertyValue('--t3').trim() || '#888';
+    var bdr = cs.getPropertyValue('--bdr').trim() || '#333';
+    ['monthlyChart', 'catChart', 'reReadChart'].forEach(function(id) {
+      var el = document.getElementById(id);
+      var ch = el && window.Chart.getChart(el);
+      if (!ch) return;
+      try {
+        if (ch.options.plugins && ch.options.plugins.legend && ch.options.plugins.legend.labels) {
+          ch.options.plugins.legend.labels.color = t1;
+        }
+        if (ch.options.scales) {
+          Object.values(ch.options.scales).forEach(function(sc) {
+            if (sc.ticks) sc.ticks.color = t3;
+            if (sc.grid) sc.grid.color = bdr;
+          });
+        }
+        ch.update('none');
+      } catch (e) { /* 차트 구조가 다르면 무시 */ }
+    });
+  }
+
+  function setBgMode(name) {
+    var mode = BG_MODES[name] || BG_MODES.ivory;
+    if (!BG_MODES[name]) name = 'ivory';
+    var root = document.documentElement;
+    Object.keys(mode.vars).forEach(function(k) { root.style.setProperty(k, mode.vars[k]); });
+    root.setAttribute('data-bgmode', name);
+    // 모바일 상태바/브라우저 크롬 색
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', mode.vars['--bg']);
+    try { localStorage.setItem(BG_KEY, name); } catch (e) {}
+    // 스와치 active 표시
+    document.querySelectorAll('.bg-dot').forEach(function(d) {
+      d.classList.toggle('active', d.dataset.mode === name);
+    });
+    fixupCharts();
+  }
+
+  // 차트 렌더 후 색 보정이 유지되도록 렌더 함수 래핑 (레거시 전역 함수 몽키패치)
+  ['renderReadingChart', 'renderCatChart', 'renderReReadChart'].forEach(function(fn) {
+    var orig = window[fn];
+    if (typeof orig !== 'function') return;
+    window[fn] = function() {
+      var r = orig.apply(this, arguments);
+      if (getBgMode() !== 'dark') fixupCharts();
+      return r;
+    };
+  });
+
+  window.setBgMode = setBgMode; // #bgSelector 스와치 onclick 용
+  window.getBgMode = getBgMode;
+  setBgMode(getBgMode()); // 저장된 모드 적용
+})();
+</script>
+<script>
+// =============================================
+// tree.js — 나무 성장 게임화 v8 (레거시 인라인 포팅: ES모듈→클래식 IIFE)
+// =============================================
+// 레퍼런스 reading-tracker-app/src/growth/tree.js 를 그대로 이식.
+// import/export 제거, 필요한 것만 window 노출. 아트/애니 코드는 원본 verbatim.
+// 진행도 소스는 전구와 동일: getCycleReadDays() / BULB_GOAL_DAYS (레거시 전역).
+// 통합: window.startBulbAnim / stopBulbAnim 몽키패치 (레거시 무수정).
+(function() {
+
+const VISUAL_KEY = 'pt_home_visual';
+
+let _origStartBulb = null;
+let _origStopBulb = null;
+let _rafId = null;
+let _loop = null;
+
+// ---------- 상태 헬퍼 ----------
+
+function getMode() {
+  try { return localStorage.getItem(VISUAL_KEY) || 'tree'; } catch (e) { return 'tree'; }
+}
+function setMode(m) {
+  try { localStorage.setItem(VISUAL_KEY, m); } catch (e) {}
+}
+
+function getProgress() {
+  const goal = Number(window.BULB_GOAL_DAYS) || 100;
+  const days = typeof window.getCycleReadDays === 'function' ? window.getCycleReadDays() : 0;
+  return { days: Math.min(days, goal), goal, p: Math.max(0, Math.min(1, goal > 0 ? days / goal : 0)) };
+}
+
+function isTodayRead() {
+  try {
+    const idx = window.getReadDateIndex();
+    return !!idx[window.todayStr()];
+  } catch (e) { return false; }
+}
+
+function stageInfo(p, days) {
+  if (days <= 0) return { emoji: '🌰', name: '씨앗', struct: 'seed' };
+  if (p < 0.12) return { emoji: '🌱', name: '새싹', struct: 'sprout' };
+  if (p < 0.35) return { emoji: '🪴', name: '묘목', struct: 'sapling' };
+  if (p < 0.65) return { emoji: '🌳', name: '자라는 나무', struct: 'tree' };
+  if (p < 1)    return { emoji: '🌳', name: '풍성한 나무', struct: 'tree' };
+  return { emoji: '🥭', name: '망고 가득!', struct: 'tree' };
+}
+
+// ---------- 유틸 ----------
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+// mulberry32 — 결정적 랜덤 (프레임마다 같은 배치 → 깜빡임 없음)
+function rng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const GX = 96;    // 나무 중심 x
+const GY = 258;   // 지면 y
+
+// ---------- 팔레트 (레퍼런스 이미지에서 샘플) ----------
+
+// [0] 그늘 → [6] 햇빛 하이라이트
+const LEAF_PAL = ['#2e6428', '#3b7a31', '#4c8c3a', '#5fa53f', '#79b84a', '#8fc457', '#a8d465'];
+const TRUNK_LIT = '#9a6b3d', TRUNK_SHD = '#6b4423', TRUNK_LINE = '#553318';
+const DIRT_DARK = '#5d4326', DIRT_MID = '#7a5535', DIRT_LIT = '#8a6540';
+const SEED_FILL = '#d9b98a', SEED_GRAIN = '#b89263', SEED_EDGE = '#a87f4f';
+
+// ---------- 프리미티브 ----------
+
+// 길쭉하고 살짝 휜 망고잎 (v5와 동일)
+function leaf(x, y, angleDeg, len, w, curve, fill, vein, veinFill) {
+  const a = angleDeg * Math.PI / 180;
+  const cosA = Math.cos(a), sinA = Math.sin(a);
+  const tx = x + cosA * len, ty = y + sinA * len;
+  const px = -sinA, py = cosA;
+  const mx = (x + tx) / 2, my = (y + ty) / 2;
+  const e1x = mx + px * (w + curve), e1y = my + py * (w + curve);
+  const e2x = mx - px * (w - curve), e2y = my - py * (w - curve);
+  let s = `<path d="M ${x.toFixed(1)} ${y.toFixed(1)} Q ${e1x.toFixed(1)} ${e1y.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)} Q ${e2x.toFixed(1)} ${e2y.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)} Z" fill="${fill}"/>`;
+  if (vein) {
+    const vx = mx + px * curve, vy = my + py * curve;
+    s += `<path d="M ${x.toFixed(1)} ${y.toFixed(1)} Q ${vx.toFixed(1)} ${vy.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}" stroke="${veinFill}" stroke-width="${Math.max(0.6, w * 0.15).toFixed(1)}" fill="none" opacity=".45"/>`;
+  }
+  return s;
+}
+
+// 잎 부채: (cx,cy)에서 baseAngle 방향으로 spread 만큼 펼쳐진 count 장의 잎 다발.
+// droop > 0 이면 바깥 잎일수록 아래로 처짐 (망고잎 특유의 늘어짐).
+function leafFan(cx, cy, baseAngle, spread, count, lenBase, palBase, rand, detail, droop) {
+  let s = '';
+  for (let j = 0; j < count; j++) {
+    const ft = count === 1 ? 0.5 : j / (count - 1);
+    const edge = Math.abs(ft - 0.5) * 2; // 0(중앙)→1(가장자리)
+    let angle = baseAngle - spread / 2 + spread * ft + (rand() - 0.5) * 9;
+    // 바깥 잎일수록 아래(90°) 방향으로 처짐 — 좌/우 어느 쪽이든 아래로 굽음
+    if (droop) angle += edge * droop * (Math.cos(angle * Math.PI / 180) >= 0 ? 1 : -1);
+    const len = lenBase * (0.78 + rand() * 0.44) * (1 - edge * 0.15);
+    const w = len * 0.22;
+    const curve = len * 0.13 * (rand() - 0.5) * 2;
+    let idx = palBase + Math.round((rand() - 0.5) * 1.6);
+    idx = Math.max(0, Math.min(LEAF_PAL.length - 1, idx));
+    s += leaf(cx, cy, angle, len, w, curve, LEAF_PAL[idx], detail && len > 13, LEAF_PAL[Math.min(idx + 2, LEAF_PAL.length - 1)]);
+  }
+  return s;
+}
+
+// 알갱이진 흙더미 (레퍼런스 0·1: 자잘한 흙 알갱이 질감)
+function dirtMound(cx, cy, rx, ry, seed) {
+  const rand = rng(seed);
+  let s = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${DIRT_DARK}"/>`;
+  const n = Math.round(rx * 0.9);
+  for (let i = 0; i < n; i++) {
+    const gx = cx + (rand() - 0.5) * rx * 1.8;
+    const gy = cy - ry * 0.15 - rand() * ry * 0.9;
+    const gr = 1 + rand() * 2.2;
+    const c = rand() < 0.4 ? DIRT_LIT : DIRT_MID;
+    if (((gx - cx) ** 2) / (rx * rx) + ((gy - cy) ** 2) / (ry * ry * 1.4) < 1) {
+      s += `<circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="${gr.toFixed(1)}" fill="${c}"/>`;
+    }
+  }
+  return s;
+}
+
+// 망고 한 알 (레퍼런스: 골든 옐로우, 볼 하이라이트, 줄기 매달림)
+function mangoAt(fx, fy, s, tilt) {
+  const stalk = 5 * s;
+  return `<g transform="rotate(${tilt} ${fx.toFixed(1)} ${fy.toFixed(1)})">
+    <path d="M ${fx} ${fy - 6.5 * s - stalk} L ${fx} ${fy - 5.5 * s}" stroke="#7a5a2e" stroke-width="${1.2 * s}" stroke-linecap="round" fill="none"/>
+    <path d="M ${fx} ${fy - 6.5 * s}
+             C ${fx + 5.4 * s} ${fy - 5.5 * s}, ${fx + 5.2 * s} ${fy + 4 * s}, ${fx} ${fy + 7 * s}
+             C ${fx - 5.2 * s} ${fy + 4 * s}, ${fx - 5.4 * s} ${fy - 5.5 * s}, ${fx} ${fy - 6.5 * s} Z"
+          fill="url(#mangoGrad)"/>
+    <ellipse cx="${fx - 1.8 * s}" cy="${fy - 2.2 * s}" rx="${1.6 * s}" ry="${2.5 * s}" fill="#ffe08a" opacity=".85"/>
+  </g>`;
+}
+
+// ---------- 단계별 조성 (레퍼런스 모사) ----------
+
+// 0 씨앗: 알갱이 흙더미 + 아몬드형 씨앗 (세로 결)
+function seedArt() {
+  return `
+    ${dirtMound(GX, GY - 4, 22, 8, 11)}
+    <g transform="rotate(-14 ${GX} ${GY - 15})">
+      <path d="M ${GX} ${GY - 24}
+               C ${GX + 5.5} ${GY - 21}, ${GX + 5.8} ${GY - 12}, ${GX} ${GY - 8}
+               C ${GX - 5.8} ${GY - 12}, ${GX - 5.5} ${GY - 21}, ${GX} ${GY - 24} Z"
+            fill="${SEED_FILL}" stroke="${SEED_EDGE}" stroke-width="1.1"/>
+      <path d="M ${GX} ${GY - 22.5} C ${GX + 1} ${GY - 18}, ${GX + 1} ${GY - 13}, ${GX} ${GY - 9.5}" stroke="${SEED_GRAIN}" stroke-width=".9" fill="none"/>
+      <path d="M ${GX - 2.4} ${GY - 21.5} C ${GX - 1.8} ${GY - 17}, ${GX - 1.8} ${GY - 13}, ${GX - 1.4} ${GY - 10.5}" stroke="${SEED_GRAIN}" stroke-width=".7" fill="none" opacity=".8"/>
+      <path d="M ${GX + 2.4} ${GY - 21.5} C ${GX + 1.9} ${GY - 17}, ${GX + 1.9} ${GY - 13}, ${GX + 1.5} ${GY - 10.5}" stroke="${SEED_GRAIN}" stroke-width=".7" fill="none" opacity=".8"/>
+    </g>`;
+}
+
+// 1 새싹: 가는 줄기 + 큰 잎 2장 활짝(윤기) + 꼭대기 새순  (s: 0→1 단계 내 성장)
+function sproutArt(s, detail) {
+  const k = 0.55 + s * 0.45;
+  const h = 40 * k;
+  const ly = GY - h;
+  const bigLeaf = (side) => {
+    const lx = GX + side * 3 * k;
+    const rot = side * 38;
+    const rx2 = 15 * k, ry2 = 6.5 * k;
+    const cx2 = lx + side * rx2 * 0.85, cy2 = ly + 3 * k;
+    return `
+      <g transform="rotate(${rot} ${lx} ${ly})">
+        <ellipse cx="${cx2}" cy="${cy2}" rx="${rx2}" ry="${ry2}" fill="${LEAF_PAL[3]}"/>
+        <path d="M ${lx} ${cy2} Q ${cx2} ${cy2 - ry2 * 0.5} ${cx2 + side * rx2 * 0.9} ${cy2}" stroke="${LEAF_PAL[5]}" stroke-width="${1.2 * k}" fill="none" opacity=".8"/>
+        <ellipse cx="${cx2 - side * rx2 * 0.25}" cy="${cy2 - ry2 * 0.4}" rx="${rx2 * 0.4}" ry="${ry2 * 0.32}" fill="${LEAF_PAL[6]}" opacity=".5"/>
+      </g>`;
+  };
+  return `
+    ${dirtMound(GX, GY - 3, 16, 6, 22)}
+    <g class="${detail ? 'sway' : ''}" style="transform-origin:${GX}px ${GY}px">
+      <path d="M ${GX} ${GY - 4} Q ${GX - 1.5} ${GY - h * 0.55} ${GX} ${ly}" stroke="#4a8f3c" stroke-width="${3 * k}" fill="none" stroke-linecap="round"/>
+      ${bigLeaf(-1)}
+      ${bigLeaf(1)}
+      <ellipse cx="${GX - 4 * k}" cy="${ly - 7 * k}" rx="${6 * k}" ry="${3 * k}" fill="${LEAF_PAL[5]}" transform="rotate(-52 ${GX - 4 * k} ${ly - 7 * k})"/>
+      <ellipse cx="${GX + 4 * k}" cy="${ly - 7 * k}" rx="${6 * k}" ry="${3 * k}" fill="${LEAF_PAL[6]}" transform="rotate(52 ${GX + 4 * k} ${ly - 7 * k})"/>
+      <circle cx="${GX}" cy="${ly - 9 * k}" r="${2 * k}" fill="${LEAF_PAL[6]}"/>
+    </g>`;
+}
+
+// 2 묘목: 호리호리한 외줄기 + 어긋나기 잎 부채, 원뿔 실루엣  (s: 0→1)
+function saplingArt(s, detail) {
+  const k = 0.6 + s * 0.4;
+  const H = 92 * k;
+  const rand = rng(700);
+  // 어긋나기 가지 위치 (아래→위, 좌우 교대) — 아래 잎이 크고 위로 갈수록 작아짐(원뿔)
+  const nodes = [
+    { hf: 0.32, side: -1, size: 1.0 },
+    { hf: 0.44, side: 1,  size: 0.95 },
+    { hf: 0.56, side: -1, size: 0.85 },
+    { hf: 0.67, side: 1,  size: 0.74 },
+    { hf: 0.78, side: -1, size: 0.62 },
+    { hf: 0.88, side: 1,  size: 0.5 },
+  ];
+  let branches = '';
+  nodes.forEach((nd) => {
+    const ny = GY - H * nd.hf;
+    const bx = GX + nd.side * 6 * k;
+    // 잔가지
+    branches += `<path d="M ${GX} ${ny} Q ${GX + nd.side * 5 * k} ${ny - 2} ${bx + nd.side * 4 * k} ${ny - 3 * k}" stroke="#6f5230" stroke-width="${1.6 * k}" fill="none" stroke-linecap="round"/>`;
+    // 처지는 잎 부채 (바깥-아래 방향)
+    branches += leafFan(bx + nd.side * 4 * k, ny - 3 * k, nd.side > 0 ? 35 : 145, 95, 4,
+      20 * k * nd.size, 3, rand, detail, 18);
+  });
+  return `
+    ${dirtMound(GX, GY - 2, 15, 5, 33)}
+    <g class="${detail ? 'sway' : ''}" style="transform-origin:${GX}px ${GY}px">
+      <path d="M ${GX + 1.5} ${GY} Q ${GX - 2} ${GY - H * 0.5} ${GX} ${GY - H}" stroke="#7a5a35" stroke-width="${3.4 * k}" fill="none" stroke-linecap="round"/>
+      ${branches}
+      ${leafFan(GX, GY - H, -90, 110, 4, 17 * k, 5, rand, detail, 14)}
+    </g>`;
+}
+
+// 3~5 나무: 분기 트렁크 + 잎 부채 기왓장 수관 (+망고 층 겹침)  (t: 0→1 = 진행 0.35→1)
+function treeArt(t, p, detail) {
+  const trunkH = lerp(36, 60, t);      // 분기점 높이
+  const trunkW = lerp(8, 22, t);
+  const R = lerp(28, 52, t);           // 수관 반경
+  const RX = R * 1.32, RY = R * 0.98;
+  const CCY = GY - trunkH - RY * 0.62; // 수관 중심
+  const hw = trunkW / 2;
+  const rootW = trunkW * lerp(0.6, 1.1, t);
+  const rand = rng(4000);
+
+  // --- 흙 자리 ---
+  const dirt = `<ellipse cx="${GX}" cy="${GY - 1}" rx="${hw + rootW + 7}" ry="5" fill="${DIRT_MID}" opacity=".9"/>
+    <ellipse cx="${GX}" cy="${GY - 1.5}" rx="${hw + rootW + 2}" ry="3.6" fill="${DIRT_DARK}" opacity=".8"/>`;
+
+  // --- 트렁크: 뿌리 벌어짐 + 옹이 결, 위에서 Y자 분기 ---
+  const forkY = GY - trunkH;
+  const trunk = `
+    <path d="M ${GX - hw - rootW} ${GY}
+             C ${GX - hw - rootW * 0.35} ${GY - 4}, ${GX - hw * 1.15} ${GY - trunkH * 0.15}, ${GX - hw} ${GY - trunkH * 0.35}
+             C ${GX - hw * 0.92} ${GY - trunkH * 0.65}, ${GX - hw * 0.75} ${GY - trunkH * 0.85}, ${GX - hw * 0.6} ${forkY}
+             L ${GX + hw * 0.6} ${forkY}
+             C ${GX + hw * 0.75} ${GY - trunkH * 0.85}, ${GX + hw * 0.92} ${GY - trunkH * 0.65}, ${GX + hw} ${GY - trunkH * 0.35}
+             C ${GX + hw * 1.15} ${GY - trunkH * 0.15}, ${GX + hw + rootW * 0.35} ${GY - 4}, ${GX + hw + rootW} ${GY}
+             Z" fill="url(#trunkGradV)"/>
+    ${t > 0.15 ? `
+      <path d="M ${GX - hw * 0.4} ${GY - 4} C ${GX - hw * 0.45} ${GY - trunkH * 0.35}, ${GX - hw * 0.22} ${GY - trunkH * 0.6}, ${GX - hw * 0.26} ${forkY + trunkH * 0.12}" stroke="${TRUNK_LINE}" stroke-width="${Math.max(1, trunkW * 0.08)}" fill="none" opacity=".5"/>
+      <path d="M ${GX + hw * 0.3} ${GY - 6} C ${GX + hw * 0.36} ${GY - trunkH * 0.4}, ${GX + hw * 0.16} ${GY - trunkH * 0.62}, ${GX + hw * 0.2} ${forkY + trunkH * 0.15}" stroke="${TRUNK_LINE}" stroke-width="${Math.max(1, trunkW * 0.06)}" fill="none" opacity=".4"/>` : ''}
+    <path d="M ${GX - hw * 0.28} ${forkY} Q ${GX - R * 0.5} ${forkY - R * 0.35} ${GX - R * 0.62} ${CCY + RY * 0.55}" stroke="${TRUNK_SHD}" stroke-width="${(trunkW * 0.42).toFixed(1)}" fill="none" stroke-linecap="round"/>
+    <path d="M ${GX + hw * 0.28} ${forkY} Q ${GX + R * 0.46} ${forkY - R * 0.32} ${GX + R * 0.58} ${CCY + RY * 0.52}" stroke="${TRUNK_SHD}" stroke-width="${(trunkW * 0.38).toFixed(1)}" fill="none" stroke-linecap="round"/>
+    <path d="M ${GX} ${forkY} L ${GX + R * 0.04} ${CCY + RY * 0.3}" stroke="${TRUNK_SHD}" stroke-width="${(trunkW * 0.45).toFixed(1)}" fill="none" stroke-linecap="round"/>`;
+
+  // --- 수관: 밑색 2겹 + (코어 원 + 잎 부채) 기왓장 — 코어가 틈을 메워 빽빽하게 ---
+  const fanLen = R * 0.46;
+  const fanCount = Math.round(lerp(5, 9, t));
+  let canopy = `
+    <ellipse cx="${GX}" cy="${CCY.toFixed(1)}" rx="${(RX * 1.0).toFixed(1)}" ry="${(RY * 1.0).toFixed(1)}" fill="${LEAF_PAL[0]}"/>
+    <ellipse cx="${(GX - RX * 0.12).toFixed(1)}" cy="${(CCY - RY * 0.15).toFixed(1)}" rx="${(RX * 0.82).toFixed(1)}" ry="${(RY * 0.8).toFixed(1)}" fill="${LEAF_PAL[1]}"/>`;
+
+  // 부채 배치: [u, v, baseAngle(바깥 방향), palBase]  — 위(밝음)→아래(어두움)
+  const FANS = [
+    // Row A: 꼭대기 (위로)
+    [-0.35, -0.82, -108, 5], [0.02, -0.9, -90, 6], [0.38, -0.8, -72, 5],
+    // Row B: 상단 측면 (밖-위)
+    [-0.78, -0.45, -155, 4], [-0.3, -0.5, -115, 5], [0.32, -0.48, -62, 4], [0.78, -0.42, -25, 4],
+    // Row C: 중단 (수평 바깥, 중앙은 아래로)
+    [-0.95, 0.0, 178, 3], [-0.48, -0.05, -195, 4], [0.02, -0.02, 90, 3], [0.5, -0.03, -8, 3], [0.95, 0.02, 2, 3],
+    // Row D: 하단 (밖-아래로 처짐)
+    [-0.72, 0.45, 145, 2], [-0.25, 0.5, 108, 2], [0.25, 0.5, 72, 2], [0.72, 0.45, 35, 2],
+    // Row E: 바닥 술 (아래로)
+    [-0.4, 0.82, 118, 1], [0.02, 0.9, 90, 1], [0.42, 0.8, 62, 1],
+  ];
+
+  // 망고 위치: 중간층(부채 사이에 끼임) / 앞층(잎 위에 매달림)
+  const MID_M = [[-0.55, 0.15], [0.0, 0.28], [0.55, 0.12], [-0.25, -0.25], [0.3, -0.3], [-0.8, 0.35], [0.8, 0.32]];
+  const FRONT_M = [[-0.35, 0.62], [0.08, 0.72], [0.45, 0.58], [-0.65, 0.05], [0.68, -0.08], [0.02, -0.05], [-0.15, 0.35], [0.32, 0.3]];
+  const totalM = MID_M.length + FRONT_M.length;
+  const mango = (u, v, gi) => {
+    const th = 0.7 + (gi / totalM) * 0.3;
+    const a = clamp01((p - th) / 0.045);
+    if (a <= 0) return '';
+    const ms = (0.4 + 0.6 * a) * lerp(0.85, 1.25, t);
+    const tilt = (gi % 3 === 0 ? -10 : gi % 3 === 1 ? 9 : -2);
+    return `<g opacity="${a.toFixed(2)}">${mangoAt(GX + u * RX, CCY + v * RY, ms, tilt)}</g>`;
+  };
+
+  // 층 구성: A·B (뒤/위) → 중간 망고 → C → D·E (앞/아래) → 앞 망고
+  // 각 부채 밑에 코어 원을 깔아 틈 없이 빽빽한 수관으로 (레퍼런스의 밀도)
+  const fanAt = ([u, v, ang, pal]) => {
+    const fx = GX + u * RX, fy = CCY + v * RY;
+    const fl = fanLen * (1 - Math.abs(v) * 0.12);
+    const core = `<circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="${(fl * 0.62).toFixed(1)}" fill="${LEAF_PAL[Math.max(0, pal - 1)]}" opacity=".95"/>`;
+    return core + leafFan(fx, fy, ang, 115, fanCount, fl, pal, rand, detail, 16);
+  };
+
+  canopy += FANS.slice(0, 7).map(fanAt).join('');
+  canopy += MID_M.map((m, i) => mango(m[0], m[1], i)).join('');
+  canopy += FANS.slice(7, 12).map(fanAt).join('');
+  canopy += FANS.slice(12).map(fanAt).join('');
+  canopy += FRONT_M.map((m, i) => mango(m[0], m[1], MID_M.length + i)).join('');
+
+  const glow = p >= 1 ? `<circle cx="${GX}" cy="${CCY}" r="${(R * 1.75).toFixed(0)}" fill="url(#doneGlow)"/>` : '';
+
+  return `
+    ${glow}
+    ${dirt}
+    ${trunk}
+    <g class="${detail ? 'sway' : ''}" style="transform-origin:${GX}px ${forkY}px">
+      ${canopy}
+    </g>`;
+}
+
+// ---------- 통합 마크업 ----------
+
+function treeMarkup(p, detail) {
+  if (p <= 0) return seedArt();
+  if (p < 0.12) return sproutArt(p / 0.12, detail);
+  if (p < 0.35) return saplingArt((p - 0.12) / 0.23, detail);
+  return treeArt((p - 0.35) / 0.65, p, detail);
+}
+
+function structOf(p) {
+  if (p <= 0) return 'seed';
+  if (p < 0.12) return 'sprout';
+  if (p < 0.35) return 'sapling';
+  return 'tree';
+}
+
+// ---------- SVG 셸 (1회 생성 — 캐릭터·꽃·물방울은 여기 살아서 안 끊김) ----------
+
+function buildSceneSvg() {
+  return `
+  <svg viewBox="0 0 240 300" width="240" height="300" class="tree-svg" role="img" aria-label="독서 망고나무">
+    <defs>
+      <linearGradient id="trunkGradV" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${TRUNK_SHD}"/><stop offset=".45" stop-color="${TRUNK_LIT}"/><stop offset="1" stop-color="#5d3a1e"/>
+      </linearGradient>
+      <radialGradient id="grassGrad" cx=".5" cy=".35" r=".85">
+        <stop offset="0" stop-color="#5a9445"/><stop offset="1" stop-color="#37622b"/>
+      </radialGradient>
+      <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="rgba(255,214,110,.14)"/><stop offset="1" stop-color="rgba(255,214,110,0)"/>
+      </radialGradient>
+      <radialGradient id="doneGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="rgba(255,203,60,.30)"/><stop offset="1" stop-color="rgba(255,203,60,0)"/>
+      </radialGradient>
+      <radialGradient id="mangoGrad" cx=".35" cy=".3" r=".95">
+        <stop offset="0" stop-color="#ffc23e"/><stop offset=".6" stop-color="#ffa62e"/><stop offset="1" stop-color="#f0930f"/>
+      </radialGradient>
+      <radialGradient id="mangoBody" cx=".38" cy=".28" r="1">
+        <stop offset="0" stop-color="#ffe36e"/><stop offset=".6" stop-color="#ffcf3f"/><stop offset="1" stop-color="#f3a92e"/>
+      </radialGradient>
+    </defs>
+    <style>
+      .tree-svg .sway { animation: treeSway 5.5s ease-in-out infinite alternate; }
+      @keyframes treeSway { from { transform: rotate(-1.3deg); } to { transform: rotate(1.3deg); } }
+      .tree-svg .drop { fill: #9fd8ff; opacity: 0; }
+      .tree-svg.watering .drop { animation: dropFall .8s ease-in infinite; }
+      @keyframes dropFall {
+        0%   { opacity: 0; transform: translate(0, 0); }
+        18%  { opacity: .95; }
+        100% { opacity: 0; transform: translate(var(--dx, -12px), var(--dy, 34px)); }
+      }
+      .tree-svg .puddle { opacity: 0; transition: opacity .8s; }
+      .tree-svg.watering .puddle { opacity: .55; }
+      .tree-svg .armCan { transition: transform .5s ease; }
+      .tree-svg.watering .armCan { transform: rotate(-14deg); }
+      .tree-svg.joy #treeG { animation: treeJoy 1s ease-in-out infinite; transform-origin: ${GX}px ${GY}px; }
+      @keyframes treeJoy { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+      .tree-svg #treeG { transition: opacity .35s; transform-origin: ${GX}px ${GY}px; }
+      .tree-svg #treeG.pop { animation: stagePop .32s ease-out; }
+      @keyframes stagePop { from { opacity: .25; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+      .tree-svg .charBob { animation: charBob 2.4s ease-in-out infinite; }
+      @keyframes charBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+    </style>
+
+    <circle cx="120" cy="90" r="120" fill="url(#sunGlow)"/>
+    <ellipse cx="118" cy="270" rx="104" ry="22" fill="url(#grassGrad)"/>
+
+    <g opacity=".95">
+      <g transform="translate(28,262)">
+        <circle r="2.6" fill="#ff9ab5"/><circle cx="-3.4" cy="-2" r="2" fill="#ff9ab5"/><circle cx="3.4" cy="-2" r="2" fill="#ff9ab5"/><circle cx="0" cy="-3.8" r="2" fill="#ff9ab5"/><circle r="1.3" fill="#ffe08a"/>
+      </g>
+      <g transform="translate(206,268)">
+        <circle r="2.4" fill="#ffb347"/><circle cx="-3" cy="-1.8" r="1.8" fill="#ffb347"/><circle cx="3" cy="-1.8" r="1.8" fill="#ffb347"/><circle cx="0" cy="-3.4" r="1.8" fill="#ffb347"/><circle r="1.2" fill="#fff3c4"/>
+      </g>
+      <g transform="translate(52,278)">
+        <circle r="2" fill="#ffe08a"/><circle cx="-2.6" cy="-1.5" r="1.5" fill="#ffe08a"/><circle cx="2.6" cy="-1.5" r="1.5" fill="#ffe08a"/><circle r="1" fill="#f3a92e"/>
+      </g>
+      <g transform="translate(186,282)">
+        <circle r="2" fill="#ff9ab5"/><circle cx="-2.6" cy="-1.5" r="1.5" fill="#ff9ab5"/><circle cx="2.6" cy="-1.5" r="1.5" fill="#ff9ab5"/><circle r="1" fill="#ffe08a"/>
+      </g>
+      <path d="M 38 272 q 1.5 -5 0 -8 M 42 272 q -1 -4 .5 -7" stroke="#4a8f3c" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <path d="M 196 276 q 1.5 -5 0 -8 M 200 276 q -1 -4 .5 -7" stroke="#4a8f3c" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <ellipse class="puddle" cx="${GX + 14}" cy="${GY + 2}" rx="20" ry="5" fill="#8fcfff"/>
+
+    <g id="treeG"></g>
+
+    <!-- 망고 캐릭터: 몸=망고, 꼭지잎, 큰 눈, 청록 물뿌리개 (승인된 디자인 유지) -->
+    <g transform="translate(190, 231)">
+      <ellipse cx="0" cy="31" rx="18" ry="4.5" fill="rgba(0,0,0,.28)"/>
+      <g class="charBob">
+        <ellipse cx="-6" cy="28" rx="4" ry="5" fill="#f3a92e"/>
+        <ellipse cx="7" cy="28" rx="4" ry="5" fill="#ffcf3f"/>
+        <path d="M 0 -22
+                 C 13 -20, 17 -6, 16 6
+                 C 15 18, 9 26, 0 26
+                 C -9 26, -15 18, -16 6
+                 C -17 -6, -13 -20, 0 -22 Z" fill="url(#mangoBody)"/>
+        <path d="M 0 -22 Q 1 -26 0 -28" stroke="#7a5a2e" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="7" cy="-27" rx="7.5" ry="3.6" fill="#3f9d53" transform="rotate(-24 7 -27)"/>
+        <path d="M 1 -27.5 Q 7 -28.5 13 -30" stroke="#2b9152" stroke-width="1" fill="none" opacity=".7"/>
+        <circle cx="-5.5" cy="-8" r="3.1" fill="#2a1f14"/>
+        <circle cx="-4.6" cy="-9" r="1.1" fill="#fff"/>
+        <circle cx="-6.3" cy="-7" r=".55" fill="#fff" opacity=".9"/>
+        <circle cx="5.5" cy="-8" r="3.1" fill="#2a1f14"/>
+        <circle cx="6.4" cy="-9" r="1.1" fill="#fff"/>
+        <circle cx="4.7" cy="-7" r=".55" fill="#fff" opacity=".9"/>
+        <path d="M -3.4 -2.2 Q 0 3.4 3.4 -2.2 Q 0 -0.6 -3.4 -2.2 Z" fill="#8a4030"/>
+        <path d="M -1.8 0.4 Q 0 1.8 1.8 0.4 Q 0 2.6 -1.8 0.4 Z" fill="#ff8d7a"/>
+        <circle cx="-10.5" cy="-3" r="2.6" fill="#ff9d9d" opacity=".55"/>
+        <circle cx="10.5" cy="-3" r="2.6" fill="#ff9d9d" opacity=".55"/>
+        <path d="M -10 6 Q -15 9 -19 8" stroke="#ffcf3f" stroke-width="4.6" fill="none" stroke-linecap="round"/>
+        <g class="armCan" style="transform-origin:-8px 4px">
+          <rect x="-36" y="0" width="18" height="14" rx="4.5" fill="#3e9688"/>
+          <path d="M -32 0 A 6 6 0 0 1 -22 0" stroke="#357f73" stroke-width="2.8" fill="none"/>
+          <path d="M -36 5 L -47 -2" stroke="#3e9688" stroke-width="3.8" stroke-linecap="round"/>
+          <circle cx="-48" cy="-2.6" r="3.4" fill="#357f73"/>
+          <circle cx="-49" cy="-3.4" r=".7" fill="#bfe8e0"/>
+          <circle cx="-47" cy="-3.6" r=".7" fill="#bfe8e0"/>
+          <circle cx="-48" cy="-1.4" r=".7" fill="#bfe8e0"/>
+          <path d="M -8 4 Q -17 1 -25 -3" stroke="#ffcf3f" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <circle cx="-25.5" cy="-3.5" r="3.5" fill="#ffcf3f"/>
+          <g class="drops">
+            <circle class="drop" cx="-49" cy="0" r="1.7" style="--dx:-20px;--dy:32px;animation-delay:0s"/>
+            <circle class="drop" cx="-50" cy="-1" r="1.4" style="--dx:-15px;--dy:36px;animation-delay:.13s"/>
+            <circle class="drop" cx="-48" cy="1" r="1.5" style="--dx:-9px;--dy:38px;animation-delay:.28s"/>
+            <circle class="drop" cx="-50" cy="0" r="1.3" style="--dx:-24px;--dy:28px;animation-delay:.42s"/>
+            <circle class="drop" cx="-47" cy="1" r="1.4" style="--dx:-5px;--dy:36px;animation-delay:.55s"/>
+            <circle class="drop" cx="-49" cy="-1" r="1.6" style="--dx:-17px;--dy:34px;animation-delay:.68s"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>`;
+}
+
+// ---------- 성장 루프 (씨앗 → 현재 단계, 반복) ----------
+
+const PHASE = {
+  water: (pTarget) => 2400 + 3000 * pTarget,
+  joy: 1700,
+  rest: 2800,
+  fade: 380,
+  seedPause: 900,
+};
+
+function setLabel(pNow, goal, daysReal, final) {
+  const label = document.getElementById('treeLabel');
+  if (!label) return;
+  const pct = Math.min(100, Math.round(pNow * 100));
+  const days = final ? daysReal : Math.round(pNow * goal);
+  const stage = stageInfo(pNow, days);
+  const hint = isTodayRead()
+    ? '<span style="color:#9fd8ff">💧 오늘도 물 줬어요!</span>'
+    : '<span>오늘 읽으면 나무가 자라요 💧</span>';
+  label.innerHTML =
+    stage.emoji + ' <span style="font-size:15px;font-weight:700;color:' + (pNow >= 1 ? 'var(--gold)' : 'var(--t1)') + '">' + stage.name + '</span>' +
+    ' <span style="font-size:13px;font-weight:600;color:var(--t2);margin-left:4px">' + pct + '%</span>' +
+    '<span style="margin-left:8px;font-size:11px;color:var(--t3)">' + days + ' / ' + goal + '일</span>' +
+    '<div style="margin-top:4px;font-size:11px;color:var(--t3)">' + hint + '</div>';
+}
+
+function startTreeLoop() {
+  stopTreeLoop();
+  const wrap = document.getElementById('treeWrap');
+  if (!wrap) return;
+
+  const { days, goal, p } = getProgress();
+  wrap.innerHTML = buildSceneSvg();
+  const svg = wrap.querySelector('.tree-svg');
+  const treeG = svg.querySelector('#treeG');
+
+  if (days <= 0) {
+    treeG.innerHTML = treeMarkup(0, true);
+    setLabel(0, goal, 0, true);
+    return;
+  }
+
+  _loop = { phase: 'seedPause', phaseStart: performance.now(), pTarget: p, daysTarget: days, goal, lastP: -1, lastStruct: 'seed' };
+  treeG.innerHTML = treeMarkup(0, false);
+  setLabel(0, goal, days, false);
+
+  function frame(now) {
+    if (!_loop) return;
+    const el = now - _loop.phaseStart;
+    const { pTarget, daysTarget, goal } = _loop;
+
+    switch (_loop.phase) {
+      case 'seedPause':
+        if (el >= PHASE.seedPause) {
+          _loop.phase = 'water'; _loop.phaseStart = now;
+          svg.classList.add('watering');
+        }
+        break;
+
+      case 'water': {
+        const dur = PHASE.water(pTarget);
+        const t = easeInOutCubic(clamp01(el / dur));
+        const pNow = t * pTarget;
+        if (Math.abs(pNow - _loop.lastP) > 0.007) {
+          treeG.innerHTML = treeMarkup(pNow, false);
+          setLabel(pNow, goal, daysTarget, false);
+          _loop.lastP = pNow;
+          // 구조가 바뀌는 경계(씨앗→새싹→묘목→나무)에서 팝 전환
+          const st = structOf(pNow);
+          if (st !== _loop.lastStruct) {
+            _loop.lastStruct = st;
+            treeG.classList.remove('pop');
+            void treeG.getBoundingClientRect();
+            treeG.classList.add('pop');
+          }
+        }
+        if (el >= dur) {
+          _loop.phase = 'joy'; _loop.phaseStart = now;
+          svg.classList.remove('watering');
+          svg.classList.add('joy');
+          treeG.innerHTML = treeMarkup(pTarget, true); // 정지 화면: 풀 디테일(잎맥)
+          setLabel(pTarget, goal, daysTarget, true);
+          _loop.lastP = pTarget;
+        }
+        break;
+      }
+
+      case 'joy':
+        if (el >= PHASE.joy) {
+          _loop.phase = 'rest'; _loop.phaseStart = now;
+          svg.classList.remove('joy');
+        }
+        break;
+
+      case 'rest':
+        if (el >= PHASE.rest) {
+          _loop.phase = 'fade'; _loop.phaseStart = now;
+          treeG.style.opacity = '0';
+        }
+        break;
+
+      case 'fade':
+        if (el >= PHASE.fade) {
+          _loop.phase = 'seedPause'; _loop.phaseStart = now;
+          treeG.innerHTML = treeMarkup(0, false);
+          treeG.style.opacity = '1';
+          setLabel(0, goal, daysTarget, false);
+          _loop.lastP = -1;
+          _loop.lastStruct = 'seed';
+        }
+        break;
+    }
+
+    _rafId = requestAnimationFrame(frame);
+  }
+  _rafId = requestAnimationFrame(frame);
+}
+
+function stopTreeLoop() {
+  if (_rafId) cancelAnimationFrame(_rafId);
+  _rafId = null;
+  _loop = null;
+}
+
+// ---------- 표시 전환 + 레거시 후킹 ----------
+
+function applyVisibility() {
+  const mode = getMode();
+  const canvas = document.getElementById('bulbCanvas');
+  const bulbLabel = document.getElementById('bulbLabel');
+  const wrap = document.getElementById('treeWrap');
+  const treeLabel = document.getElementById('treeLabel');
+  const btn = document.getElementById('homeVisualToggle');
+  if (canvas) canvas.style.display = mode === 'tree' ? 'none' : '';
+  if (bulbLabel) bulbLabel.style.display = mode === 'tree' ? 'none' : '';
+  if (wrap) wrap.style.display = mode === 'tree' ? '' : 'none';
+  if (treeLabel) treeLabel.style.display = mode === 'tree' ? '' : 'none';
+  if (btn) btn.textContent = mode === 'tree' ? '💡 전구로 보기' : '🌳 나무로 보기';
+}
+
+function initGrowthVisual() {
+  _origStartBulb = window.startBulbAnim;
+  _origStopBulb = window.stopBulbAnim;
+
+  window.startBulbAnim = function () {
+    applyVisibility();
+    if (getMode() === 'tree') {
+      if (_origStopBulb) _origStopBulb();
+      startTreeLoop();
+    } else {
+      stopTreeLoop();
+      _origStartBulb();
+    }
+  };
+
+  window.stopBulbAnim = function () {
+    stopTreeLoop();
+    if (_origStopBulb) _origStopBulb();
+  };
+
+  window.toggleHomeVisual = function () {
+    setMode(getMode() === 'tree' ? 'bulb' : 'tree');
+    window.stopBulbAnim();
+    window.startBulbAnim();
+  };
+
+  window.replayTreeWatering = function () {
+    if (getMode() === 'tree') startTreeLoop();
+  };
+
+  window.__RTA_TREE_STATE__ = () => (_loop ? { phase: _loop.phase, pTarget: _loop.pTarget } : null);
+
+  // 검증용: 임의 진행도를 정지 렌더 (루프 중단)
+  window.__RTA_TREE_RENDER__ = (p) => {
+    stopTreeLoop();
+    const wrap = document.getElementById('treeWrap');
+    if (!wrap) return false;
+    if (!wrap.querySelector('.tree-svg')) wrap.innerHTML = buildSceneSvg();
+    const treeG = wrap.querySelector('#treeG');
+    treeG.innerHTML = treeMarkup(p, true);
+    const { goal } = getProgress();
+    setLabel(p, goal, Math.round(p * goal), true);
+    return true;
+  };
+
+  // 검증용: 특정 진행도의 전체 씬 마크업 문자열 (필름스트립 조립용)
+  window.__RTA_TREE_SCENE__ = (p) =>
+    buildSceneSvg().replace('<g id="treeG"></g>', '<g id="treeG">' + treeMarkup(p, true) + '</g>');
+
+  applyVisibility();
+  if (getMode() === 'tree') {
+    const home = document.getElementById('homeView');
+    if (_origStopBulb) _origStopBulb();
+    if (home && getComputedStyle(home).display !== 'none') startTreeLoop();
+  }
+}
+
+// 레거시 전역(startBulbAnim/stopBulbAnim/진행도 함수)과 홈 DOM이 준비된 뒤 실행.
+initGrowthVisual();
+
+})();
 </script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
