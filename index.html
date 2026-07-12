@@ -847,6 +847,7 @@ a.reread-title:hover { color:var(--gold); }
           <div class="theme-dot" onclick="setTheme('purple')" title="퍼플" style="background:#b088ff"></div>
           <div class="theme-dot" onclick="setTheme('rose')" title="로즈" style="background:#f06080"></div>
         </div>
+        <div style="font-size:9px;color:var(--t3);text-align:center;margin-top:2px">배경색</div>
         <div id="bgSelector" style="display:flex;gap:6px;flex-shrink:0">
           <div class="bg-dot" data-mode="dark" onclick="setBgMode('dark')" title="다크" style="background:#08080d"></div>
           <div class="bg-dot" data-mode="midnight" onclick="setBgMode('midnight')" title="미드나잇" style="background:#15223a"></div>
@@ -892,7 +893,7 @@ a.reread-title:hover { color:var(--gold); }
     <div class="hdr-btns">
       <div class="hdr-btns-row" id="hdrRow1">
         <button class="btn" id="btnFile" onclick="togglePanel('file')">📄 파일 업로드</button>
-        <button class="btn" id="btnSheets" onclick="togglePanel('sheets')">🔗 Google Sheets</button>
+        <button class="btn" id="btnSheets" onclick="togglePanel('sheets')">🔗 구글시트</button>
         <button class="btn" id="btnManual" onclick="togglePanel('manual')">✏️ 수기 추가</button>
         <button class="btn" id="btnSync" onclick="doSyncSheets()" style="display:none">🔄 동기화</button>
       </div>
@@ -1428,7 +1429,7 @@ a.reread-title:hover { color:var(--gold); }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v4.0.0';
+const APP_VERSION = 'v4.0.1';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const STORAGE_KEY_GZ = 'pt_v6_data_gz'; // v3.4.2: quota 초과 시 gzip+base64로 저장하는 백업 키
 const SAFETY_BANNER_DISMISSED_KEY = 'pt_safety_banner_dismissed_v1';
@@ -5661,8 +5662,8 @@ function updateSheetsUI(connected) {
     ? '<span class="badge badge-g"><span class="dot"></span> 연결됨</span>'
     : '<span class="badge badge-r"><span class="dot"></span> 미연결</span>';
   $('btnSheets').innerHTML = connected
-    ? '🔗 Google Sheets <span class="sheets-btn-dot"></span><span class="sheets-btn-status-text">연결됨</span>'
-    : '🔗 Google Sheets';
+    ? '🔗 구글시트 <span class="sheets-btn-dot"></span><span class="sheets-btn-status-text">연결됨</span>'
+    : '🔗 구글시트';
   $('btnSync').style.display = connected ? '' : 'none';
   $('btnDisconnect').style.display = connected ? '' : 'none';
 }
