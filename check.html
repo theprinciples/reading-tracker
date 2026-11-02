@@ -82,7 +82,41 @@
     if (bak) R.tracker += ' (+자동백업 있음)';
   } catch (e) { R.tracker = '읽기 실패: ' + ((e && e.name) || e); }
 
-  // 4) 영구 저장 여부 / 브라우저 정보
+  // 4) 이 사이트의 저장 공간 사용량 + 큰 항목 목록 (같은 계정의 모든 페이지가 공간을 공유함)
+  R.usage = '측정 불가'; R.topKeys = '-';
+  try {
+    var total = 0, items = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i); var v = localStorage.getItem(k) || '';
+      var sz = (k.length + v.length) * 2; // UTF-16 기준
+      total += sz; items.push([k, sz]);
+    }
+    items.sort(function(a, b) { return b[1] - a[1]; });
+    function fmt(n) { return n >= 1048576 ? (n/1048576).toFixed(2) + 'MB' : Math.round(n/1024) + 'KB'; }
+    R.usage = fmt(total) + ' (항목 ' + items.length + '개)';
+    R.topKeys = items.slice(0, 5).map(function(it) { return it[0] + ' (' + fmt(it[1]) + ')'; }).join('<br>') || '없음';
+    R.topKeysPlain = items.slice(0, 5).map(function(it) { return it[0] + '(' + fmt(it[1]) + ')'; }).join(', ') || '없음';
+  } catch (e) { R.usage = '측정 실패: ' + ((e && e.name) || e); R.topKeysPlain = R.usage; }
+
+  // 5) 대용량 쓰기 테스트 — 작은 저장은 되는데 큰 저장(트래커 전체 목록)만 실패하는 '공간 가득참' 판별
+  //    (쓴 직후 바로 지우므로 공간을 차지하지 않음)
+  function tryBig(kb) {
+    try {
+      var s = new Array(kb * 512 + 1).join('ab'); // kb KB 분량 (UTF-16 2바이트 기준)
+      localStorage.setItem('pt_diag_big', s);
+      localStorage.removeItem('pt_diag_big');
+      return true;
+    } catch (e) {
+      try { localStorage.removeItem('pt_diag_big'); } catch (e2) {}
+      return false;
+    }
+  }
+  R.big100 = R.canWrite ? tryBig(100) : false;
+  R.big1024 = R.big100 ? tryBig(1024) : false;
+  R.bigLabel = !R.canWrite ? '검사 불가' :
+    (R.big1024 ? '1MB까지 성공 ✅' : (R.big100 ? '100KB 성공 · 1MB 실패 ⚠️' : '100KB도 실패 ❌'));
+
+  // 6) 영구 저장 여부 / 브라우저 정보
   R.persisted = '확인 불가'; R.ua = navigator.userAgent; R.cookies = navigator.cookieEnabled ? '허용' : '차단됨';
   try {
     if (navigator.storage && navigator.storage.persisted) {
@@ -94,6 +128,14 @@
     if (!R.canWrite) {
       return { cls: 'bad', msg: '❌ 이 브라우저는 사이트 데이터 저장이 차단되어 있어요',
         sub: '크롬 설정 → 개인 정보 보호 및 보안 → 사이트 설정(또는 서드 파티 쿠키) → "기기 내 사이트 데이터"에서 "사이트가 기기에 데이터를 저장할 수 있음"을 선택해 주세요. 쿠키/기록 자동 삭제 확장프로그램이 있다면 꺼주세요. (오류: ' + (R.writeErr || '값이 저장되지 않음') + ')' };
+    }
+    if (!R.big100) {
+      return { cls: 'bad', msg: '❌ 저장 공간이 가득 찼어요 — 트래커가 저장을 못 하는 원인이에요',
+        sub: '작은 저장은 되지만 트래커의 목록 저장(큰 쓰기)은 실패하는 상태예요. 아래 "큰 저장 항목"을 스크린샷으로 보내주시면 무엇을 정리할지 알려드릴게요. 직접 지우지는 마세요!' };
+    }
+    if (!R.big1024) {
+      return { cls: 'wait', msg: '⚠️ 저장 공간이 거의 가득 찼어요',
+        sub: '지금은 겨우 저장되지만 목록이 조금만 커져도 실패해요. 아래 "큰 저장 항목" 스크린샷을 보내주세요.' };
     }
     if (R.count === 1) {
       return { cls: 'wait', msg: '🔄 저장은 되고 있어요 — 이제 새로고침을 한 번 해주세요',
@@ -110,6 +152,9 @@
     el.innerHTML = v.msg + '<span class="sub">' + v.sub + '</span>';
     var rows = [
       ['저장 기능', R.canWrite ? '정상 ✅' : '차단됨 ❌'],
+      ['대용량 쓰기', R.bigLabel],
+      ['사용 중인 공간', R.usage],
+      ['큰 저장 항목', R.topKeys],
       ['방문 횟수', R.count + '회'],
       ['처음 기록 시각', R.first],
       ['트래커 데이터', R.tracker],
@@ -126,6 +171,9 @@
   document.getElementById('copyBtn').addEventListener('click', function() {
     var txt = '📦 독서 트래커 저장소 진단 결과\n' +
       '- 저장 기능: ' + (R.canWrite ? '정상' : '차단됨 (' + R.writeErr + ')') + '\n' +
+      '- 대용량 쓰기: ' + R.bigLabel + '\n' +
+      '- 사용 중인 공간: ' + R.usage + '\n' +
+      '- 큰 저장 항목: ' + (R.topKeysPlain || '-') + '\n' +
       '- 방문 횟수: ' + R.count + '회 / 처음 기록: ' + R.first + '\n' +
       '- 트래커 데이터: ' + R.tracker + '\n' +
       '- 영구 저장: ' + R.persisted + ' / 쿠키: ' + R.cookies + '\n' +
