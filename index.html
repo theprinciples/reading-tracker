@@ -1429,9 +1429,11 @@ a.reread-title:hover { color:var(--gold); }
 // =============================================
 var PAGE_SIZE = 15;
 const COLORS = ['#e8b830','#4090ff','#3dcc7a','#f04060','#9966ff','#f08030','#30ccdd','#ff6699','#88cc44','#dd88ff','#ffaa33','#33bbaa'];
-const APP_VERSION = 'v4.0.1';
+const APP_VERSION = 'v4.1.0';
 const STORAGE_KEY = 'pt_v6_data'; // v6: saves articles + readMap with dates
 const STORAGE_KEY_GZ = 'pt_v6_data_gz'; // v3.4.2: quota 초과 시 gzip+base64로 저장하는 백업 키
+const STORAGE_KEY_BAK = 'pt_v6_data_bak'; // v4.1.0: 마지막으로 정상 저장된 데이터의 복사본 (빈 데이터로 덮어쓰기 방지용)
+var __loadFailed = false; // v4.1.0: 기존 저장 데이터를 읽지 못했을 때 true — 덮어쓰기 방지를 위해 저장을 막음
 const SAFETY_BANNER_DISMISSED_KEY = 'pt_safety_banner_dismissed_v1';
 const ATTENDANCE_KEY = 'pt_attendance';
 const ATTENDANCE_GOAL_KEY = 'pt_att_goal';
@@ -1706,6 +1708,50 @@ function throttledSave() {
     if (_savePending) { _savePending = false; saveToStorage(); }
   }, 500);
 }
+
+// v4.1.0: 페이지가 숨겨지거나 닫힐 때 대기 중인 저장(500ms debounce)을 즉시 실행 — 마지막 변경 유실 방지
+function flushPendingSave() {
+  if (!_savePending) return;
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  _savePending = false;
+  saveToStorage();
+}
+window.addEventListener('pagehide', flushPendingSave);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushPendingSave();
+});
+
+// v4.1.0: 다른 탭/창에서 데이터가 바뀌면 이 탭의 메모리 상태는 오래된 상태 — 그대로 저장하면 덮어쓰므로 새로고침해서 최신 데이터를 읽음
+var __externalWrite = false;
+var __extReloadScheduled = false;
+var __lastExtReload = 0; // 마지막 자동 새로고침 시각 (새로고침 후에도 유지되도록 sessionStorage에도 기록)
+try { __lastExtReload = parseInt(sessionStorage.getItem('pt_ext_reload_ts'), 10) || 0; } catch(e) {}
+function reloadForExternalWrite() {
+  // 대기 중인 저장은 버림 (오래된 상태로 다른 탭의 변경을 덮어쓰지 않도록)
+  _savePending = false;
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  __lastExtReload = Date.now();
+  try { sessionStorage.setItem('pt_ext_reload_ts', String(__lastExtReload)); } catch(e) {}
+  location.reload();
+}
+window.addEventListener('storage', function(e) {
+  // e.key === null 은 다른 탭에서 localStorage.clear()를 한 경우 (초기화) — 같은 방식으로 처리
+  if (e.key !== null && e.key !== STORAGE_KEY && e.key !== STORAGE_KEY_GZ) return;
+  if (e.key !== null && e.newValue === e.oldValue) return;
+  __externalWrite = true;
+  if (document.visibilityState !== 'visible') return; // 숨겨진 탭은 다시 보일 때 새로고침
+  if (__extReloadScheduled) return;
+  if (Date.now() - __lastExtReload < 60000) { // 새로고침 반복 방지: 1분에 한 번만 자동 새로고침
+    toast('⚠️ 다른 탭에서 데이터가 계속 바뀌고 있어요. 문제가 있으면 새로고침해 주세요', 'err');
+    return;
+  }
+  __extReloadScheduled = true;
+  toast('다른 탭에서 데이터가 변경되어 새로고침해요', 'ok');
+  setTimeout(reloadForExternalWrite, 800);
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && __externalWrite) reloadForExternalWrite();
+});
 
 function toast(msg, type) {
   const box = $('toastBox');
@@ -3652,6 +3698,8 @@ function isMobileDevice() {
 //   2) quota 초과 시 gzip 압축 후 base64로 STORAGE_KEY_GZ에 저장 (보통 5–10배 절약)
 //   3) 그것도 안 되면 차라리 저장 실패로 두고 명확한 토스트 — 옛 데이터는 그대로 유지
 async function saveToStorage() {
+  // v4.1.0: 기존 저장 데이터를 읽지 못한 상태에서는 저장하지 않음 (빈 상태로 원본을 덮어쓰는 것 방지)
+  if (__loadFailed) { console.warn('저장 차단: 기존 데이터를 읽지 못한 상태라 덮어쓰지 않아요'); return; }
   var buildTab = function(t) {
     return {
       id: t.id, name: t.name, group: t.group || '', sheetsUrl: t.sheetsUrl || '',
@@ -3677,7 +3725,10 @@ async function saveToStorage() {
 
   // 시도 1: 일반 JSON save
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    var __json = JSON.stringify(payload);
+    localStorage.setItem(STORAGE_KEY, __json);
+    // v4.1.0: 아티클이 하나라도 있으면 마지막 정상 데이터 복사본도 갱신 (빈 데이터면 갱신 안 함 → 이전 백업 보존)
+    try { if (hasAnyArticles(payload)) localStorage.setItem(STORAGE_KEY_BAK, __json); } catch(e) {}
     // 압축 백업 키가 남아있으면 정리 (정상 사이즈로 돌아온 케이스)
     try { localStorage.removeItem(STORAGE_KEY_GZ); } catch(e) {}
     return;
@@ -3712,6 +3763,18 @@ async function saveToStorage() {
   toast('❌ 저장 공간이 부족합니다! "💾 JSON 백업" 받고 옛 탭/메모를 정리해주세요!', 'err');
 }
 var saveData = saveToStorage; // alias for backward compatibility
+
+// v4.1.0: 저장 형식({tabs:[{articles:[...]}]})에 아티클이 하나라도 있는지 — 빈 데이터 판별용
+function hasAnyArticles(o) {
+  return !!(o && Array.isArray(o.tabs) && o.tabs.some(function(t) { return t && t.articles && t.articles.length > 0; }));
+}
+
+// v4.1.0: 저장 차단 해제 (새로 시작을 고르거나 백업 파일을 복원했을 때)
+function clearLoadFailed() {
+  __loadFailed = false;
+  var el = document.getElementById('loadFailedBanner');
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
 
 // 데이터 안전 배너 (v3.4.2): 모바일 사용자에게 cloud/JSON 백업 권장. 한 번 dismiss 후 표시 안 함.
 function maybeShowSafetyBanner() {
@@ -3748,16 +3811,18 @@ function dismissSafetyBanner() {
 
 async function loadFromStorage() {
   var obj = null;
+  var hadRaw = false; // v4.1.0: 저장된 원본 데이터가 있었는지 (있었는데 못 읽었다면 저장을 막기 위한 용도)
   // 1차: 일반 키
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) obj = JSON.parse(raw);
+    if (raw) { hadRaw = true; obj = JSON.parse(raw); }
   } catch(e) { console.error('Load(STORAGE_KEY) failed:', e); }
   // 2차: 압축 키 (v3.4.2 fallback save된 경우)
   if (!obj) {
     try {
       var wrappedRaw = localStorage.getItem(STORAGE_KEY_GZ);
       if (wrappedRaw) {
+        hadRaw = true; // v4.1.0
         var wrapped = JSON.parse(wrappedRaw);
         var b64 = wrapped && wrapped.data;
         var compressed = !!(wrapped && wrapped.__gz);
@@ -3770,7 +3835,28 @@ async function loadFromStorage() {
       }
     } catch(e) { console.error('Load(STORAGE_KEY_GZ) failed:', e); }
   }
-  if (!obj) return;
+  // v4.1.0: 일반/압축 키에서 아티클이 있는 데이터를 못 얻었으면, 마지막 정상 저장본(백업 키)을 복원할지 물어봄
+  //   (거절해도 백업은 지우지 않음 / 같은 세션에서는 다시 묻지 않음)
+  if (!hasAnyArticles(obj)) {
+    try {
+      var bakRaw = localStorage.getItem(STORAGE_KEY_BAK);
+      var bakDeclined = false;
+      try { bakDeclined = sessionStorage.getItem('pt_bak_declined') === '1'; } catch(e) {}
+      if (bakRaw && !bakDeclined) {
+        var bakObj = JSON.parse(bakRaw);
+        if (hasAnyArticles(bakObj)) {
+          if (confirm('이전에 자동 저장된 백업 데이터를 발견했어요. 복원할까요?')) {
+            obj = bakObj;
+            hadRaw = true;
+            __loadFailed = false;
+          } else {
+            try { sessionStorage.setItem('pt_bak_declined', '1'); } catch(e) {}
+          }
+        }
+      }
+    } catch(e) { console.error('Load(STORAGE_KEY_BAK) failed:', e); }
+  }
+  if (!obj) { if (hadRaw) __loadFailed = true; return; } // v4.1.0: 원본은 있었는데 못 읽은 경우 저장 차단
   try {
     if (obj.tabs) {
       obj.tabs.forEach(t => {
@@ -3816,6 +3902,10 @@ async function loadFromStorage() {
     }
     activeTabId = obj.activeId;
   } catch(e) { console.error('Load failed:', e); }
+  // v4.1.0: 원본 데이터가 있었는데 하나도(또는 일부만) 불러오지 못했다면 저장을 막아 덮어쓰기 방지
+  //   (tabs가 정상적인 빈 배열이면 '빈 상태'로 보고 막지 않음)
+  var __expectTabs = Array.isArray(obj.tabs) ? obj.tabs.length : -1;
+  if (hadRaw && (__expectTabs < 0 ? allTabs.length === 0 : allTabs.length < __expectTabs)) __loadFailed = true;
   // Load attendance
   try {
     var attRaw = localStorage.getItem(ATTENDANCE_KEY);
@@ -4044,6 +4134,7 @@ function restoreBackupSnapshot(backup, options) {
     : (backup.tabs.length > 0 ? backup.tabs[0].id : 'tab_home');
 
   if (typeof invalidateReadDateIndex === 'function') invalidateReadDateIndex();
+  clearLoadFailed(); // v4.1.0: 백업 파일로 명시적으로 복원했으니 저장 차단 해제
   saveToStorage();
   applyCustomTitle();
   renderTabs();
@@ -9548,6 +9639,23 @@ function isEmptyPlaceholderTab(tab) {
 // v3.4.2: loadFromStorage가 async가 됐으니 init 전체를 async IIFE로 감쌈
 (async function init() {
   try { await loadFromStorage(); } catch(e) { console.error('init load failed:', e); }
+
+  // v4.1.0: 가능하면 브라우저가 저장소를 임의로 비우지 않도록 영구 저장소 요청 (실패해도 무시)
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e) {}
+
+  // v4.1.0: 저장된 데이터를 읽지 못했다면 경고 — 덮어쓰기 방지를 위해 saveToStorage는 이미 막혀 있음
+  if (__loadFailed) {
+    toast('⚠️ 저장된 데이터를 읽지 못해서 저장을 멈췄어요', 'err');
+    if (confirm('저장된 데이터를 읽을 수 없어요. 백업 파일(JSON)이 있다면 설정에서 복원해 주세요.\n\n지금 "확인"을 누르면 새로 시작하며 기존 저장 데이터를 덮어쓸 수 있어요. "취소"를 누르면 저장을 멈춘 채로 둘러볼 수만 있어요.')) {
+      clearLoadFailed();
+    } else {
+      var __lfBanner = document.createElement('div');
+      __lfBanner.id = 'loadFailedBanner';
+      __lfBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:998;background:var(--red);color:#fff;padding:8px 12px;font-size:12px;font-weight:500;text-align:center;line-height:1.5';
+      __lfBanner.textContent = '⚠️ 저장된 데이터를 읽지 못해서 저장을 멈춘 상태예요. 지금 하는 변경은 저장되지 않아요. 백업 파일(JSON)이 있다면 복원해 주세요.';
+      document.body.appendChild(__lfBanner);
+    }
+  }
 
   // 기존 잔여 placeholder 조용히 제거 (있었던 경우만 saveToStorage)
   var __placeholderBefore = allTabs.length;
